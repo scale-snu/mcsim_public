@@ -1,0 +1,4 @@
+BASE="$(pwd)"
+export PIN=${BASE}/pin/pin
+export PINTOOL=${BASE}/Pthread/obj-intel64/mypthreadtool.so
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
