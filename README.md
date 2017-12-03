@@ -80,18 +80,18 @@ How to compile the simulator?
 
 2. Download the McSimA+ simulator at [Scalable Computer Architecture Laboratory](http://scale.snu.ac.kr/).
 
-		$ git clone https://bitbucket.org/scale_snu/mcsim_public 
+		$ git clone https://bitbucket.org/scale_snu/mcsim_private 
 
 
-3. Create a `Pin` symbolic link in the `mcsim_public` directory.
+3. Create a `Pin` symbolic link in the `mcsim_private` directory.
 
-		$ ln -s "$(pwd)"/pin-3.2-81205-gcc-linux mcsim_public/pin
+		$ ln -s "$(pwd)"/pin-3.2-81205-gcc-linux mcsim_private/pin
 
 
 3. Go to `McSim` and compile McSim. (To build the back-end, the 
   absolute path of `pin` header is required)
 
-		$ cd mcsim_public
+		$ cd mcsim_private
  		$ cd McSim
 		$ make INCS=-I"$(pwd)"/../pin/extras/xed-intel64/include/xed -j4
 
@@ -101,9 +101,6 @@ How to compile the simulator?
   the absolute path of `pin` root directory should be provided)
 
 		$ cd ../Pthread
-		
-		# Add the required library path to the flag 'TOOL_LDFLAGS', 
-		# path 'TOOL_LPATHS' in 'makefile.rule' file.
 
 		$ make PIN_ROOT="$(pwd)"/../pin obj-intel64/mypthreadtool.so -j4
 		$ make PIN_ROOT="$(pwd)"/../pin obj-intel64/libmypthread.a
@@ -136,7 +133,7 @@ run `stream` on top of the McSim framework,
 
 3. Add the absolute path of `stream` directory to `Apps/list/run-stream.py`
 
-		4 0 /home/djoh0967/mcsim_public/McSim/stream STREAM -p4 -n1048576 -r10 -s512
+		4 0 /home/djoh0967/mcsim_private/McSim/stream STREAM -p4 -n1048576 -r10 -s512
 
 
 4. Type the following command:
