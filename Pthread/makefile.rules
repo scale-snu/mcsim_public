@@ -76,9 +76,6 @@ TOOL_CXXFLAGS += -D_REENTRANT -Wl,--as-needed
 TOOL_LIBS += -pthread
 
 # Add the required library path to McSimA+
-TOOL_LDFLAGS += -I/scale/cal/home/djoh0967/library/usr/include
-TOOL_LPATHS += -L/scale/cal/home/djoh0967/library/usr/lib
-
 $(OBJDIR)PthreadUtil$(OBJ_SUFFIX): PthreadUtil.cpp
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
