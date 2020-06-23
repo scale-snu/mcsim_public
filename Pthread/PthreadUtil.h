@@ -45,7 +45,6 @@ END_LEGAL */
 #include <errno.h>
 
 #include <limits.h>
-#include <x86_64-linux-gnu/sys/cdefs.h>
 #include "mcsim_pthread.h"
 
 #include "PthreadAttr.h"
@@ -89,12 +88,12 @@ enum
   PTHREAD_MUTEX_DEFAULT = PTHREAD_MUTEX_NORMAL
 };
 
-extern int pthread_mutexattr_gettype (const pthread_mutexattr_t *__restrict __attr, int *__restrict __kind) __THROW __nonnull ((1, 2));
-extern int pthread_mutexattr_settype (pthread_mutexattr_t *__attr, int __kind) __THROW __nonnull ((1));
+extern int pthread_mutexattr_gettype (const pthread_mutexattr_t *__restrict __attr, int *__restrict __kind);
+extern int pthread_mutexattr_settype (pthread_mutexattr_t *__attr, int __kind);
 
-extern int pthread_attr_setdetachstate (pthread_attr_t *__attr, int __detachstate) __THROW __nonnull ((1));
-extern int pthread_attr_getstack (const pthread_attr_t *__restrict __attr, void **__restrict __stackaddr, size_t *__restrict __stacksize) __THROW __nonnull ((1, 2, 3));
-extern int pthread_attr_setstack (pthread_attr_t *__attr, void *__stackaddr, size_t __stacksize) __THROW __nonnull ((1));
+extern int pthread_attr_setdetachstate (pthread_attr_t *__attr, int __detachstate);
+extern int pthread_attr_getstack (const pthread_attr_t *__restrict __attr, void **__restrict __stackaddr, size_t *__restrict __stacksize);
+extern int pthread_attr_setstack (pthread_attr_t *__attr, void *__stackaddr, size_t __stacksize);
 
 extern int mock_pthread_exit();
 
