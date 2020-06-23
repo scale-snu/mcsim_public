@@ -57,6 +57,124 @@ PthreadScheduler::~PthreadScheduler()
 
 void PthreadScheduler::PlayTraces(const string & trace_name, uint64_t trace_skip_first)
 {
+  uint64_t num_sent_instrs = 0;
+  do
+  {
+    ifstream trace_file(trace_name.c_str(), ios::binary);
+    ifstream page_acc_file;
+    addr_perc.clear();
+    if (trace_file.fail())
+    {
+      cout << "failed to open " << trace_name << endl;
+      return;
+    }
+    if (agile_bank_th > 0 && agile_bank_th < 1)
+    {
+      string page_acc_file_name(trace_name);
+      page_acc_file_name = page_acc_file_name.substr(0, page_acc_file_name.rfind("."));
+      page_acc_file_name+= ".page.acc.sorted";
+      page_acc_file.open(page_acc_file_name.c_str());
+      if (page_acc_file.fail())
+      {
+        cout << "failed to open " << page_acc_file_name << endl;
+        return;
+      }
+      string line;
+      istringstream sline;
+      uint32_t num_line = 0;
+      uint64_t addr;
+      while (getline(page_acc_file, line))
+      {
+        if (line.empty() == true || line[0] == '#') continue;
+        sline.clear();
+        sline.str(line);
+        sline >> hex >> addr;
+        addr_perc.insert(pair<uint64_t, double>(addr >> page_sz_log2, ++num_line));
+      }
+      for (map<uint64_t, double>::iterator iter = addr_perc.begin(); iter != addr_perc.end(); ++iter)
+      {
+        iter->second = iter->second / num_line;
+      }
+    }
+
+    PTSInstrTrace * instrs = new PTSInstrTrace[instr_group_size];
+    const size_t maxCompressedLength = snappy::MaxCompressedLength(sizeof(PTSInstrTrace)*instr_group_size);
+    size_t * compressed_length = new size_t;
+    (*compressed_length) = 0;
+    char * compressed = new char[maxCompressedLength];
+
+    while (trace_file.eof() == false)
+    {
+      trace_file.read((char *)compressed_length, sizeof(size_t));
+      trace_file.read(compressed, *compressed_length);
+      if (snappy::RawUncompress(compressed, *compressed_length, (char *)instrs) == false)
+      {
+        cout << "file " << trace_name << " is corrupted" << endl;
+        trace_file.close();
+        return;
+      }
+      for (uint32_t i = 0; i < instr_group_size; i++)
+      {
+        PTSInstrTrace & curr_instr = instrs[i];
+        if (agile_bank_th >= 1.0)
+        {
+          if (curr_instr.raddr  != 0) curr_instr.raddr  |= ((uint64_t)1 << 63);
+          if (curr_instr.raddr2 != 0) curr_instr.raddr2 |= ((uint64_t)1 << 63);
+          if (curr_instr.waddr  != 0) curr_instr.waddr  |= ((uint64_t)1 << 63);
+        }
+        else if (agile_bank_th > 0)
+        {
+          if (curr_instr.raddr != 0 &&
+              addr_perc.find(curr_instr.raddr >> page_sz_log2) != addr_perc.end() &&
+              addr_perc[curr_instr.raddr >> page_sz_log2] < agile_bank_th)
+          {
+            curr_instr.raddr |= ((uint64_t)1 << 63);
+          }
+          if (curr_instr.raddr2 != 0 &&
+              addr_perc.find(curr_instr.raddr2 >> page_sz_log2) != addr_perc.end() &&
+              addr_perc[curr_instr.raddr2 >> page_sz_log2] < agile_bank_th)
+          {
+            curr_instr.raddr2 |= ((uint64_t)1 << 63);
+          }
+          if (curr_instr.waddr != 0 &&
+              addr_perc.find(curr_instr.waddr >> page_sz_log2) != addr_perc.end() &&
+              addr_perc[curr_instr.waddr >> page_sz_log2] < agile_bank_th)
+          {
+            curr_instr.waddr |= ((uint64_t)1 << 63);
+          }
+          if (curr_instr.ip != 0 &&
+              addr_perc.find(curr_instr.ip >> page_sz_log2) != addr_perc.end() &&
+              addr_perc[curr_instr.ip >> page_sz_log2] < agile_bank_th)
+          {
+            curr_instr.ip |= ((uint64_t)1 << 63);
+          }
+        }
+
+        if (num_sent_instrs++ >= trace_skip_first)
+        {
+          process_ins(
+              NULL,
+              curr_instr.ip,
+              curr_instr.raddr,
+              curr_instr.raddr2,
+              curr_instr.rlen,
+              curr_instr.waddr,
+              curr_instr.wlen,
+              curr_instr.isbranch,
+              curr_instr.isbranchtaken,
+              curr_instr.category,
+              curr_instr.rr0,
+              curr_instr.rr1,
+              curr_instr.rr2,
+              curr_instr.rr3,
+              curr_instr.rw0,
+              curr_instr.rw1,
+              curr_instr.rw2,
+              curr_instr.rw3);
+        }
+      }
+    }
+  } while (repeat_playing == true);
 }
 
 
