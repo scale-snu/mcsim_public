@@ -16,7 +16,7 @@ The released source includes these subdirectories:
 
 + `McSim`: Contain source codes for timing simulator (Back-end).
 + `Pthread`: Contain source code for functional simulator (Front-end).
-+ `Apps`: Contain runfile, mdfile and utilites.
++ `Apps`: Contain runfile, mdfile and utilities.
 
 
 Build requirements
@@ -25,7 +25,7 @@ McSimA+ was tested under the following.
 
 + OS        : Ubuntu 16.04.3 LTS (Kernel 4.4.0)
 + Compiler  : gcc version 5.4.0
-+ Tool		  : Intel Pin 3.2
++ Tool		  : Intel Pin 3.7
 
 To build the McSimA+ simulator on Linux system first install
 the required packages with the following command:
@@ -74,18 +74,18 @@ How to compile the simulator?
 
 1. Download the Pin at [Pin - A Binary Instrumentation Tool](https://software.intel.com/en-us/articles/pin-a-binary-instrumentation-tool-downloads).
 
-		$ wget http://software.intel.com/sites/landingpage/pintool/downloads/pin-3.2-81205-gcc-linux.tar.gz
-		$ tar -xvf pin-3.2-81205-gcc-linux.tar.gz
+		$ wget https://software.intel.com/sites/landingpage/pintool/downloads/pin-3.7-97619-g0d0c92f4f-gcc-linux.tar.gz 
+		$ tar -xvf pin-3.7-97619-g0d0c92f4f-gcc-linux.tar.gz 
 
 
-2. Download the McSimA+ simulator at [Scalable Computer Architecture Laboratory](http://scale.snu.ac.kr/).
+2. Download the McSimA+ simulator at [Scalable Computer Architecture Laboratory](http://scale.snu.ac.kr/). The URL to the repository might be different from the example command below:
 
 		$ git clone https://bitbucket.org/scale_snu/mcsim_private 
 
 
 3. Create a `Pin` symbolic link in the `mcsim_private` directory.
 
-		$ ln -s "$(pwd)"/pin-3.2-81205-gcc-linux mcsim_private/pin
+		$ ln -s "$(pwd)"/pin-3.7-97619-g0d0c92f4f-gcc-linux mcsim_private/pin
 
 
 3. Go to `McSim` and compile McSim. (To build the back-end, the 
@@ -133,7 +133,7 @@ run `stream` on top of the McSim framework,
 
 3. Add the absolute path of `stream` directory to `Apps/list/run-stream.py`
 
-		4 0 /home/djoh0967/mcsim_private/McSim/stream STREAM -p4 -n1048576 -r10 -s512
+		4 0 /home/djoh0967/mcsim_private/McSim/stream STREAM -p4 -n1048576 -r2 -s512
 
 
 4. Type the following command:
