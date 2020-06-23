@@ -139,7 +139,7 @@ namespace PinPthread
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadAttrDestroy,
-          IARG_G_ARG0_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -147,8 +147,8 @@ namespace PinPthread
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadAttrGetdetachstate,
-          IARG_G_ARG0_CALLEE,
-          IARG_G_ARG1_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -156,8 +156,8 @@ namespace PinPthread
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadAttrGetstackaddr,
-          IARG_G_ARG0_CALLEE,
-          IARG_G_ARG1_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -165,8 +165,8 @@ namespace PinPthread
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadAttrGetstacksize,
-          IARG_G_ARG0_CALLEE,
-          IARG_G_ARG1_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -174,9 +174,9 @@ namespace PinPthread
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadAttrGetstack,
-          IARG_G_ARG0_CALLEE,
-          IARG_G_ARG1_CALLEE,
-          IARG_G_ARG2_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -184,7 +184,7 @@ namespace PinPthread
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadAttrInit,
-          IARG_G_ARG0_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -192,8 +192,8 @@ namespace PinPthread
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadAttrSetdetachstate,
-          IARG_G_ARG0_CALLEE,
-          IARG_G_ARG1_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -201,9 +201,9 @@ namespace PinPthread
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadAttrSetstackaddr,
-          IARG_G_ARG0_CALLEE,
-          IARG_G_ARG1_CALLEE,
-          IARG_G_ARG2_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -211,8 +211,8 @@ namespace PinPthread
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadAttrSetstacksize,
-          IARG_G_ARG0_CALLEE,
-          IARG_G_ARG1_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -220,9 +220,9 @@ namespace PinPthread
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadAttrSetstack,
-          IARG_G_ARG0_CALLEE,
-          IARG_G_ARG1_CALLEE,
-          IARG_G_ARG2_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -230,7 +230,7 @@ namespace PinPthread
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadCancel,
-          IARG_G_ARG0_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -239,22 +239,22 @@ namespace PinPthread
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadCleanupPop,
           IARG_CONTEXT,
-          IARG_G_ARG0_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
           IARG_END);
     }
     rtn = RTN_FindByName(img, "pthread_cleanup_push");
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadCleanupPush,
-          IARG_G_ARG0_CALLEE,
-          IARG_G_ARG1_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
           IARG_END);
     }
     rtn = RTN_FindByName(img, "pthread_condattr_destroy");
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadCondattrDestroy,
-          IARG_G_ARG0_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -262,8 +262,8 @@ namespace PinPthread
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadCondattrInit,
-          IARG_G_ARG0_CALLEE,
-          IARG_G_ARG1_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -271,7 +271,7 @@ namespace PinPthread
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadCondBroadcast,
-          IARG_G_ARG0_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -279,7 +279,7 @@ namespace PinPthread
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadCondDestroy,
-          IARG_G_ARG0_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -287,8 +287,8 @@ namespace PinPthread
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadCondInit,
-          IARG_G_ARG0_CALLEE,
-          IARG_G_ARG1_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -296,7 +296,7 @@ namespace PinPthread
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadCondSignal,
-          IARG_G_ARG0_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -305,9 +305,9 @@ namespace PinPthread
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadCondTimedwait,
           IARG_CONTEXT,
-          IARG_G_ARG0_CALLEE,
-          IARG_G_ARG1_CALLEE,
-          IARG_G_ARG2_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -316,8 +316,8 @@ namespace PinPthread
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadCondWait,
           IARG_CONTEXT,
-          IARG_G_ARG0_CALLEE,
-          IARG_G_ARG1_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -326,17 +326,17 @@ namespace PinPthread
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadCreate,
           IARG_CONTEXT,
-          IARG_G_ARG0_CALLEE,
-          IARG_G_ARG1_CALLEE,
-          IARG_G_ARG2_CALLEE,
-          IARG_G_ARG3_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 3,
           IARG_END);
     }
     rtn = RTN_FindByName(img, "pthread_detach");
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadDetach,
-          IARG_G_ARG0_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -344,8 +344,8 @@ namespace PinPthread
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadEqual,
-          IARG_G_ARG0_CALLEE,
-          IARG_G_ARG1_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -355,7 +355,7 @@ namespace PinPthread
       cerr << "mock_pthread_exit" << endl;
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadExit,
           IARG_CONTEXT,
-          IARG_G_ARG0_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
           IARG_END);
     }
     /*rtn = RTN_FindByName(img, "pthread_exit");
@@ -364,15 +364,15 @@ namespace PinPthread
       cerr << "mypthreadtool.cpp: pthread_exit" << endl;
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadExit,
       IARG_CONTEXT,
-      IARG_G_ARG0_CALLEE,
+      IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
       IARG_END);
       }*/
     rtn = RTN_FindByName(img, "pthread_getattr");
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadGetattr,
-          IARG_G_ARG0_CALLEE,
-          IARG_G_ARG1_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -380,7 +380,7 @@ namespace PinPthread
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadGetspecific,
-          IARG_G_ARG0_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -389,16 +389,16 @@ namespace PinPthread
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadJoin,
           IARG_CONTEXT,
-          IARG_G_ARG0_CALLEE,    
-          IARG_G_ARG1_CALLEE,                       
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
           IARG_END);
     }
     rtn = RTN_FindByName(img, "pthread_key_create");
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadKeyCreate,
-          IARG_G_ARG0_CALLEE,
-          IARG_G_ARG1_CALLEE, 
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -406,7 +406,7 @@ namespace PinPthread
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadKeyDelete,
-          IARG_G_ARG0_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -414,8 +414,8 @@ namespace PinPthread
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadKill,
-          IARG_G_ARG0_CALLEE,
-          IARG_G_ARG1_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -423,7 +423,7 @@ namespace PinPthread
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadMutexattrDestroy,
-          IARG_G_ARG0_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -431,8 +431,8 @@ namespace PinPthread
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadMutexattrGetkind,
-          IARG_G_ARG0_CALLEE,
-          IARG_G_ARG1_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -440,8 +440,8 @@ namespace PinPthread
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadMutexattrGetkind,
-          IARG_G_ARG0_CALLEE,
-          IARG_G_ARG1_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -449,7 +449,7 @@ namespace PinPthread
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadMutexattrInit,
-          IARG_G_ARG0_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -457,8 +457,8 @@ namespace PinPthread
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadMutexattrSetkind,
-          IARG_G_ARG0_CALLEE,
-          IARG_G_ARG1_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -466,8 +466,8 @@ namespace PinPthread
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadMutexattrSetkind,
-          IARG_G_ARG0_CALLEE,
-          IARG_G_ARG1_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -475,7 +475,7 @@ namespace PinPthread
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadMutexDestroy,
-          IARG_G_ARG0_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -483,8 +483,8 @@ namespace PinPthread
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadMutexInit,
-          IARG_G_ARG0_CALLEE,
-          IARG_G_ARG1_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -493,7 +493,7 @@ namespace PinPthread
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadMutexLock,
           IARG_CONTEXT,
-          IARG_G_ARG0_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -501,7 +501,7 @@ namespace PinPthread
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadMutexTrylock,
-          IARG_G_ARG0_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -509,7 +509,7 @@ namespace PinPthread
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadMutexUnlock,
-          IARG_G_ARG0_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -518,8 +518,8 @@ namespace PinPthread
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadOnce,
           IARG_CONTEXT,
-          IARG_G_ARG0_CALLEE,
-          IARG_G_ARG1_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
           IARG_END);
     }
     rtn = RTN_FindByName(img, "pthread_self");
@@ -533,8 +533,8 @@ namespace PinPthread
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadSetcancelstate,
-          IARG_G_ARG0_CALLEE,
-          IARG_G_ARG1_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -542,8 +542,8 @@ namespace PinPthread
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadSetcanceltype,
-          IARG_G_ARG0_CALLEE,
-          IARG_G_ARG1_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -551,8 +551,8 @@ namespace PinPthread
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadSetspecific,
-          IARG_G_ARG0_CALLEE,
-          IARG_G_ARG1_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -560,8 +560,8 @@ namespace PinPthread
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadSetspecific,
-          IARG_G_ARG0_CALLEE,
-          IARG_G_ARG1_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -576,9 +576,9 @@ namespace PinPthread
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadBarrierInit,
-          IARG_G_ARG0_CALLEE,
-          IARG_G_ARG1_CALLEE,
-          IARG_G_ARG2_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -586,7 +586,7 @@ namespace PinPthread
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadBarrierDestroy,
-          IARG_G_ARG0_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -595,7 +595,7 @@ namespace PinPthread
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadBarrierWait,
           IARG_CONTEXT,
-          IARG_G_ARG0_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -603,7 +603,7 @@ namespace PinPthread
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadBarrierattrInit,
-          IARG_G_ARG0_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -611,7 +611,7 @@ namespace PinPthread
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadBarrierattrDestory,
-          IARG_G_ARG0_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -619,8 +619,8 @@ namespace PinPthread
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadBarrierattrGetpshared,
-          IARG_G_ARG0_CALLEE,
-          IARG_G_ARG1_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -628,8 +628,8 @@ namespace PinPthread
     if (rtn != RTN_Invalid())
     {
       RTN_ReplaceSignature(rtn, (AFUNPTR)CallPthreadBarrierattrSetpshared,
-          IARG_G_ARG0_CALLEE,
-          IARG_G_ARG1_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
           IARG_RETURN_REGS, REG_GAX,
           IARG_END);
     }
@@ -686,7 +686,7 @@ namespace PinPthread
     {
       TRACE_InsertCall(trace, IPOINT_BEFORE, (AFUNPTR)CallPthreadExit,
           IARG_CONTEXT,
-          IARG_G_ARG0_CALLEE,
+          IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
           IARG_END);
     }
     else if (!INS_IsAddedForFunctionReplacement(BBL_InsHead(TRACE_BblHead(trace)))) 
@@ -699,8 +699,8 @@ namespace PinPthread
           {
             INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)ProcessCall,
                 IARG_BRANCH_TARGET_ADDR,
-                IARG_G_ARG0_CALLER,
-                IARG_G_ARG1_CALLER,
+                IARG_FUNCARG_CALLSITE_VALUE, 0,
+                IARG_FUNCARG_CALLSITE_VALUE, 1,
                 IARG_BOOL, false,
                 IARG_END);
           }
@@ -714,8 +714,8 @@ namespace PinPthread
               BOOL tailcall = !INS_IsCall(ins);
               INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)ProcessCall,
                   IARG_ADDRINT, target,
-                  IARG_G_ARG0_CALLER,
-                  IARG_G_ARG1_CALLER,
+                  IARG_FUNCARG_CALLSITE_VALUE, 0,
+                  IARG_FUNCARG_CALLSITE_VALUE, 1,
                   IARG_BOOL, tailcall,
                   IARG_END);
             }
