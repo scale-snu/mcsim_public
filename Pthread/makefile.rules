@@ -40,7 +40,7 @@ APP_ROOTS :=
 # This defines any additional object files that need to be compiled.
 OBJECT_ROOTS := mypthreadtool PthreadUtil PthreadAttr PthreadOnce PthreadKey PthreadMutexAttr PthreadMutex \
     PthreadBarrier PthreadCondAttr PthreadCond PthreadCleanup PthreadCancel PthreadJoin PthreadMalloc \
-    EEPthreadSim EEPthreadScheduler PTS
+    EEPthreadSim EEPthreadScheduler PTS mcsim_snappy
 
 # This defines any additional dlls (shared objects), other than the pintools, that need to be compiled.
 DLL_ROOTS :=
@@ -127,11 +127,14 @@ $(OBJDIR)EEPthreadScheduler$(OBJ_SUFFIX): EEPthreadScheduler.cpp
 $(OBJDIR)PTS$(OBJ_SUFFIX): PTS.cpp
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
+$(OBJDIR)mcsim_snappy$(OBJ_SUFFIX): mcsim_snappy.cpp
+	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
+
 $(OBJDIR)mypthreadtool$(OBJ_SUFFIX): mypthreadtool.cpp
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
 # Build the tool as a dll (shared object).
-$(OBJDIR)mypthreadtool$(PINTOOL_SUFFIX): $(OBJDIR)PthreadMalloc$(OBJ_SUFFIX) $(OBJDIR)PthreadCancel$(OBJ_SUFFIX) $(OBJDIR)PthreadCondAttr$(OBJ_SUFFIX) $(OBJDIR)PthreadCleanup$(OBJ_SUFFIX) $(OBJDIR)PthreadCond$(OBJ_SUFFIX) $(OBJDIR)PthreadCondAttr$(OBJ_SUFFIX) $(OBJDIR)PthreadMutex$(OBJ_SUFFIX) $(OBJDIR)PthreadMutexAttr$(OBJ_SUFFIX) $(OBJDIR)PthreadOnce$(OBJ_SUFFIX) $(OBJDIR)PthreadUtil$(OBJ_SUFFIX) $(OBJDIR)PthreadJoin$(OBJ_SUFFIX) $(OBJDIR)PthreadAttr$(OBJ_SUFFIX) $(OBJDIR)PthreadKey$(OBJ_SUFFIX) $(OBJDIR)PthreadBarrier$(OBJ_SUFFIX) $(OBJDIR)EEPthreadScheduler$(OBJ_SUFFIX) $(OBJDIR)EEPthreadSim$(OBJ_SUFFIX) $(OBJDIR)PTS$(OBJ_SUFFIX) $(OBJDIR)mypthreadtool$(OBJ_SUFFIX) 
+$(OBJDIR)mypthreadtool$(PINTOOL_SUFFIX): $(OBJDIR)PthreadMalloc$(OBJ_SUFFIX) $(OBJDIR)PthreadCancel$(OBJ_SUFFIX) $(OBJDIR)PthreadCondAttr$(OBJ_SUFFIX) $(OBJDIR)PthreadCleanup$(OBJ_SUFFIX) $(OBJDIR)PthreadCond$(OBJ_SUFFIX) $(OBJDIR)PthreadCondAttr$(OBJ_SUFFIX) $(OBJDIR)PthreadMutex$(OBJ_SUFFIX) $(OBJDIR)PthreadMutexAttr$(OBJ_SUFFIX) $(OBJDIR)PthreadOnce$(OBJ_SUFFIX) $(OBJDIR)PthreadUtil$(OBJ_SUFFIX) $(OBJDIR)PthreadJoin$(OBJ_SUFFIX) $(OBJDIR)PthreadAttr$(OBJ_SUFFIX) $(OBJDIR)PthreadKey$(OBJ_SUFFIX) $(OBJDIR)PthreadBarrier$(OBJ_SUFFIX) $(OBJDIR)EEPthreadScheduler$(OBJ_SUFFIX) $(OBJDIR)EEPthreadSim$(OBJ_SUFFIX) $(OBJDIR)PTS$(OBJ_SUFFIX) $(OBJDIR)mcsim_snappy$(OBJ_SUFFIX) $(OBJDIR)mypthreadtool$(OBJ_SUFFIX) 
 	$(LINKER) $(TOOL_LDFLAGS) $(LINK_EXE)$@ $(^:%.h=) $(TOOL_LPATHS) $(TOOL_LIBS)
 
 
