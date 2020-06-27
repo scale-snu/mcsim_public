@@ -51,22 +51,23 @@ the required packages with the following command:
   ```
 
 + `elfutils`:
-
-		$ wget https://fedorahosted.org/releases/e/l/elfutils/0.161/elfutils-0.161.tar.bz2
-		$ tar -xvf elfutils-0.161.tar.bz2
-		$ cd elfutils-0.161
-		$ ./configure --prefix=$HOME
-		$ make
-		$ make install
-		$ export COMPILER_PATH=/usr/bin
-
+  ```sh
+  $ wget https://fedorahosted.org/releases/e/l/elfutils/0.161/elfutils-0.161.tar.bz2
+  $ tar -xvf elfutils-0.161.tar.bz2
+  $ cd elfutils-0.161
+  $ ./configure --prefix=$HOME
+  $ make
+  $ make install
+  $ export COMPILER_PATH=/usr/bin
+  ```
 
 + `libdwarf`:
-
-		$ git clone git://libdwarf.git.sourceforge.net/gitroot/libdwarf/libdwarf
-		$ cd libdwarf
-		$ ./configure --enable-shared
-		$ make
+  ```sh
+  $ git clone git://libdwarf.git.sourceforge.net/gitroot/libdwarf/libdwarf
+  $ cd libdwarf
+  $ ./configure --enable-shared
+  $ make
+  ```
 
 + [gflags][gflags]
   - Check [this](https://github.com/gflags/gflags/blob/master/INSTALL.md) how-to-install guide.
@@ -77,38 +78,40 @@ How to compile the simulator?
 -----------------------------
 
 1. Download the Pin at [Pin - A Binary Instrumentation Tool](https://software.intel.com/en-us/articles/pin-a-binary-instrumentation-tool-downloads).
-
-		$ wget https://software.intel.com/sites/landingpage/pintool/downloads/pin-3.7-97619-g0d0c92f4f-gcc-linux.tar.gz 
-		$ tar -xvf pin-3.7-97619-g0d0c92f4f-gcc-linux.tar.gz 
-
+```sh
+$ wget https://software.intel.com/sites/landingpage/pintool/downloads/pin-3.7-97619-g0d0c92f4f-gcc-linux.tar.gz 
+$ tar -xvf pin-3.7-97619-g0d0c92f4f-gcc-linux.tar.gz 
+```
 
 2. Download the McSimA+ simulator at [Scalable Computer Architecture Laboratory](http://scale.snu.ac.kr/). The URL to the repository might be different from the example command below:
-
-		$ git clone https://github.com/scale-snu/mcsim_private.git 
-
+```sh
+$ git clone https://github.com/scale-snu/mcsim_private.git 
+```
 
 3. Create a `Pin` symbolic link in the `mcsim_private` directory.
-
-		$ ln -s "$(pwd)"/pin-3.7-97619-g0d0c92f4f-gcc-linux mcsim_private/pin
-
+```sh
+$ ln -s "$(pwd)"/pin-3.7-97619-g0d0c92f4f-gcc-linux mcsim_private/pin
+```
 
 3. Go to `McSim` and compile McSim. (To build the back-end, the 
   absolute path of `pin` header is required)
-
-		$ cd mcsim_private
- 		$ cd McSim
-		$ make INCS=-I"$(pwd)"/../pin/extras/xed-intel64/include/xed -j4
-
+```sh
+$ cd mcsim_private/McSim
+$ mkdir build
+$ cmake ..
+$ cmake --build .  -- -j
+```
 
 4. Go to `Pthread` and compile the user-level thread library pin 
   tool [2] (called `mypthreadtool`) as a dynamic library. (To build the front-end, 
   the absolute path of `pin` root directory should be provided)
 
-		$ cd ../Pthread
+```sh
+$ cd ../Pthread
 
-		$ make PIN_ROOT="$(pwd)"/../pin obj-intel64/mypthreadtool.so -j4
-		$ make PIN_ROOT="$(pwd)"/../pin obj-intel64/libmypthread.a
-
+$ make PIN_ROOT="$(pwd)"/../pin obj-intel64/mypthreadtool.so -j4
+$ make PIN_ROOT="$(pwd)"/../pin obj-intel64/libmypthread.a
+```
 
 How to use the simulator?
 -------------------------
@@ -117,33 +120,36 @@ is similar to the popular stream benchmark that adds two streams.  To
 run `stream` on top of the McSim framework,
 
 1. Go to McSim/stream and compile stream.
-
-		$ cd ../McSim/stream
-		$ make
-
+```sh
+$ cd ../McSim/stream
+$ make
+```
 
 2. Add directories containing `pin` and `mypthreadtool` to the
    `$PATH` environment variable.
 
-		$ cd ../../
-		$ source bash_setup
+```sh
+$ cd ../../
+$ source bash_setup
 
-		# 'bash_setup' file is written as follows.
-		BASE="$(pwd)"
-		export PIN=${BASE}/pin/pin
-		export PINTOOL=${BASE}/Pthread/obj-intel64/mypthreadtool.so
-		export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
-		
+# 'bash_setup' file is written as follows.
+BASE="$(pwd)"
+export PIN=${BASE}/pin/pin
+export PINTOOL=${BASE}/Pthread/obj-intel64/mypthreadtool.so
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
+```		
 
 3. Add the absolute path of `stream` directory to `Apps/list/run-stream.py`
 
-		4 0 /home/djoh0967/mcsim_private/McSim/stream STREAM -p4 -n1048576 -r2 -s512
-
+```
+4 0 /home/djoh0967/mcsim_private/McSim/stream STREAM -p4 -n1048576 -r2 -s512
+```
 
 4. Type the following command:
 
-		$ ./McSim/mcsim -mdfile Apps/md/asymmetric-o3-closed.py -runfile Apps/list/run-stream.py
-
+```
+$ ./McSim/build/mcsim -mdfile Apps/md/asymmetric-o3-closed.py -runfile Apps/list/run-stream.py
+```
 
 Setting the configuration of the architecture
 ---------------------------------------------
