@@ -19,13 +19,14 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 
+#include <gflags/gflags.h>
+
 using namespace std;
 using namespace PinPthread;
 
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/mman.h>
-
 
 struct Programs
 {
@@ -41,61 +42,28 @@ struct Programs
   int pid;
 };
 
+DEFINE_string(mdfile, "md.toml", "Machine Description file: TOML format is used.");
+DEFINE_string(runfile, "run.toml", "How to run applications: TOML format is used.");
+DEFINE_string(instrs_skip, "0", "Number of instructions to skip before timing simulation starts.");
+DEFINE_bool(run_manually, false, "Whether to run the McSimA+ frontend manually or not.");
+DEFINE_string(remapfile, "remap.toml", "Mapping between apps and cores: TOML format used.");
+DEFINE_uint64(remap_interval, 0, "When positive, this specifies the number of instructions \
+after which a remapping between apps and cores are conducted.");
 
 int main(int argc, char * argv[])
 {
+  string usage{"McSimA+ backend\n"};
+  usage += string{argv[0]} + " -mdfile mdfile -runfile runfile -run_manually -remapfile remapfile -remap_interval instrs";
+  gflags::SetUsageMessage(usage);
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
+
   string line, temp;
   istringstream sline;
-  string mdfile;
-  string runfile;
-  string instrs_skip;
-  bool   run_manually = false;
-  uint64_t remap_interval = 0;
   uint32_t nactive = 0;
-  string remapfile;
   struct timeval start, finish;
   gettimeofday(&start, NULL);
-  for (int i = 0; i < argc; i++)
-  {
-    if (argv[i] == string("-mdfile"))
-    {
-      i++;
-      mdfile = argv[i];
-    }
-    else if (argv[i] == string("-runfile"))
-    {
-      i++;
-      runfile = argv[i];
-    }
-    else if (argv[i] == string("-instrs_skip"))
-    {
-      i++;
-      instrs_skip = argv[i];
-    }
-    else if (argv[i] == string("-h"))
-    {
-      cout << argv[0] << " -mdfile mdfile -runfile runfile -run_manually -remapfile remapfile -remap_interval instrs" << endl;
-      exit(1);
-    }
-    else if (argv[i] == string("-run_manually"))
-    {
-      run_manually = true;
-    }
-    else if (argv[i] == string("-remap_interval"))
-    {
-      i++;
-      sline.clear();
-      sline.str(string(argv[i]));
-      sline >> remap_interval;
-    }
-    else if (argv[i] == string("-remapfile"))
-    {
-      i++;
-      remapfile = argv[i];
-    }
-  }
 
-  PthreadTimingSimulator * pts = new PthreadTimingSimulator(mdfile);
+  PthreadTimingSimulator * pts = new PthreadTimingSimulator(FLAGS_mdfile);
   string pin_name;
   string pintool_name;
   string ld_library_path_full;
@@ -108,10 +76,10 @@ int main(int argc, char * argv[])
   int32_t           interleave_base_bit = pts->get_param_uint64("pts.mc.interleave_base_bit", 14);
   bool              kill_with_sigint = pts->get_param_str("kill_with_sigint") == "true" ? true : false;
 
-  ifstream fin(runfile.c_str());
+  ifstream fin(FLAGS_runfile.c_str());
   if (fin.good() == false)
   {
-    cout << "failed to open the runfile " << runfile << endl;
+    cout << "failed to open the runfile " << FLAGS_runfile << endl;
     exit(1);
   }
 
@@ -242,7 +210,7 @@ int main(int argc, char * argv[])
   if (offset > pts->get_num_hthreads())
   {
     cout << "more threads (" << offset << ") than the number of threads (" 
-      << pts->get_num_hthreads() << ") specified in " << mdfile << endl;
+      << pts->get_num_hthreads() << ") specified in " << FLAGS_mdfile << endl;
     exit(1);
   }
 
@@ -252,7 +220,7 @@ int main(int argc, char * argv[])
     exit(1);
   }
 
-  if (run_manually == false)
+  if (FLAGS_run_manually == false)
   {
     cout << "in case when the program exits with an error, please run the following command" << endl;
     cout << "kill -9 ";
@@ -323,7 +291,7 @@ int main(int argc, char * argv[])
         argp[curr_argc++] = (char *)"-trace_name";
         argp[curr_argc++] = (char *)programs[i].trace_name.c_str();
         argp[curr_argc++] = (char *)"-trace_skip_first";
-        argp[curr_argc++] = (char *)instrs_skip.c_str();
+        argp[curr_argc++] = (char *)FLAGS_instrs_skip.c_str();
 
         if (programs[i].prog_n_argv.size() > 1)
         {
@@ -354,7 +322,7 @@ int main(int argc, char * argv[])
       }
       argp[curr_argc++] = NULL;
 
-      if (run_manually == true)
+      if (FLAGS_run_manually == true)
       {
         int jdx = 0;
         while (argp[jdx] != NULL)
@@ -372,24 +340,24 @@ int main(int argc, char * argv[])
     }
     else 
     {
-      if (run_manually == false)
+      if (FLAGS_run_manually == false)
       {
         cout << pID << " ";
       }
       programs[i].pid = pID;
     }
   }
-  if (run_manually == false)
+  if (FLAGS_run_manually == false)
   {
     cout << endl << flush;
   }
 
-  if (remap_interval != 0)
+  if (FLAGS_remap_interval != 0)
   {
-    fin.open(remapfile.c_str());
+    fin.open(FLAGS_remapfile.c_str());
     if (fin.good() == false)
     {
-      cout << "failed to open the remapfile " << remapfile << endl;
+      cout << "failed to open the remapfile " << FLAGS_remapfile << endl;
       exit(1);
     }
   }
@@ -454,9 +422,9 @@ int main(int argc, char * argv[])
       }
     }
 
-    if (remap_interval > 0 && 
+    if (FLAGS_remap_interval > 0 && 
         pts_m->type == pts_resume_simulation &&
-        pts->mcsim->num_fetched_instrs/remap_interval > old_total_instrs/remap_interval)
+        pts->mcsim->num_fetched_instrs/FLAGS_remap_interval > old_total_instrs/FLAGS_remap_interval)
     {
       old_total_instrs = pts->mcsim->num_fetched_instrs;
 
