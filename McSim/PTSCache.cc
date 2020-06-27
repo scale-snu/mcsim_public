@@ -450,7 +450,7 @@ uint32_t CacheL1::process_event(uint64_t curr_time)
   }
   else
   {
-    bool any_request = false;
+    // bool any_request = false;
 
     for (uint32_t i = 0; i < num_banks; i++)
     {
@@ -458,7 +458,7 @@ uint32_t CacheL1::process_event(uint64_t curr_time)
       {
         continue;
       }
-      any_request = true;
+      // any_request = true;
 
       req_lqe = req_qs[/*i*/0].front();
       req_qs[/*i*/0].pop();

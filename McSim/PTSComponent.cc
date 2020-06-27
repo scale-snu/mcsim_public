@@ -139,7 +139,7 @@ string Component::get_param_str(const string & param) const
 
 uint32_t Component::log2(uint64_t num)
 {
-  ASSERTX(num > 0);
+  ASSERTX(num);
   uint32_t log2 = 0;
 
   while (num > 1)

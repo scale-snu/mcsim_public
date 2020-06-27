@@ -35,7 +35,8 @@ set(SRC_FILES
   main.cc)
 
 include_directories( ${INCL_DIR} )
-add_compile_options( -Wno-unknown-pragmas -DTARGET_IA32E)
+#add_compile_options( -Wno-unknown-pragmas -DTARGET_IA32E -Wall -Weffc++ -Wextra -Wsign-conversion )
+add_compile_options( -Wno-unknown-pragmas -DTARGET_IA32E -Wall )
 set(CMAKE_CXX_FLAGS_DEBUG "-ggdb -g -O0 -fPIC")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -g")
 
