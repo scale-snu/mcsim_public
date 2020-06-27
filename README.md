@@ -80,7 +80,7 @@ How to compile the simulator?
 
 2. Download the McSimA+ simulator at [Scalable Computer Architecture Laboratory](http://scale.snu.ac.kr/). The URL to the repository might be different from the example command below:
 
-		$ git clone https://bitbucket.org/scale_snu/mcsim_private 
+		$ git clone https://github.com/scale-snu/mcsim_private.git 
 
 
 3. Create a `Pin` symbolic link in the `mcsim_private` directory.
