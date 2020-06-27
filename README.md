@@ -23,32 +23,32 @@ Build requirements
 ------------------
 McSimA+ was tested under the following.
 
-+ OS        : Ubuntu 16.04.3 LTS (Kernel 4.4.0)
-+ Compiler  : gcc version 5.4.0
-+ Tool		  : Intel Pin 3.7
++ OS: Ubuntu 16.04.3 LTS (Kernel 4.4.0)
++ Compiler: gcc version 5.4.0
++ Tool: Intel Pin 3.7
 
 To build the McSimA+ simulator on Linux system first install
 the required packages with the following command:
 
 + `libelf`: 
-
-		$ wget https://launchpad.net/ubuntu/+archive/primary/+files/libelf_0.8.13.orig.tar.gz
-		$ tar -zxvf libelf_0.8.13.orig.tar.gz
-		$ cd libelf-0.8.13.orig/
-		$ ./configure
-		$ make
-		$ make install
-
+  ```sh
+  $ wget https://launchpad.net/ubuntu/+archive/primary/+files/libelf_0.8.13.orig.tar.gz
+  $ tar -zxvf libelf_0.8.13.orig.tar.gz
+  $ cd libelf-0.8.13.orig/
+  $ ./configure
+  $ make
+  $ make install
+  ```
 
 + `m4`:
-
-		$ wget http://ftp.gnu.org/gnu/m4/m4-1.4.18.tar.gz
-		$ tar -zxvf m4-1.4.18.tar.gz
-		$ cd m4-1.4.18/
-		$ ./configure
-		$ make
- 		$ make install
-
+  ```sh
+  $ wget http://ftp.gnu.org/gnu/m4/m4-1.4.18.tar.gz
+  $ tar -zxvf m4-1.4.18.tar.gz
+  $ cd m4-1.4.18/
+  $ ./configure
+  $ make
+  $ make install
+  ```
 
 + `elfutils`:
 
@@ -68,6 +68,10 @@ the required packages with the following command:
 		$ ./configure --enable-shared
 		$ make
 
++ [gflags][gflags]
+  - Check [this](https://github.com/gflags/gflags/blob/master/INSTALL.md) how-to-install guide.
+
+[gflags]: https://gflags.github.io/gflags/
 
 How to compile the simulator?
 -----------------------------
@@ -195,13 +199,13 @@ Frequently Asked Questions (FAQ)
 --------------------------------
 
 Q: While compiling McSimA+, I have the following error message. How can I solve it?
-```
+```bash
 /usr/local/bin/ld: unrecognized option '--hash-style=both' 
 /usr/local/bin/ld: use the --help option for usage information
 collect2: ld returned 1 exit status
 ```
 
 A: Type the following command and recompile 'McSimA+'
-```
+```bash
 $ export COMPILER_PATH=/usr/bin
 ```
