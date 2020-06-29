@@ -1,3 +1,7 @@
-McSim/build
-Pthread/obj-intel64
 **/cscope.out
+**/pin.log
+McSim/build
+McSim/stream/*.o
+McSim/stream/STREAM
+Pthread/obj-intel64
+pin

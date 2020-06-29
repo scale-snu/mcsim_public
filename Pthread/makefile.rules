@@ -112,9 +112,6 @@ $(OBJDIR)PthreadCond$(OBJ_SUFFIX): PthreadCond.cpp
 $(OBJDIR)PthreadCleanup$(OBJ_SUFFIX): PthreadCleanup.cpp
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
-$(OBJDIR)PthreadCondAttr$(OBJ_SUFFIX): PthreadCondAttr.cpp
-	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
-
 $(OBJDIR)PthreadMalloc$(OBJ_SUFFIX): PthreadMalloc.cpp
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 

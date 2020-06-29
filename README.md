@@ -110,8 +110,7 @@ $ cmake --build .  -- -j
 ```sh
 $ cd ../Pthread
 
-$ make PIN_ROOT="$(pwd)"/../pin obj-intel64/mypthreadtool.so -j4
-$ make PIN_ROOT="$(pwd)"/../pin obj-intel64/libmypthread.a
+$ make PIN_ROOT="$(pwd)"/../pin obj-intel64/mypthreadtool.so -j
 ```
 
 How to use the simulator?
