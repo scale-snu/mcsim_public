@@ -6,15 +6,16 @@
 using namespace PinPthread;
 using namespace std;
 
+
 /* --------------------------------------------------------------------------- */
 /* PthreadSim Constructor and Destructor:                                      */
 /* --------------------------------------------------------------------------- */
 
-PthreadSim::PthreadSim(uint32_t argc, char** argv) :
-  new_thread_id(0), scheduler(NULL), skip_first(0), first_instrs(0), pid(0), total_num(0),
+PthreadSim::PthreadSim(int32_t argc, char** argv) :
+  new_thread_id(0), pid(0), scheduler(NULL), skip_first(0), first_instrs(0), total_num(0),
   tmp_shared(), trace_name(), trace_skip_first(0), agile_bank_th(0.0)
 {
-  for (uint32_t i = 0; i < argc; i++)
+  for (int32_t i = 0; i < argc; i++)
   {
     if (argv[i] == string("-pid"))
     {
@@ -68,7 +69,7 @@ PthreadSim::PthreadSim(uint32_t argc, char** argv) :
   }
 
   cout << "  -- cmd: ";
-  for (uint32_t i = 0; i < argc; i++)
+  for (int32_t i = 0; i < argc; i++)
   {
     cout << argv[i] << " ";
   }

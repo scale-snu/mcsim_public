@@ -60,7 +60,7 @@ namespace PinPthread
   class PthreadSim 
   {
     public:
-      PthreadSim(uint32_t argc, char** argv);
+      PthreadSim(int32_t argc, char** argv);
       ~PthreadSim();
     public:
       int   pthread_cancel(pthread_t);
@@ -112,11 +112,12 @@ namespace PinPthread
     private:
       pthread_t new_thread_id;               // the id to assign to the next new thread
       PthreadMalloc* mallocmanager;          // ensure thread-safe memory allocation
+
+      uint32_t          pid;
     public:
       PthreadScheduler* scheduler;           // schedule the threads
       uint64_t          skip_first;
       uint64_t          first_instrs;
-      uint32_t          pid;
       uint32_t          total_num;
       char *            tmp_shared;
       string            trace_name;

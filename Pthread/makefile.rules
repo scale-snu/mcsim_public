@@ -72,7 +72,7 @@ SANITY_SUBSET := $(TEST_TOOL_ROOTS) $(TEST_ROOTS)
 #
 ##############################################################
 # Build the intermediate object file.
-TOOL_CXXFLAGS += -D_REENTRANT -Wl,--as-needed
+TOOL_CXXFLAGS += -D_REENTRANT -Wl,--as-needed -std=c++11
 TOOL_LIBS += -pthread
 
 # Add the required library path to McSimA+

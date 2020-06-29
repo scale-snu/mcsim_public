@@ -98,6 +98,7 @@ $ ln -s "$(pwd)"/pin-3.7-97619-g0d0c92f4f-gcc-linux mcsim_private/pin
 ```sh
 $ cd mcsim_private/McSim
 $ mkdir build
+$ cd build
 $ cmake ..
 $ cmake --build .  -- -j
 ```

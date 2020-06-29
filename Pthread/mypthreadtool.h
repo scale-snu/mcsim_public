@@ -62,7 +62,7 @@ namespace PinPthread
   /* Function Declarations                                          */
   /* -------------------------------------------------------------- */
 
-  VOID  Init(UINT32, char**);
+  VOID  Init(INT32, char**);
   VOID  Fini(INT32, VOID*);
   VOID  FlagImgUnload(IMG, VOID*);
   VOID  FlagImg(IMG, VOID*);

@@ -22,7 +22,7 @@ int main(int argc, char** argv)
 
 namespace PinPthread
 {
-  VOID Init(uint32_t argc, char** argv) 
+  VOID Init(int32_t argc, char** argv) 
   {
     pthreadsim = new PthreadSim(argc, argv);
   }
