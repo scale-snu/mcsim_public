@@ -91,7 +91,7 @@ void PthreadScheduler::PlayTraces(const string & trace_name, uint64_t trace_skip
         sline >> hex >> addr;
         addr_perc.insert(pair<uint64_t, double>(addr >> page_sz_log2, ++num_line));
       }
-      for (map<uint64_t, double>::iterator iter = addr_perc.begin(); iter != addr_perc.end(); ++iter)
+      for (auto iter = addr_perc.begin(); iter != addr_perc.end(); ++iter)
       {
         iter->second = iter->second / num_line;
       }
@@ -619,7 +619,7 @@ Pthread::~Pthread()
 
 pthread_queue_t::iterator PthreadScheduler::GetThreadPtr(pthread_t thread) 
 {
-  pthread_queue_t::iterator threadptr = pthreads.find(thread);
+  auto threadptr = pthreads.find(thread);
   ASSERTX(threadptr != pthreads.end());
   return threadptr;
 }
@@ -642,7 +642,7 @@ bool PthreadScheduler::IsActive(pthread_queue_t::iterator threadptr)
 
 void PthreadScheduler::SetActiveState(pthread_t thread, bool active) 
 {
-  pthread_queue_t::iterator threadptr = GetThreadPtr(thread);
+  auto threadptr = GetThreadPtr(thread);
   (threadptr->second)->active = active;
   pts->set_active(threadptr->first, (threadptr->second)->active);
 }

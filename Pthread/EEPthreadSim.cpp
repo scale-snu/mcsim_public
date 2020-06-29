@@ -12,7 +12,7 @@ using namespace std;
 /* --------------------------------------------------------------------------- */
 
 PthreadSim::PthreadSim(int32_t argc, char** argv) :
-  new_thread_id(0), pid(0), scheduler(NULL), skip_first(0), first_instrs(0), total_num(0),
+  new_thread_id(0), pid(0), scheduler(nullptr), skip_first(0), first_instrs(0), total_num(0),
   tmp_shared(), trace_name(), trace_skip_first(0), agile_bank_th(0.0)
 {
   for (int32_t i = 0; i < argc; i++)
@@ -88,11 +88,11 @@ void PthreadSim::initiate(CONTEXT * ctxt)
   mutexmanager   = new PthreadMutexManager();
   tlsmanager     = new PthreadTLSManager(); 
   barriermanager = new PthreadBarrierManager();
-  pthread_create(NULL, NULL, NULL, 0, 0);
+  pthread_create(nullptr, nullptr, nullptr, 0, 0);
   scheduler->set_stack(ctxt);
   scheduler->agile_bank_th = agile_bank_th;
 
-  if (trace_name.size() > 0 && scheduler != NULL)
+  if (trace_name.size() > 0 && scheduler != nullptr)
   {
     scheduler->PlayTraces(trace_name, trace_skip_first);
     delete scheduler;
@@ -120,7 +120,7 @@ void PthreadSim::initiate(CONTEXT * ctxt)
       sline >> hex >> addr;
       scheduler->addr_perc.insert(pair<uint64_t, double>(addr >> scheduler->page_sz_log2, ++num_line));
     }
-    for (map<uint64_t, double>::iterator iter = scheduler->addr_perc.begin(); iter != scheduler->addr_perc.end(); ++iter)
+    for (auto iter = scheduler->addr_perc.begin(); iter != scheduler->addr_perc.end(); ++iter)
     {
       iter->second = iter->second / num_line;
     }
@@ -130,7 +130,7 @@ void PthreadSim::initiate(CONTEXT * ctxt)
 
 PthreadSim::~PthreadSim() 
 {
-  if (scheduler != NULL)
+  if (scheduler != nullptr)
   {
     delete scheduler;
     delete joinmanager;
@@ -152,7 +152,7 @@ PthreadSim::~PthreadSim()
 
 int PthreadSim::pthread_cancel(pthread_t thread) 
 {
-  assert(scheduler != NULL);
+  assert(scheduler != nullptr);
   if (scheduler->current->second->executed == false)
   {
     scheduler->current->second->executed = true;
@@ -192,7 +192,7 @@ int PthreadSim::pthread_cancel(pthread_t thread)
 
 void PthreadSim::pthread_cleanup_pop_(int execute, CONTEXT* ctxt) 
 {
-  assert(scheduler != NULL);
+  assert(scheduler != nullptr);
   cleanupmanager->PopHandler(scheduler->GetCurrentThread(), execute, ctxt);
 }
 
@@ -204,7 +204,7 @@ void PthreadSim::pthread_cleanup_pop_(int execute, CONTEXT* ctxt)
 
 void PthreadSim::pthread_cleanup_push_(ADDRINT routine, ADDRINT arg) 
 {
-  assert(scheduler != NULL);
+  assert(scheduler != nullptr);
   cleanupmanager->PushHandler(scheduler->GetCurrentThread(), routine, arg);
 }
 
@@ -216,7 +216,7 @@ void PthreadSim::pthread_cleanup_push_(ADDRINT routine, ADDRINT arg)
 
 int PthreadSim::pthread_cond_broadcast(pthread_cond_t* cond) 
 {
-  assert(scheduler != NULL);
+  assert(scheduler != nullptr);
   if (scheduler->current->second->executed == false)
   {
     scheduler->current->second->executed = true;
@@ -254,7 +254,7 @@ int PthreadSim::pthread_cond_broadcast(pthread_cond_t* cond)
 
 int PthreadSim::pthread_cond_destroy(pthread_cond_t* cond) 
 {
-  assert(scheduler != NULL);
+  assert(scheduler != nullptr);
   if (scheduler->current->second->executed == false)
   {
     scheduler->current->second->executed = true;
@@ -278,7 +278,7 @@ int PthreadSim::pthread_cond_destroy(pthread_cond_t* cond)
 
 int PthreadSim::pthread_cond_signal(pthread_cond_t* cond) 
 {
-  assert(scheduler != NULL);
+  assert(scheduler != nullptr);
   if (scheduler->current->second->executed == false)
   {
     scheduler->current->second->executed = true;
@@ -316,7 +316,7 @@ int PthreadSim::pthread_cond_signal(pthread_cond_t* cond)
 void PthreadSim::pthread_cond_timedwait(pthread_cond_t* cond, pthread_mutex_t* mutex,
     const struct timespec* abstime, CONTEXT * context)
 {
-  assert(scheduler != NULL);
+  assert(scheduler != nullptr);
   if (scheduler->current->second->executed == false)
   {
     scheduler->current->second->executed = true;
@@ -336,7 +336,7 @@ void PthreadSim::pthread_cond_timedwait(pthread_cond_t* cond, pthread_mutex_t* m
 void PthreadSim::pthread_cond_wait(pthread_cond_t* cond, pthread_mutex_t* mutex,
     CONTEXT * context)
 {
-  assert(scheduler != NULL);
+  assert(scheduler != nullptr);
   if (scheduler->current->second->executed == false)
   {
     scheduler->current->second->executed = true;
@@ -363,12 +363,12 @@ void PthreadSim::pthread_create(pthread_t* thread, pthread_attr_t* _attr,
     CONTEXT* startctxt,
     ADDRINT func, ADDRINT arg)
 {
-  assert(scheduler != NULL);
+  assert(scheduler != nullptr);
 #if VERBOSE
   std::cout << "Create Thread " << dec << new_thread_id << "\n" << flush;
 #endif
   pthread_attr_t attr;
-  if (_attr != NULL) 
+  if (_attr != nullptr) 
   {
     attr = *_attr;
   }
@@ -380,7 +380,7 @@ void PthreadSim::pthread_create(pthread_t* thread, pthread_attr_t* _attr,
   joinmanager->AddThread(new_thread_id, &attr);
   cancelmanager->AddThread(new_thread_id);
   tlsmanager->AddThread(new_thread_id);
-  if (thread != NULL) 
+  if (thread != nullptr) 
   {
     *thread = new_thread_id;
   }
@@ -395,7 +395,7 @@ void PthreadSim::pthread_create(pthread_t* thread, pthread_attr_t* _attr,
 
 int PthreadSim::pthread_detach(pthread_t thread) 
 {
-  assert(scheduler != NULL);
+  assert(scheduler != nullptr);
   if (scheduler->current->second->executed == false)
   {
     scheduler->current->second->executed = true;
@@ -420,7 +420,7 @@ int PthreadSim::pthread_detach(pthread_t thread)
 int PthreadSim::pthread_equal(pthread_t thread1, pthread_t thread2) 
 {
   //cerr << "PthreadSim::pthread_equal(pthread_t thread1, pthread_t thread2);" << endl;
-  assert(scheduler != NULL);
+  assert(scheduler != nullptr);
   return ((thread1 == thread2) ? 1 : 0);
 }
 
@@ -432,7 +432,7 @@ int PthreadSim::pthread_equal(pthread_t thread1, pthread_t thread2)
 
 void PthreadSim::pthread_exit(void* retval, CONTEXT* ctxt) 
 {
-  assert(scheduler != NULL);
+  assert(scheduler != nullptr);
   if (scheduler->current->second->executed == false)
   {
     scheduler->current->second->executed = true;
@@ -462,7 +462,7 @@ void PthreadSim::pthread_exit(void* retval, CONTEXT* ctxt)
 
 int PthreadSim::pthread_getattr(pthread_t th, pthread_attr_t* _attr) 
 {
-  assert(scheduler != NULL);
+  assert(scheduler != nullptr);
   /* NYI: detachstate, schedpolicy, inheritsched, scope */
   pthread_attr_t attr = PthreadAttr::PTHREAD_ATTR_DEFAULT();
   scheduler->GetAttr(th, &attr);
@@ -478,7 +478,7 @@ int PthreadSim::pthread_getattr(pthread_t th, pthread_attr_t* _attr)
 
 void* PthreadSim::pthread_getspecific(pthread_key_t key) 
 {
-  assert(scheduler != NULL);
+  assert(scheduler != nullptr);
   pthread_t current = scheduler->GetCurrentThread();
   return tlsmanager->GetData(current, key);
 }
@@ -491,7 +491,7 @@ void* PthreadSim::pthread_getspecific(pthread_key_t key)
 
 void PthreadSim::pthread_join(pthread_t th, void** thread_return, CONTEXT* ctxt) 
 {
-  assert(scheduler != NULL);
+  assert(scheduler != nullptr);
   if (scheduler->current->second->executed == false)
   {
     scheduler->current->second->executed = true;
@@ -516,13 +516,13 @@ void PthreadSim::pthread_join(pthread_t th, void** thread_return, CONTEXT* ctxt)
 
 int PthreadSim::pthread_key_create(pthread_key_t* key, void(*func)(void*)) 
 {
-  assert(scheduler != NULL);
+  assert(scheduler != nullptr);
   if (scheduler->current->second->executed == false)
   {
     scheduler->current->second->executed = true;
     return 0;
   }
-  ASSERTX(key != NULL);
+  ASSERTX(key != nullptr);
   int error = tlsmanager->AddKey(key, func);
 #if VERBOSE
   std::cout << "Thread " << dec << scheduler->GetCurrentThread()
@@ -538,7 +538,7 @@ int PthreadSim::pthread_key_create(pthread_key_t* key, void(*func)(void*))
 
 int PthreadSim::pthread_key_delete(pthread_key_t key) 
 {
-  assert(scheduler != NULL);
+  assert(scheduler != nullptr);
   if (scheduler->current->second->executed == false)
   {
     scheduler->current->second->executed = true;
@@ -557,7 +557,7 @@ int PthreadSim::pthread_key_delete(pthread_key_t key)
 
 int PthreadSim::pthread_kill(pthread_t thread, int signo) 
 {
-  assert(scheduler != NULL);
+  assert(scheduler != nullptr);
   if (scheduler->current->second->executed == false)
   {
     scheduler->current->second->executed = true;
@@ -568,8 +568,8 @@ int PthreadSim::pthread_kill(pthread_t thread, int signo)
 #endif
   if (scheduler->IsThreadValid(thread) && (signo != 0))
   {
-    cancelmanager->SetState(thread, PTHREAD_CANCEL_ENABLE, NULL);
-    cancelmanager->SetType(thread, PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
+    cancelmanager->SetState(thread, PTHREAD_CANCEL_ENABLE, nullptr);
+    cancelmanager->SetType(thread, PTHREAD_CANCEL_ASYNCHRONOUS, nullptr);
     pthread_cancel(thread);
     return 0;
   }
@@ -587,7 +587,7 @@ int PthreadSim::pthread_kill(pthread_t thread, int signo)
 int PthreadSim::pthread_mutex_lock(pthread_mutex_t* mutex, CONTEXT *ctxt)
 {
   //cerr << "PthreadSim::pthread_mutex_lock(pthread_mutex_t* mutex, CONTEXT *ctxt)" << endl;
-  assert(scheduler != NULL);
+  assert(scheduler != nullptr);
   if (scheduler->current->second->executed == false)
   {
     scheduler->current->second->executed = true;
@@ -616,7 +616,7 @@ int PthreadSim::pthread_mutex_lock(pthread_mutex_t* mutex, CONTEXT *ctxt)
 int PthreadSim::pthread_mutex_trylock(pthread_mutex_t* mutex) 
 {
   //cerr << "PthreadSim::pthread_mutex_trylock(pthread_mutex_t* mutex)" << endl;
-  assert(scheduler != NULL);
+  assert(scheduler != nullptr);
   if (scheduler->current->second->executed == false)
   {
     scheduler->current->second->executed = true;
@@ -639,7 +639,7 @@ int PthreadSim::pthread_mutex_trylock(pthread_mutex_t* mutex)
 int PthreadSim::pthread_mutex_unlock(pthread_mutex_t* mutex) 
 {
   //cerr << "PthreadSim::pthread_mutex_unlock(pthread_mutex_t* mutex)" << endl;
-  assert(scheduler != NULL);
+  assert(scheduler != nullptr);
   if (scheduler->current->second->executed == false)
   {
     scheduler->current->second->executed = true;
@@ -666,7 +666,7 @@ int PthreadSim::pthread_mutex_unlock(pthread_mutex_t* mutex)
 
 pthread_t PthreadSim::pthread_self() 
 {
-  assert(scheduler != NULL);
+  assert(scheduler != nullptr);
   return scheduler->GetCurrentThread();
 }
 
@@ -677,7 +677,7 @@ pthread_t PthreadSim::pthread_self()
 
 int PthreadSim::pthread_setcancelstate(int newstate, int* oldstate) 
 {
-  assert(scheduler != NULL);
+  assert(scheduler != nullptr);
   return cancelmanager->SetState(scheduler->GetCurrentThread(), newstate, oldstate);
 }
 
@@ -688,7 +688,7 @@ int PthreadSim::pthread_setcancelstate(int newstate, int* oldstate)
 
 int PthreadSim::pthread_setcanceltype(int newtype, int* oldtype) 
 {
-  assert(scheduler != NULL);
+  assert(scheduler != nullptr);
   return cancelmanager->SetType(scheduler->GetCurrentThread(), newtype, oldtype);
 }
 
@@ -699,7 +699,7 @@ int PthreadSim::pthread_setcanceltype(int newtype, int* oldtype)
 
 int PthreadSim::pthread_setspecific(pthread_key_t key, void* data) 
 {
-  assert(scheduler != NULL);
+  assert(scheduler != nullptr);
   pthread_t current = scheduler->GetCurrentThread();
   return tlsmanager->SetData(current, key, data);
 }
@@ -711,7 +711,7 @@ int PthreadSim::pthread_setspecific(pthread_key_t key, void* data)
 
 void PthreadSim::pthread_testcancel(CONTEXT* ctxt) 
 {
-  assert(scheduler != NULL);
+  assert(scheduler != nullptr);
   if (scheduler->current->second->executed == false)
   {
     scheduler->current->second->executed = true;
@@ -734,7 +734,7 @@ void PthreadSim::pthread_testcancel(CONTEXT* ctxt)
 
 bool PthreadSim::inmtmode() 
 {
-  assert(scheduler != NULL);
+  assert(scheduler != nullptr);
   return (scheduler->GetNumActiveThreads() > 1);
 }
 
@@ -745,7 +745,7 @@ bool PthreadSim::inmtmode()
 
 void PthreadSim::docontextswitch(const CONTEXT * ctxt)
 {
-  assert(scheduler != NULL);
+  assert(scheduler != nullptr);
   if (mallocmanager->CanSwitchThreads()) 
   {
     scheduler->BlockThread(scheduler->GetCurrentThread(), ctxt);
@@ -768,7 +768,7 @@ void PthreadSim::process_ins(
     uint32_t rr0, uint32_t rr1, uint32_t rr2, uint32_t rr3,
     uint32_t rw0, uint32_t rw1, uint32_t rw2, uint32_t rw3)
 {
-  assert(scheduler != NULL);
+  assert(scheduler != nullptr);
   if (mallocmanager->CanSwitchThreads())
   {
     scheduler->process_ins(
@@ -791,7 +791,7 @@ void PthreadSim::process_ins(
 
 void PthreadSim::mcsim_skip_instrs_begin()
 {
-  assert(scheduler != NULL);
+  assert(scheduler != nullptr);
   if (scheduler->current->second->executed == false)
   { //cout << "mcsim_skip_instrs_begin(): excuted = true" << endl;
     scheduler->current->second->executed = true;
@@ -805,7 +805,7 @@ void PthreadSim::mcsim_skip_instrs_begin()
 
 void PthreadSim::mcsim_skip_instrs_end()
 {
-  assert(scheduler != NULL);
+  assert(scheduler != nullptr);
   if (scheduler->current->second->executed == false)
   { //cout << "mcsim_skip_instrs_end(): executed = false" << endl;
     scheduler->current->second->executed = true;
@@ -819,7 +819,7 @@ void PthreadSim::mcsim_skip_instrs_end()
 
 void PthreadSim::mcsim_spinning_begin()
 {
-  assert(scheduler != NULL);
+  assert(scheduler != nullptr);
   if (scheduler->current->second->executed == false)
   {
     scheduler->current->second->executed = true;
@@ -833,7 +833,7 @@ void PthreadSim::mcsim_spinning_begin()
 
 void PthreadSim::mcsim_spinning_end()
 {
-  assert(scheduler != NULL);
+  assert(scheduler != nullptr);
   if (scheduler->current->second->executed == false)
   {
     scheduler->current->second->executed = true;
@@ -847,7 +847,7 @@ void PthreadSim::mcsim_spinning_end()
 
 void PthreadSim::set_stack(CONTEXT * ctxt)
 {
-  if (scheduler == NULL) return;
+  if (scheduler == nullptr) return;
   scheduler->set_stack(ctxt);
 }
 
@@ -861,7 +861,7 @@ void PthreadSim::set_stack(CONTEXT * ctxt)
 void PthreadSim::threadsafemalloc(bool iscall, bool istailcall,
     const string* rtn_name)
 {
-  if (scheduler == NULL) return;
+  if (scheduler == nullptr) return;
   mallocmanager->Analyze(scheduler->GetCurrentThread(),
       iscall, istailcall, rtn_name);
 }
@@ -872,7 +872,7 @@ int PthreadSim::pthread_barrier_init(
     pthread_barrierattr_t * barrierattr,
     unsigned int num)
 {
-  assert(scheduler != NULL);
+  assert(scheduler != nullptr);
   if (scheduler->current->second->executed == false)
   {
     scheduler->current->second->executed = true;
@@ -887,7 +887,7 @@ int PthreadSim::pthread_barrier_init(
 
 int PthreadSim::pthread_barrier_destroy(pthread_barrier_t * barrier)
 {
-  assert(scheduler != NULL);
+  assert(scheduler != nullptr);
   if (scheduler->current->second->executed == false)
   {
     scheduler->current->second->executed = true;
@@ -904,7 +904,7 @@ int PthreadSim::pthread_barrier_wait(
     pthread_barrier_t * barrier,
     CONTEXT * ctxt)
 {
-  assert(scheduler != NULL);
+  assert(scheduler != nullptr);
   if (/*scheduler->nactive > 1 &&*/ scheduler->current->second->executed == false)
   {
     scheduler->current->second->executed = true;
