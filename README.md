@@ -151,6 +151,40 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
 $ ./McSim/build/mcsim -mdfile Apps/md/asymmetric-o3-closed.py -runfile Apps/list/run-stream.py
 ```
 
+How to play the trace file
+--------------------------
+McSimA+ supports trace-driven simulation. `TraceGen` executes the
+program using Pin, and extracts proper values corresponding to
+instructions and addresses to the snappy file. In order to generate
+snappy files and play traces, try the following example:
+
+1. Generate a snappy file extracted form `/bin/ls`.
+
+# 'TraceGen' has following options.
+-prefix #: the name of the output snappy file
+-slice_size # p1 p2 .. : SLICE_SIZE and simulation points to extract (p1 p2 ..)
+
+```
+$ ./pin/pin -t TraceGen/obj-intel64/tracegen.so -prefix test -slice_size 100000 0 -- /bin/ls /
+```
+
+2. Generate a runfile for the trace file to `Apps/list` in the following format.
+
+```sh
+$ mv test.0.snappy /tmp
+$ vim Apps/list/run-trace.py
+
+# 'run_trace.py' file is written as follows.
+# format: 0 (abs. path of trace file) (abs. path of dummy program) (dummy program)
+0 /tmp/test.0.snappy /bin/ ls
+```
+
+3. To play the trace file, Type the following command:
+
+```
+$ ./McSim/mcsim -mdfile Apps/md/asymmetric-o3-closed.py -runfile Apps/list/run-trace.py
+```
+
 Setting the configuration of the architecture
 ---------------------------------------------
 You can change the configureation of the architecture you will 
