@@ -188,9 +188,9 @@ void Crossbar::add_rep_event(
 
 uint32_t Crossbar::process_event(uint64_t curr_time)
 {
-  std::multimap<uint64_t, EventPair>::iterator req_event_iter = req_events.begin();
-  std::multimap<uint64_t, EventPair>::iterator rep_event_iter = rep_events.begin();
-  std::multimap<uint64_t, EventPair>::iterator crq_event_iter = crq_events.begin();
+  auto req_event_iter = req_events.begin();
+  auto rep_event_iter = rep_events.begin();
+  auto crq_event_iter = crq_events.begin();
 
   while (rep_event_iter != rep_events.end() && rep_event_iter->first == curr_time)
   {
@@ -244,7 +244,7 @@ uint32_t Crossbar::process_event(uint64_t curr_time)
     idx += ((clockwise == true) ? i : (0-i));
     idx %= num_ports;
 
-    std::multimap<noc_priority, EventPair>::iterator iter = queues[idx].begin();
+    auto iter = queues[idx].begin();
     if (iter != queues[idx].end())
     {
       if (already_sent[iter->second.second->num] == false)
@@ -585,6 +585,7 @@ void Mesh2D::process_qs(
       curr_qs = & crq_qs;
       break;
     case noc_req:
+    default:
       curr_qs = & req_qs;
       break;
   }
@@ -631,6 +632,7 @@ void Mesh2D::process_qs(
       }
       break;
     case noc_req:
+    default:
       {
       uint32_t which_mc = geq->which_mc(curr_q.first->address);
       col = mc_pos[which_mc] % num_cols;
@@ -1015,8 +1017,8 @@ void Ring::process_qs(
   vector< vector< multimap<uint64_t, EventPair > > > * curr_qs;
   Directory * to_dir = NULL;
   CacheL2   * to_l2  = NULL;
-  uint32_t  target_pos;
-  uint32_t  target_port_num;
+  uint32_t  target_pos = 0;
+  uint32_t  target_port_num = 0;
 
   switch (queue_type)
   {
@@ -1027,6 +1029,7 @@ void Ring::process_qs(
       curr_qs = & crq_qs;
       break;
     case noc_req:
+    default:
       curr_qs = & req_qs;
       break;
   }

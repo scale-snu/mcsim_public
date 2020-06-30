@@ -86,7 +86,7 @@ void TLBL1::add_req_event(
 
 uint32_t TLBL1::process_event(uint64_t curr_time)
 {
-  multimap<uint64_t, LocalQueueElement *>::iterator req_event_iter = req_event.begin();
+  auto req_event_iter = req_event.begin();
 
   LocalQueueElement * req_lqe = NULL;
   // event -> queue

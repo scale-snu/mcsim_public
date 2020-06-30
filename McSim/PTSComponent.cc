@@ -189,12 +189,12 @@ uint32_t GlobalEventQueue::process_event()
 
   while (true)
   {
-    event_queue_t::iterator event_queue_iter = event_queue.begin();
+    auto event_queue_iter = event_queue.begin();
 
     if (event_queue_iter != event_queue.end())
     {
       curr_time = event_queue_iter->first;
-      std::set<Component *>::iterator comp_iter = event_queue_iter->second.begin();
+      auto comp_iter = event_queue_iter->second.begin();
       if (comp_iter == event_queue_iter->second.end())
       {
         display();  ASSERTX(0);
@@ -299,7 +299,7 @@ uint32_t GlobalEventQueue::process_event()
 
 void GlobalEventQueue::display()
 {
-  event_queue_t::iterator event_queue_iter = event_queue.begin();
+  auto event_queue_iter = event_queue.begin();
 
   cout << "  -- global event queue : at cycle = " << curr_time << endl;
 
@@ -307,7 +307,7 @@ void GlobalEventQueue::display()
   {
     cout << event_queue_iter->first << ", ";
 
-    std::set<Component *>::iterator comp_iter = event_queue_iter->second.begin();
+    auto comp_iter = event_queue_iter->second.begin();
     while (comp_iter != event_queue_iter->second.end())
     {
       cout << "(" << (*comp_iter)->type << ", "

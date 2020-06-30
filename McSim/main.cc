@@ -1,32 +1,28 @@
+#include <fcntl.h>
+#include <fstream>
 #include <iostream>
 #include <iomanip>
-#include <fstream>
-#include <string>
+#include <signal.h>
 #include <sstream>
+#include <stdlib.h>
+#include <stdint.h>
+#include <string>
+#include <string.h>
+#include <unistd.h>
+#include <wait.h>
+#include <arpa/inet.h>
+#include <gflags/gflags.h>
+#include <netinet/in.h>
+#include <sys/mman.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/time.h>
+
 #include "PTS.h"
 #include "McSim.h"
-#include <unistd.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <arpa/inet.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <sys/types.h>
-#include <signal.h>
-#include <wait.h>
-#include <sys/time.h>
-#include <fcntl.h>
-#include <sys/mman.h>
-
-#include <gflags/gflags.h>
 
 using namespace std;
 using namespace PinPthread;
-
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/mman.h>
 
 struct Programs
 {
@@ -50,10 +46,12 @@ DEFINE_string(remapfile, "remap.toml", "Mapping between apps and cores: TOML for
 DEFINE_uint64(remap_interval, 0, "When positive, this specifies the number of instructions \
 after which a remapping between apps and cores are conducted.");
 
+
 int main(int argc, char * argv[])
 {
   string usage{"McSimA+ backend\n"};
-  usage += string{argv[0]} + " -mdfile mdfile -runfile runfile -run_manually -remapfile remapfile -remap_interval instrs";
+  usage += string{argv[0]} + " -mdfile mdfile -runfile runfile -run_manually" +
+           "-remapfile remapfile -remap_interval instrs";
   gflags::SetUsageMessage(usage);
   gflags::ParseCommandLineFlags(&argc, &argv, true);
 
@@ -63,7 +61,7 @@ int main(int argc, char * argv[])
   struct timeval start, finish;
   gettimeofday(&start, NULL);
 
-  PthreadTimingSimulator * pts = new PthreadTimingSimulator(FLAGS_mdfile);
+  auto pts = new PthreadTimingSimulator(FLAGS_mdfile);
   string pin_name;
   string pintool_name;
   string ld_library_path_full;

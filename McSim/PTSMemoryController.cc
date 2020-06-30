@@ -231,12 +231,12 @@ MemoryController::~MemoryController()
 
   if (display_os_page_usage == true)
   {
-    for(map<uint64_t, uint64_t>::iterator iter = os_page_acc_dist.begin(); iter != os_page_acc_dist.end(); ++iter)
+    for(auto && iter : os_page_acc_dist)
     {
-      cout << "  -- page 0x" << setfill('0') << setw(8) << hex << iter->first * (1 << page_sz_base_bit)
+      cout << "  -- page 0x" << setfill('0') << setw(8) << hex << iter.first * (1 << page_sz_base_bit)
            << setfill(' ') << dec << " is accessed (" 
-           << setw(7) << mcsim->os_page_req_dist[iter->first]
-           << ", " << setw(7) << iter->second << ") times at (Core, MC)." <<  endl;
+           << setw(7) << mcsim->os_page_req_dist[iter.first]
+           << ", " << setw(7) << iter.second << ") times at (Core, MC)." <<  endl;
     }
   }
 }
@@ -288,7 +288,7 @@ void MemoryController::add_req_event(
   // update access distribution
   num_reqs++;
   uint64_t page_num = (local_event->address >> page_sz_base_bit);
-  map<uint64_t, uint64_t>::iterator p_iter = os_page_acc_dist_curr.find(page_num);
+  auto p_iter = os_page_acc_dist_curr.find(page_num);
 
   if (p_iter != os_page_acc_dist_curr.end())
   {
@@ -358,7 +358,7 @@ void MemoryController::show_state(uint64_t curr_time)
   }
 
 
-  map<uint64_t, mc_bank_action>::iterator miter = dp_status.begin();
+  auto miter = dp_status.begin();
 
   while (miter != dp_status.end())
   {
@@ -401,7 +401,7 @@ uint32_t MemoryController::process_event(uint64_t curr_time)
   vector<LocalQueueElement *>::iterator iter, iter2;
 
   int32_t c_idx    = -1;                                       // candidate index
-  vector<LocalQueueElement *>::iterator c_iter = req_l.end();
+  auto c_iter = req_l.end();
   bool    page_hit = false;
   int32_t num_req_from_the_same_thread = req_l.size() + 1;
 
@@ -855,7 +855,7 @@ uint32_t MemoryController::process_event(uint64_t curr_time)
 
 bool MemoryController::pre_processing(uint64_t curr_time)
 {
-  multimap<uint64_t, LocalQueueElement *>::iterator req_event_iter = req_event.begin();
+  auto req_event_iter = req_event.begin();
 
   while (req_event_iter != req_event.end() && req_event_iter->first == curr_time)
   {
@@ -875,19 +875,15 @@ bool MemoryController::pre_processing(uint64_t curr_time)
 
 
   bool command_sent = false;
-  vector<LocalQueueElement *>::iterator iter, iter2;
-
   return command_sent;
 }
 
 
 void MemoryController::update_acc_dist()
 {
-  map<uint64_t, uint64_t>::iterator p_iter, c_iter;
-
-  for (c_iter = os_page_acc_dist_curr.begin(); c_iter != os_page_acc_dist_curr.end(); ++c_iter)
+  for (auto c_iter = os_page_acc_dist_curr.begin(); c_iter != os_page_acc_dist_curr.end(); ++c_iter)
   {
-    p_iter = os_page_acc_dist.find(c_iter->first);
+    auto p_iter = os_page_acc_dist.find(c_iter->first);
 
     if (p_iter == os_page_acc_dist.end())
     {

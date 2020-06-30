@@ -75,9 +75,10 @@ Directory::Directory(
 
 Directory::~Directory()
 {
-  for (std::map<uint64_t, DirEntry>::iterator iter = dir.begin(); iter != dir.end(); ++iter)
+  // for (std::map<uint64_t, DirEntry>::iterator iter = dir.begin(); iter != dir.end(); ++iter)
+  for (auto && iter : dir)
   {
-    num_sharer_histogram[iter->second.num_sharer]++;
+    num_sharer_histogram[iter.second.num_sharer]++;
   }
 
   if (num_i_to_tr > 0)
@@ -111,10 +112,11 @@ void Directory::show_state(uint64_t address)
     {
       cout << ", not_in_dc";
     }
-    for(std::set<Component *>::iterator iter = dir[dir_entry].sharedl2.begin();
-        iter != dir[dir_entry].sharedl2.end(); ++iter)
+    // for(std::set<Component *>::iterator iter = dir[dir_entry].sharedl2.begin();
+    //    iter != dir[dir_entry].sharedl2.end(); ++iter)
+    for (auto && iter : dir[dir_entry].sharedl2)
     {
-      cout << ", (" << (*iter)->type << ", " << (*iter)->num << ") ";
+      cout << ", (" << iter->type << ", " << iter->num << ") ";
     }
     if (dir[dir_entry].pending != NULL)
     {
@@ -166,8 +168,8 @@ void Directory::add_rep_event(
 
 uint32_t Directory::process_event(uint64_t curr_time)
 {
-  multimap<uint64_t, LocalQueueElement *>::iterator req_event_iter = req_event.begin();
-  multimap<uint64_t, LocalQueueElement *>::iterator rep_event_iter = rep_event.begin();
+  auto req_event_iter = req_event.begin();
+  auto rep_event_iter = rep_event.begin();
 
   LocalQueueElement * rep_lqe = NULL;
   LocalQueueElement * req_lqe = NULL;
@@ -912,9 +914,8 @@ void Directory::remove_directory_cache_entry(uint32_t set, uint64_t dir_entry)
   if (has_directory_cache == true)
   {
     list<uint64_t> & curr_set = dir_cache[set];
-    list<uint64_t>::iterator iter;
 
-    for (iter = curr_set.begin(); iter != curr_set.end(); ++iter)
+    for (auto iter = curr_set.begin(); iter != curr_set.end(); ++iter)
     {
       if (*iter == dir_entry)
       {
