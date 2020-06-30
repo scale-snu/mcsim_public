@@ -118,7 +118,7 @@ $(OBJDIR)PthreadMalloc$(OBJ_SUFFIX): PthreadMalloc.cpp
 $(OBJDIR)EEPthreadSim$(OBJ_SUFFIX): EEPthreadSim.cpp
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
-$(OBJDIR)EEPthreadScheduler$(OBJ_SUFFIX): EEPthreadScheduler.cpp
+$(OBJDIR)EEPthreadScheduler$(OBJ_SUFFIX): EEPthreadScheduler.cpp EEPthreadScheduler.h
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
 $(OBJDIR)PTS$(OBJ_SUFFIX): PTS.cpp

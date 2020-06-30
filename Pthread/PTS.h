@@ -73,7 +73,7 @@ struct PTSInstr
 typedef union
 {
   PTSInstr   instr[instr_batch_size];
-  char       str[2048];
+  char       str[1024];
 } instr_n_str;
 
 

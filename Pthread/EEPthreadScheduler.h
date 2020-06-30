@@ -37,26 +37,33 @@ END_LEGAL */
 #ifndef EE_PTHREAD_SCHEDULER_H
 #define EE_PTHREAD_SCHEDULER_H
 
+#include <iomanip>
+#include <list>
+#include <map>
+#include <queue>
+#include <stack>
+#include <vector>
 #include "PthreadUtil.h"
 #include "PTS.h"
-#include <list>
-#include <stack>
-#include <queue>
-#include <vector>
-#include <map>
-#include <iomanip>
 
-const static uint32_t def_stack_sz = 0x800000;
+constexpr uint32_t def_stack_sz = 0x800000;
 
 
 namespace PinPthread 
 {
+  class PthreadScheduler;
+  class PthreadSim;
+
   class Pthread
   {
     public:
       Pthread(pthread_attr_t*, CONTEXT*, ADDRINT, ADDRINT, uint64_t curr_time_, PthreadTimingSimulator * const pts);
       ~Pthread();
-    public:
+
+      friend class PthreadScheduler;
+      friend class PthreadSim;
+
+    private:
       bool active;           // whether the thread can be scheduled to run
       bool started;          // whether the thread has begun execution
       bool executed;
@@ -97,6 +104,9 @@ namespace PinPthread
       UINT32 GetNumActiveThreads();
 
       void PlayTraces(const string & trace_name, uint64_t trace_skip_first);
+
+      friend class PthreadSim;
+
     private:
       uint64_t GetPhysicalAddr(uint64_t vaddr);
       inline pthread_queue_t::iterator GetThreadPtr(pthread_t);
@@ -106,10 +116,9 @@ namespace PinPthread
       inline void SetActiveState(pthread_t, bool);
       inline bool HasStarted(pthread_queue_t::iterator);
       inline void StartThread(pthread_queue_t::iterator);
-    public:
       inline CONTEXT* GetCurrentContext();
       inline CONTEXT* GetCurrentStartCtxt();
-    public:
+
       pthread_queue_t pthreads;          // list of thread state
       pthread_queue_t pthreads_dummy;    // list of thread state
       pthread_queue_t::iterator current; // pointer to the current thread running
@@ -126,6 +135,8 @@ namespace PinPthread
           uint32_t rw0, uint32_t rw1, uint32_t rw2, uint32_t rw3);
       void resume_simulation(bool must_switch = false, bool killed = false);
       void add_synch_instruction(pthread_t thread, bool islock, bool isunlock, uint64_t isbarrier = 0, uint32_t n_part = 0);
+
+    private:
       PthreadTimingSimulator * pts;
 
       std::map<Pthread *, uint32_t> pth_to_hth;
@@ -139,6 +150,7 @@ namespace PinPthread
       uint64_t total_discarded_mem_rd;
       uint64_t total_discarded_mem_wr;
       uint64_t total_discarded_2nd_mem_rd;
+
       void mcsim_skip_instrs_begin() { current->second->skip_instrs++; }
       void mcsim_skip_instrs_end()   { current->second->skip_instrs--; }
       void mcsim_spinning_begin()    { current->second->spinning++; }
