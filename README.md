@@ -112,6 +112,7 @@ $ make PIN_ROOT="$(pwd)"/../pin obj-intel64/mypthreadtool.so -j4
 $ make PIN_ROOT="$(pwd)"/../pin obj-intel64/libmypthread.a
 ```
 
+
 How to use the simulator?
 -------------------------
 There is an example pthread application called `stream` in McSim.  It
@@ -137,7 +138,7 @@ BASE="$(pwd)"
 export PIN=${BASE}/pin/pin
 export PINTOOL=${BASE}/Pthread/obj-intel64/mypthreadtool.so
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
-```		
+```
 
 3. Add the absolute path of `stream` directory to `Apps/list/run-stream.py`
 ```
@@ -148,6 +149,13 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
 ```bash
 $ ./McSim/build/mcsim -mdfile Apps/md/asymmetric-o3-closed.py -runfile Apps/list/run-stream.py
 ```
+
+5. Go to `TraceGen` and compile the trace generator pin tool.
+```bash
+$ cd ../TraceGen
+$ make PIN_ROOT="$(pwd)"/../pin obj-intel64/tracegen.so -j
+```
+
 
 How to play the trace file
 --------------------------
