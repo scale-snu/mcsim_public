@@ -131,7 +131,7 @@ $ cd ../../
 $ source bash_setup
 ```
 
-```
+```bash
 # 'bash_setup' file is written as follows.
 BASE="$(pwd)"
 export PIN=${BASE}/pin/pin
@@ -140,7 +140,7 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
 ```		
 
 3. Add the absolute path of `stream` directory to `Apps/list/run-stream.py`
-```bash
+```
 4 0 /home/djoh0967/mcsim_private/McSim/stream STREAM -p4 -n1048576 -r2 -s512
 ```
 
