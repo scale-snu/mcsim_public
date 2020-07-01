@@ -17,7 +17,7 @@
 # This defines tests which run tools of the same name.  This is simply for convenience to avoid
 # defining the test name twice (once in TOOL_ROOTS and again in TEST_ROOTS).
 # Tests defined here should not be defined in TOOL_ROOTS and TEST_ROOTS.
-TEST_TOOL_ROOTS := tracegen 
+TEST_TOOL_ROOTS := tracegen
 
 # This defines the tests to be run that were not already defined in TEST_TOOL_ROOTS.
 TEST_ROOTS :=
@@ -38,7 +38,12 @@ SA_TOOL_ROOTS :=
 APP_ROOTS := 
 
 # This defines any additional object files that need to be compiled.
-OBJECT_ROOTS := tracegen mcsim_snappy
+SNAPPY_DIR  = ../snappy
+OBJECT_ROOTS := tracegen \
+  snappy-c \
+  snappy-sinksource \
+  snappy-stubs-internal \
+  snappy
 
 # This defines any additional dlls (shared objects), other than the pintools, that need to be compiled.
 DLL_ROOTS :=
@@ -70,17 +75,29 @@ SANITY_SUBSET := $(TEST_TOOL_ROOTS) $(TEST_ROOTS)
 #
 ##############################################################
 # Build the intermediate object file.
-TOOL_CXXFLAGS += -D_REENTRANT -Wl,--as-needed
-TOOL_LIBS += -pthread
-
-$(OBJDIR)mcsim_snappy$(OBJ_SUFFIX): mcsim_snappy.cpp
-	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
+SNAPPY_FLAGS    += $(TOOL_CXXFLAGS) -std=c++11 -Wno-unused-variable
+TOOL_CXXFLAGS   += -D_REENTRANT -Wl,--as-needed
+TOOL_LIBS       += -pthread
 
 $(OBJDIR)tracegen$(OBJ_SUFFIX): tracegen.cpp
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
+## Build google snappy source files.
+$(OBJDIR)snappy-c$(OBJ_SUFFIX): $(SNAPPY_DIR)/snappy-c.cc
+	$(CXX) $(SNAPPY_FLAGS) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
+
+$(OBJDIR)snappy-sinksource$(OBJ_SUFFIX): $(SNAPPY_DIR)/snappy-sinksource.cc
+	$(CXX) $(SNAPPY_FLAGS) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
+
+$(OBJDIR)snappy-stubs-internal$(OBJ_SUFFIX): $(SNAPPY_DIR)/snappy-stubs-internal.cc
+	$(CXX) $(SNAPPY_FLAGS) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
+
+$(OBJDIR)snappy$(OBJ_SUFFIX): $(SNAPPY_DIR)/snappy.cc
+	$(CXX) $(SNAPPY_FLAGS) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
+
+
 # Build the tool as a dll (shared object).
-$(OBJDIR)tracegen$(PINTOOL_SUFFIX): $(OBJDIR)mcsim_snappy$(OBJ_SUFFIX) $(OBJDIR)tracegen$(OBJ_SUFFIX)
+$(OBJDIR)tracegen$(PINTOOL_SUFFIX): $(OBJDIR)tracegen$(OBJ_SUFFIX) $(OBJDIR)snappy-c$(OBJ_SUFFIX) $(OBJDIR)snappy-sinksource$(OBJ_SUFFIX) $(OBJDIR)snappy-stubs-internal$(OBJ_SUFFIX) $(OBJDIR)snappy$(OBJ_SUFFIX)
 	$(LINKER) $(TOOL_LDFLAGS) $(LINK_EXE)$@ $^ $(TOOL_LPATHS) $(TOOL_LIBS)
 
 # This section contains the build rules for all binaries that have special build rules.
