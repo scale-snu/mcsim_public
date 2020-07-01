@@ -157,16 +157,16 @@ $(OBJDIR)mypthreadtool$(OBJ_SUFFIX): mypthreadtool.cpp
 
 ## Build google snappy source files.
 $(OBJDIR)snappy-c$(OBJ_SUFFIX): $(SNAPPY_DIR)/snappy-c.cc
-  $(CXX) $(SNAPPY_FLAGS) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
+	$(CXX) $(SNAPPY_FLAGS) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
 $(OBJDIR)snappy-sinksource$(OBJ_SUFFIX): $(SNAPPY_DIR)/snappy-sinksource.cc
-  $(CXX) $(SNAPPY_FLAGS) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
+	$(CXX) $(SNAPPY_FLAGS) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
 $(OBJDIR)snappy-stubs-internal$(OBJ_SUFFIX): $(SNAPPY_DIR)/snappy-stubs-internal.cc
-  $(CXX) $(SNAPPY_FLAGS) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
+	$(CXX) $(SNAPPY_FLAGS) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
 $(OBJDIR)snappy$(OBJ_SUFFIX): $(SNAPPY_DIR)/snappy.cc
-  $(CXX) $(SNAPPY_FLAGS) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
+	$(CXX) $(SNAPPY_FLAGS) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
 
 # Build the tool as a dll (shared object).

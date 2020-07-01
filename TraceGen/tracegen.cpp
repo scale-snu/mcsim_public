@@ -7,7 +7,7 @@
 #include <set>
 #include <stdlib.h>
 #include <stdint.h>
-#include "mcsim_snappy.h"
+#include "snappy.h"
 
 #include "pin.H"
 

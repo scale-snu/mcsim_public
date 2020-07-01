@@ -16,7 +16,7 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include "PthreadUtil.h"
-#include "mcsim_snappy.h"
+#include "snappy.h"
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/mman.h>
