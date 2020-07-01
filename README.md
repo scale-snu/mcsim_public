@@ -93,7 +93,7 @@ $ git clone https://github.com/scale-snu/mcsim_private.git --recursive
 $ ln -s "$(pwd)"/pin-3.7-97619-g0d0c92f4f-gcc-linux mcsim_private/pin
 ```
 
-3. Go to `McSim` and compile McSim. (To build the back-end, the 
+4. Go to `McSim` and compile McSim. (To build the back-end, the 
   absolute path of `pin` header is required)
 ```bash
 $ cd mcsim_private/McSim
@@ -102,7 +102,7 @@ $ cmake ..
 $ cmake --build .  -- -j
 ```
 
-4. Go to `Pthread` and compile the user-level thread library pin 
+5. Go to `Pthread` and compile the user-level thread library pin 
   tool [2] (called `mypthreadtool`) as a dynamic library. (To build the front-end, 
   the absolute path of `pin` root directory should be provided)
 ```bash
@@ -111,7 +111,7 @@ $ make PIN_ROOT="$(pwd)"/../pin obj-intel64/mypthreadtool.so -j4
 $ make PIN_ROOT="$(pwd)"/../pin obj-intel64/libmypthread.a
 ```
 
-5. Go to `TraceGen` and compile the trace generator pin tool.
+6. Go to `TraceGen` and compile the trace generator pin tool.
 ```bash
 $ cd ../TraceGen
 $ make PIN_ROOT="$(pwd)"/../pin obj-intel64/tracegen.so -j
