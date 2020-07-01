@@ -74,6 +74,14 @@ the required packages with the following command:
 
 [gflags]: https://gflags.github.io/gflags/
 
++ [toml11][toml11]
+  ```
+  git clone https://github.com/ToruNiina/toml11.git
+  ln -s toml11 mcsim_private/pin
+  ```
+
+[toml11]: https://github.com/ToruNiina/toml11
+
 How to compile the simulator?
 -----------------------------
 
@@ -93,7 +101,7 @@ $ git clone https://github.com/scale-snu/mcsim_private.git
 $ ln -s "$(pwd)"/pin-3.7-97619-g0d0c92f4f-gcc-linux mcsim_private/pin
 ```
 
-3. Go to `McSim` and compile McSim. (To build the back-end, the 
+4. Go to `McSim` and compile McSim. (To build the back-end, the 
   absolute path of `pin` header is required)
 ```sh
 $ cd mcsim_private/McSim
@@ -103,7 +111,7 @@ $ cmake ..
 $ cmake --build .  -- -j
 ```
 
-4. Go to `Pthread` and compile the user-level thread library pin 
+5. Go to `Pthread` and compile the user-level thread library pin 
   tool [2] (called `mypthreadtool`) as a dynamic library. (To build the front-end, 
   the absolute path of `pin` root directory should be provided)
 

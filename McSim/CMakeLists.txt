@@ -13,12 +13,20 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 # variable_watch(CMAKE_BUILD_TYPE)
 
-if(NOT INCL_DIR)
-  get_filename_component(INCL_DIR ../pin/extras/xed-intel64/include/xed ABSOLUTE )
+if (NOT INCL_XED_DIR)
+  get_filename_component(INCL_XED_DIR ../pin/extras/xed-intel64/include/xed ABSOLUTE )
 endif()
 
-if (NOT EXISTS ${INCL_DIR}/xed-category-enum.h)
-  message(SEND_ERROR "Can't find xed-category-enum.h in ${INCL_DIR}")
+if (NOT EXISTS ${INCL_XED_DIR}/xed-category-enum.h)
+  message(SEND_ERROR "Can't find xed-category-enum.h in ${INCL_XED_DIR}")
+endif()
+
+if (NOT INCL_TOML_DIR)
+  get_filename_component(INCL_TOML_DIR ../toml11 ABSOLUTE)
+endif()
+
+if (NOT EXISTS ${INCL_TOML_DIR})
+  message(SEND_ERROR "Can't find ${INCL_TOML_DIR}")
 endif()
 
 set(SRC_FILES
@@ -34,7 +42,7 @@ set(SRC_FILES
   PTS.cc
   main.cc)
 
-include_directories( ${INCL_DIR} )
+include_directories( ${INCL_XED_DIR} ${INCL_TOML_DIR} )
 #add_compile_options( -Wno-unknown-pragmas -DTARGET_IA32E -Wall -Weffc++ -Wextra -Wsign-conversion )
 add_compile_options( -Wno-unknown-pragmas -DTARGET_IA32E -Wall )
 set(CMAKE_CXX_FLAGS_DEBUG "-ggdb -g -O0 -fPIC")
