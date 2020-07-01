@@ -102,14 +102,19 @@ $ cmake ..
 $ cmake --build .  -- -j
 ```
 
-4. Go to `Pthread` and compile the user-level thread library pin 
+4. Go to `mcsim_private` and download `snappy` library.
+  (To build `mypthreadtool`, `tracegen`, snappy library is required)
+```bash
+$ cd ../
+$ git clone https://github.com/google/snappy.git
+```
+
+5. Go to `Pthread` and compile the user-level thread library pin 
   tool [2] (called `mypthreadtool`) as a dynamic library. (To build the front-end, 
   the absolute path of `pin` root directory should be provided)
 ```bash
-$ cd ../Pthread
-
+$ cd Pthread
 $ make PIN_ROOT="$(pwd)"/../pin obj-intel64/mypthreadtool.so -j4
-$ make PIN_ROOT="$(pwd)"/../pin obj-intel64/libmypthread.a
 ```
 
 
@@ -189,7 +194,7 @@ $ vim Apps/list/run-trace.py
 
 3. To play the trace file, Type the following command:
 ```bash
-$ ./McSim/mcsim -mdfile Apps/md/asymmetric-o3-closed.py -runfile Apps/list/run-trace.py
+$ ./McSim/build/mcsim -mdfile Apps/md/asymmetric-o3-closed.py -runfile Apps/list/run-trace.py
 ```
 
 Setting the configuration of the architecture
