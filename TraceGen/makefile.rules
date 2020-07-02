@@ -17,7 +17,7 @@
 # This defines tests which run tools of the same name.  This is simply for convenience to avoid
 # defining the test name twice (once in TOOL_ROOTS and again in TEST_ROOTS).
 # Tests defined here should not be defined in TOOL_ROOTS and TEST_ROOTS.
-TEST_TOOL_ROOTS := mypthreadtool
+TEST_TOOL_ROOTS := tracegen
 
 # This defines the tests to be run that were not already defined in TEST_TOOL_ROOTS.
 TEST_ROOTS :=
@@ -39,24 +39,7 @@ APP_ROOTS :=
 
 # This defines any additional object files that need to be compiled.
 SNAPPY_DIR  = ../snappy
-
-OBJECT_ROOTS := mypthreadtool \
-  PthreadUtil \
-  PthreadAttr \
-  PthreadOnce \
-  PthreadKey \
-  PthreadMutexAttr \
-  PthreadMutex \
-  PthreadBarrier \
-  PthreadCondAttr \
-  PthreadCond \
-  PthreadCleanup \
-  PthreadCancel \
-  PthreadJoin \
-  PthreadMalloc \
-  EEPthreadSim \
-  EEPthreadScheduler \
-  PTS \
+OBJECT_ROOTS := tracegen \
   snappy-c \
   snappy-sinksource \
   snappy-stubs-internal \
@@ -66,7 +49,7 @@ OBJECT_ROOTS := mypthreadtool \
 DLL_ROOTS :=
 
 # This defines any static libraries (archives), that need to be built.
-LIB_ROOTS := libmypthread
+LIB_ROOTS :=
 
 ###### Define the sanity subset ######
 
@@ -96,61 +79,8 @@ SNAPPY_FLAGS    += $(TOOL_CXXFLAGS) -std=c++11 -Wno-unused-variable
 TOOL_CXXFLAGS   += -D_REENTRANT -Wl,--as-needed
 TOOL_LIBS       += -pthread
 
-# Add the required library path to McSimA+
-$(OBJDIR)PthreadUtil$(OBJ_SUFFIX): PthreadUtil.cpp
+$(OBJDIR)tracegen$(OBJ_SUFFIX): tracegen.cpp
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
-
-$(OBJDIR)PthreadJoin$(OBJ_SUFFIX): PthreadJoin.cpp
-	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
-
-$(OBJDIR)PthreadCancel$(OBJ_SUFFIX): PthreadCancel.cpp
-	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
-
-$(OBJDIR)PthreadAttr$(OBJ_SUFFIX): PthreadAttr.cpp
-	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
-
-$(OBJDIR)PthreadKey$(OBJ_SUFFIX): PthreadKey.cpp
-	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
-
-$(OBJDIR)PthreadBarrier$(OBJ_SUFFIX): PthreadBarrier.cpp
-	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
-
-$(OBJDIR)PthreadOnce$(OBJ_SUFFIX): PthreadOnce.cpp
-	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
-
-$(OBJDIR)PthreadMutexAttr$(OBJ_SUFFIX): PthreadMutexAttr.cpp
-	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
-
-$(OBJDIR)PthreadMutex$(OBJ_SUFFIX): PthreadMutex.cpp
-	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
-
-$(OBJDIR)PthreadCondAttr$(OBJ_SUFFIX): PthreadCondAttr.cpp
-	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
-
-$(OBJDIR)PthreadCond$(OBJ_SUFFIX): PthreadCond.cpp
-	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
-
-$(OBJDIR)PthreadCleanup$(OBJ_SUFFIX): PthreadCleanup.cpp
-	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
-
-$(OBJDIR)PthreadMalloc$(OBJ_SUFFIX): PthreadMalloc.cpp
-	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
-
-$(OBJDIR)EEPthreadSim$(OBJ_SUFFIX): EEPthreadSim.cpp
-	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
-
-$(OBJDIR)EEPthreadScheduler$(OBJ_SUFFIX): EEPthreadScheduler.cpp EEPthreadScheduler.h
-	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
-
-$(OBJDIR)PTS$(OBJ_SUFFIX): PTS.cpp
-	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
-
-$(OBJDIR)mcsim_snappy$(OBJ_SUFFIX): mcsim_snappy.cpp
-	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
-
-$(OBJDIR)mypthreadtool$(OBJ_SUFFIX): mypthreadtool.cpp
-	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
-
 
 ## Build google snappy source files.
 $(OBJDIR)snappy-c$(OBJ_SUFFIX): $(SNAPPY_DIR)/snappy-c.cc
@@ -167,13 +97,8 @@ $(OBJDIR)snappy$(OBJ_SUFFIX): $(SNAPPY_DIR)/snappy.cc
 
 
 # Build the tool as a dll (shared object).
-$(OBJDIR)mypthreadtool$(PINTOOL_SUFFIX): $(OBJDIR)PthreadMalloc$(OBJ_SUFFIX) $(OBJDIR)PthreadCancel$(OBJ_SUFFIX) $(OBJDIR)PthreadCondAttr$(OBJ_SUFFIX) $(OBJDIR)PthreadCleanup$(OBJ_SUFFIX) $(OBJDIR)PthreadCond$(OBJ_SUFFIX) $(OBJDIR)PthreadCondAttr$(OBJ_SUFFIX) $(OBJDIR)PthreadMutex$(OBJ_SUFFIX) $(OBJDIR)PthreadMutexAttr$(OBJ_SUFFIX) $(OBJDIR)PthreadOnce$(OBJ_SUFFIX) $(OBJDIR)PthreadUtil$(OBJ_SUFFIX) $(OBJDIR)PthreadJoin$(OBJ_SUFFIX) $(OBJDIR)PthreadAttr$(OBJ_SUFFIX) $(OBJDIR)PthreadKey$(OBJ_SUFFIX) $(OBJDIR)PthreadBarrier$(OBJ_SUFFIX) $(OBJDIR)EEPthreadScheduler$(OBJ_SUFFIX) $(OBJDIR)EEPthreadSim$(OBJ_SUFFIX) $(OBJDIR)PTS$(OBJ_SUFFIX) $(OBJDIR)snappy-c$(OBJ_SUFFIX) $(OBJDIR)snappy-sinksource$(OBJ_SUFFIX) $(OBJDIR)snappy-stubs-internal$(OBJ_SUFFIX) $(OBJDIR)snappy$(OBJ_SUFFIX) $(OBJDIR)mypthreadtool$(OBJ_SUFFIX)
-	$(LINKER) $(TOOL_LDFLAGS) $(LINK_EXE)$@ $(^:%.h=) $(TOOL_LPATHS) $(TOOL_LIBS)
+$(OBJDIR)tracegen$(PINTOOL_SUFFIX): $(OBJDIR)tracegen$(OBJ_SUFFIX) $(OBJDIR)snappy-c$(OBJ_SUFFIX) $(OBJDIR)snappy-sinksource$(OBJ_SUFFIX) $(OBJDIR)snappy-stubs-internal$(OBJ_SUFFIX) $(OBJDIR)snappy$(OBJ_SUFFIX)
+	$(LINKER) $(TOOL_LDFLAGS) $(LINK_EXE)$@ $^ $(TOOL_LPATHS) $(TOOL_LIBS)
 
-
-###### Special libs' build rules ######
-$(OBJDIR)mypthread$(OBJ_SUFFIX): mypthread.cpp
-	$(CXX) $(COMP_OBJ)$@ $<
-
-$(OBJDIR)libmypthread$(LIB_SUFFIX): $(OBJDIR)mypthread$(OBJ_SUFFIX)
-	$(ARCHIVER)$(OBJDIR)libmypthread$(LIB_SUFFIX) $<
+# This section contains the build rules for all binaries that have special build rules.
+# See makefile.default.rules for the default build rules.
