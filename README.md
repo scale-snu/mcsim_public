@@ -81,20 +81,6 @@ the required packages with the following command:
   ```
 
 [toml11]: https://github.com/ToruNiina/toml11
-=======
-
-+ `libdwarf`:
-  ```bash
-  $ git clone git://libdwarf.git.sourceforge.net/gitroot/libdwarf/libdwarf
-  $ cd libdwarf
-  $ ./configure --enable-shared
-  $ make
-  ```
-
-+ [gflags][gflags]
-  - Check [this](https://github.com/gflags/gflags/blob/master/INSTALL.md) how-to-install guide.
-
-[gflags]: https://gflags.github.io/gflags/
 
 
 How to compile the simulator?
@@ -109,7 +95,6 @@ $ tar -xvf pin-3.7-97619-g0d0c92f4f-gcc-linux.tar.gz
 2. Download the McSimA+ simulator at [Scalable Computer Architecture Laboratory](http://scale.snu.ac.kr/). The URL to the repository might be different from the example command below:
 ```bash
 $ git clone https://github.com/scale-snu/mcsim_private.git --recursive
-$ cd snappy; cmake .; cd ..
 ```
 
 3. Create a `Pin` symbolic link in the `mcsim_private` directory.
