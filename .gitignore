@@ -4,5 +4,6 @@ McSim/build
 McSim/stream/*.o
 McSim/stream/STREAM
 Pthread/obj-intel64
+TraceGen/obj-intel64
 pin
 toml11

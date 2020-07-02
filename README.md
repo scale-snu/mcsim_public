@@ -126,7 +126,14 @@ $ cmake ..
 $ cmake --build .  -- -j
 ```
 
-5. Go to `Pthread` and compile the user-level thread library pin 
+5. Go to `snappy` and run `cmake`.
+```bash
+$ cd ../../snappy
+$ mkdir build; cd build
+$ cmake ..
+```
+
+6. Go to `Pthread` and compile the user-level thread library pin 
   tool [2] (called `mypthreadtool`) as a dynamic library. (To build the front-end, 
   the absolute path of `pin` root directory should be provided)
 ```bash
@@ -134,7 +141,7 @@ $ cd ../../Pthread
 $ make PIN_ROOT="$(pwd)"/../pin obj-intel64/mypthreadtool.so -j4
 ```
 
-6. Go to `TraceGen` and compile the trace generator pin tool.
+7. Go to `TraceGen` and compile the trace generator pin tool.
 ```bash
 $ cd ../TraceGen
 $ make PIN_ROOT="$(pwd)"/../pin obj-intel64/tracegen.so -j
