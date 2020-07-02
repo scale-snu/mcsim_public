@@ -77,7 +77,7 @@ the required packages with the following command:
 + [toml11][toml11]
   ```bash
   $ git clone https://github.com/ToruNiina/toml11.git
-  $ ln -s toml11 mcsim_private/pin
+  $ ln -s "$(pwd)"/toml11 mcsim_private/toml11
   ```
 
 [toml11]: https://github.com/ToruNiina/toml11
