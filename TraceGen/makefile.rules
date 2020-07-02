@@ -75,8 +75,8 @@ SANITY_SUBSET := $(TEST_TOOL_ROOTS) $(TEST_ROOTS)
 #
 ##############################################################
 # Build the intermediate object file.
-SNAPPY_FLAGS    += $(TOOL_CXXFLAGS) -std=c++11 -Wno-unused-variable
-TOOL_CXXFLAGS   += -D_REENTRANT -Wl,--as-needed -I$(SNAPPY_DIR) -I$(SNAPPY_DIR)/build
+SNAPPY_FLAGS    += $(TOOL_CXXFLAGS) -Wno-unused-variable
+TOOL_CXXFLAGS   += -std=c++11 -D_REENTRANT -Wl,--as-needed -I$(SNAPPY_DIR) -I$(SNAPPY_DIR)/build
 TOOL_LIBS       += -pthread
 
 $(OBJDIR)tracegen$(OBJ_SUFFIX): tracegen.cpp
