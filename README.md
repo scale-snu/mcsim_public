@@ -109,6 +109,7 @@ $ tar -xvf pin-3.7-97619-g0d0c92f4f-gcc-linux.tar.gz
 2. Download the McSimA+ simulator at [Scalable Computer Architecture Laboratory](http://scale.snu.ac.kr/). The URL to the repository might be different from the example command below:
 ```bash
 $ git clone https://github.com/scale-snu/mcsim_private.git --recursive
+$ cd snappy; cmake .; cd ..
 ```
 
 3. Create a `Pin` symbolic link in the `mcsim_private` directory.
