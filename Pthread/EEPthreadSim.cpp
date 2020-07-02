@@ -13,7 +13,7 @@ using namespace std;
 
 PthreadSim::PthreadSim(int32_t argc, char** argv) :
   new_thread_id(0), pid(0), scheduler(nullptr), skip_first(0), first_instrs(0), total_num(0),
-  tmp_shared(), trace_name(), trace_skip_first(0), agile_bank_th(0.0)
+  tmp_shared(), trace_name(), trace_skip_first(0)
 {
   for (int32_t i = 0; i < argc; i++)
   {
@@ -52,16 +52,6 @@ PthreadSim::PthreadSim(int32_t argc, char** argv) :
       cout << " usage: -port port_num -skip_first instrs -trace_name name -h" << endl;
       exit(1);
     }
-    else if (argv[i] == string("-agile_bank_th_perc"))
-    {
-      i++;
-      agile_bank_th = atoi(argv[i])/100.0;
-    }
-    else if (argv[i] == string("-agile_page_list_file_name"))
-    {
-      i++;
-      agile_page_list_file_name = string(argv[i]);
-    }
     else if (argv[i] == string("--"))
     {
       break;
@@ -90,40 +80,12 @@ void PthreadSim::initiate(CONTEXT * ctxt)
   barriermanager = new PthreadBarrierManager();
   pthread_create(nullptr, nullptr, nullptr, 0, 0);
   scheduler->set_stack(ctxt);
-  scheduler->agile_bank_th = agile_bank_th;
 
   if (trace_name.size() > 0 && scheduler != nullptr)
   {
     scheduler->PlayTraces(trace_name, trace_skip_first);
     delete scheduler;
     exit(1);
-  }
-
-  if (agile_page_list_file_name.size() > 0)
-  {
-    ifstream page_acc_file;
-    page_acc_file.open(agile_page_list_file_name.c_str());
-    if (page_acc_file.fail())
-    {
-      cout << "failed to open " << agile_page_list_file_name << endl;
-      exit(1);
-    }
-    string line;
-    istringstream sline;
-    uint32_t num_line = 0;
-    uint64_t addr;
-    while (getline(page_acc_file, line))
-    {
-      if (line.empty() == true || line[0] == '#') continue;
-      sline.clear();
-      sline.str(line);
-      sline >> hex >> addr;
-      scheduler->addr_perc.insert(pair<uint64_t, double>(addr >> scheduler->page_sz_log2, ++num_line));
-    }
-    for (auto iter = scheduler->addr_perc.begin(); iter != scheduler->addr_perc.end(); ++iter)
-    {
-      iter->second = iter->second / num_line;
-    }
   }
 }
 

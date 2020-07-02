@@ -23,7 +23,7 @@ PthreadScheduler::PthreadScheduler(uint32_t _pid, uint32_t _total_num, char * _t
   total_discarded_mem_wr(0), total_discarded_2nd_mem_rd(0),
   num_cond_broadcast(0), num_cond_signal(0), num_cond_wait(0),
   num_barrier_wait(0),
-  pid(_pid), total_num(_total_num), tmp_shared(_tmp_shared), skip_first(0), first_instrs(0), agile_bank_th(0)
+  pid(_pid), total_num(_total_num), tmp_shared(_tmp_shared), skip_first(0), first_instrs(0)
 {
   pts          = new PthreadTimingSimulator(pid, total_num, tmp_shared); 
   hth_to_pth   = vector<pthread_queue_t::iterator>(pts->num_hthreads);
@@ -68,34 +68,6 @@ void PthreadScheduler::PlayTraces(const string & trace_name, uint64_t trace_skip
       cout << "failed to open " << trace_name << endl;
       return;
     }
-    if (agile_bank_th > 0 && agile_bank_th < 1)
-    {
-      string page_acc_file_name(trace_name);
-      page_acc_file_name = page_acc_file_name.substr(0, page_acc_file_name.rfind("."));
-      page_acc_file_name+= ".page.acc.sorted";
-      page_acc_file.open(page_acc_file_name.c_str());
-      if (page_acc_file.fail())
-      {
-        cout << "failed to open " << page_acc_file_name << endl;
-        return;
-      }
-      string line;
-      istringstream sline;
-      uint32_t num_line = 0;
-      uint64_t addr;
-      while (getline(page_acc_file, line))
-      {
-        if (line.empty() == true || line[0] == '#') continue;
-        sline.clear();
-        sline.str(line);
-        sline >> hex >> addr;
-        addr_perc.insert(pair<uint64_t, double>(addr >> page_sz_log2, ++num_line));
-      }
-      for (auto iter = addr_perc.begin(); iter != addr_perc.end(); ++iter)
-      {
-        iter->second = iter->second / num_line;
-      }
-    }
 
     PTSInstrTrace * instrs = new PTSInstrTrace[instr_group_size];
     const size_t maxCompressedLength = snappy::MaxCompressedLength(sizeof(PTSInstrTrace)*instr_group_size);
@@ -116,39 +88,6 @@ void PthreadScheduler::PlayTraces(const string & trace_name, uint64_t trace_skip
       for (uint32_t i = 0; i < instr_group_size; i++)
       {
         PTSInstrTrace & curr_instr = instrs[i];
-        if (agile_bank_th >= 1.0)
-        {
-          if (curr_instr.raddr  != 0) curr_instr.raddr  |= ((uint64_t)1 << 63);
-          if (curr_instr.raddr2 != 0) curr_instr.raddr2 |= ((uint64_t)1 << 63);
-          if (curr_instr.waddr  != 0) curr_instr.waddr  |= ((uint64_t)1 << 63);
-        }
-        else if (agile_bank_th > 0)
-        {
-          if (curr_instr.raddr != 0 &&
-              addr_perc.find(curr_instr.raddr >> page_sz_log2) != addr_perc.end() &&
-              addr_perc[curr_instr.raddr >> page_sz_log2] < agile_bank_th)
-          {
-            curr_instr.raddr |= ((uint64_t)1 << 63);
-          }
-          if (curr_instr.raddr2 != 0 &&
-              addr_perc.find(curr_instr.raddr2 >> page_sz_log2) != addr_perc.end() &&
-              addr_perc[curr_instr.raddr2 >> page_sz_log2] < agile_bank_th)
-          {
-            curr_instr.raddr2 |= ((uint64_t)1 << 63);
-          }
-          if (curr_instr.waddr != 0 &&
-              addr_perc.find(curr_instr.waddr >> page_sz_log2) != addr_perc.end() &&
-              addr_perc[curr_instr.waddr >> page_sz_log2] < agile_bank_th)
-          {
-            curr_instr.waddr |= ((uint64_t)1 << 63);
-          }
-          if (curr_instr.ip != 0 &&
-              addr_perc.find(curr_instr.ip >> page_sz_log2) != addr_perc.end() &&
-              addr_perc[curr_instr.ip >> page_sz_log2] < agile_bank_th)
-          {
-            curr_instr.ip |= ((uint64_t)1 << 63);
-          }
-        }
 
         if (num_sent_instrs++ >= trace_skip_first)
         {
@@ -427,42 +366,6 @@ void PthreadScheduler::process_ins(
   pthread->num_ins_for_spinning += (pthread->spinning > 0) ? 1 : 0;
   total_instrs++;
 
-  /*if (agile_bank_th >= 1.0)
-    { // temporary removed. this code this code sent all memory requests to agile rows 
-  // when I allocate every address space (100% of mica bucket sorted file) of mica's bucket
-  if (raddr  != 0) raddr  |= ((uint64_t)1 << 63);
-  if (raddr2 != 0) raddr2 |= ((uint64_t)1 << 63);
-  if (waddr  != 0) waddr  |= ((uint64_t)1 << 63);
-  if (ip     != 0) ip     |= ((uint64_t)1 << 63);
-  }*/
-  //else if (agile_bank_th > 0)
-  if (agile_bank_th > 0)
-  {
-    if (raddr != 0 &&
-        addr_perc.find(raddr >> page_sz_log2) != addr_perc.end() &&
-        addr_perc[raddr >> page_sz_log2] < agile_bank_th)
-    {
-      raddr |= ((uint64_t)1 << 63);
-    }
-    if (raddr2 != 0 &&
-        addr_perc.find(raddr2 >> page_sz_log2) != addr_perc.end() &&
-        addr_perc[raddr2 >> page_sz_log2] < agile_bank_th)
-    {
-      raddr2 |= ((uint64_t)1 << 63);
-    }
-    if (waddr != 0 &&
-        addr_perc.find(waddr >> page_sz_log2) != addr_perc.end() &&
-        addr_perc[waddr >> page_sz_log2] < agile_bank_th)
-    {
-      waddr |= ((uint64_t)1 << 63);
-    }
-    if (ip != 0 &&
-        addr_perc.find(ip >> page_sz_log2) != addr_perc.end() &&
-        addr_perc[ip >> page_sz_log2] < agile_bank_th)
-    {
-      ip |= ((uint64_t)1 << 63);
-    }
-  }
   bool must_resume = pts->add_instruction(pth_to_hth[current->second], curr_time,
       waddr, wlen, raddr, raddr2, rlen, ip, category,
       isbranch, isbranchtaken, false, false, false,

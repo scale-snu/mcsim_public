@@ -167,7 +167,6 @@ namespace PinPthread
       char *    tmp_shared;
       uint64_t  skip_first;
       uint64_t  first_instrs;
-      double    agile_bank_th;
       bool      repeat_playing;
       map<uint64_t, double> addr_perc;
   };

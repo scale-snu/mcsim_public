@@ -84,18 +84,12 @@ MemoryController::MemoryController(
   tRRBUB       (get_param_uint64("tRRBUB", 2)),
   tWTR         (get_param_uint64("tWTR", 8)),
   req_window_sz(get_param_uint64("req_window_sz", 16)),
-  mc_to_dir_t_ab(get_param_uint64("mc_to_dir_t_ab", mc_to_dir_t)),
-  tRCD_ab         (get_param_uint64("tRCD_ab", tRCD)),
-  tRAS_ab         (get_param_uint64("tRAS_ab", tRAS)),
-  tRP_ab          (get_param_uint64("tRP_ab",  tRP)),
-  tCL_ab          (get_param_uint64("tCL_ab",  tCL)),
   rank_interleave_base_bit(get_param_uint64("rank_interleave_base_bit", 14)),
   bank_interleave_base_bit(get_param_uint64("bank_interleave_base_bit", 14)),
   page_sz_base_bit        (get_param_uint64("page_sz_base_bit", 12)),
   mc_interleave_base_bit(get_param_uint64("interleave_base_bit", 12)),
   num_mcs      (get_param_uint64("num_mcs", "pts.", 2)),
   num_read(0), num_write(0), num_activate(0), num_precharge(0),
-  num_ab_read(0), num_ab_write(0), num_ab_activate(0),
   num_write_to_read_switch(0), num_refresh(0), 
   num_pred_miss(0), num_pred_hit(0), num_global_pred_miss(0), num_global_pred_hit(0),
   num_pred_entries(get_param_uint64("num_pred_entries", 1)),
@@ -134,11 +128,6 @@ MemoryController::MemoryController(
     tRWBUB        = get_param_uint64(num_to_str+"tRWBUB", tRWBUB);
     tRRBUB        = get_param_uint64(num_to_str+"tRRBUB", tRRBUB);
     tWTR          = get_param_uint64(num_to_str+"tWTR", tWTR);
-    mc_to_dir_t_ab = get_param_uint64("mc_to_dir_t_ab", mc_to_dir_t_ab);
-    tRCD_ab      = get_param_uint64("tRCD_ab", tRCD_ab);
-    tRAS_ab      = get_param_uint64("tRAS_ab", tRAS_ab);
-    tRP_ab       = get_param_uint64("tRP_ab",  tRP_ab);
-    tCL_ab       = get_param_uint64("tCL_ab",  tCL_ab);
 
     num_pred_entries = get_param_uint64("num_pred_entries", num_pred_entries);
   }
@@ -190,9 +179,6 @@ MemoryController::MemoryController(
 
   display_os_page_usage = get_param_str("display_os_page_usage") == "true" ? true : false;
   num_reqs              = 0;
-  last_time_from_ab     = true;
-  num_banks_with_agile_row = get_param_uint64("num_banks_with_agile_row", num_banks_per_rank);
-  reciprocal_of_agile_row_portion = get_param_uint64("reciprocal_of_agile_row_portion", 1);
 
   curr_batch_last       = -1;
   num_hthreads          = mcsim_->get_num_hthreads();
@@ -220,9 +206,7 @@ MemoryController::~MemoryController()
          << setw(9) << num_activate << ", " << setw(9) << num_precharge
          << "), # of WR->RD switch = " << num_write_to_read_switch
          << ", #_refresh = " << num_refresh << ", "
-         << os_page_acc_dist.size() << " pages acc, AB (rd, wr, act) = ("
-         << setw(9) << num_ab_read << ", " << setw(9) << num_ab_write << ", "
-         << setw(9) << num_ab_activate << "), "
+         << os_page_acc_dist.size() << " pages acc, "
          << "avg_tick_in_mc= " << packet_time_in_mc_acc / (num_read + num_write) << endl;
     cout << "               : "
          << "local pred (miss,hit)=( " << num_pred_miss << ", " << num_pred_hit << "), "
@@ -426,8 +410,7 @@ uint32_t MemoryController::process_event(uint64_t curr_time)
     uint32_t bank_num = get_bank_num(address);
     uint64_t page_num = get_page_num(address);
 
-    bool access_agile = false;
-    uint32_t tRCD_curr= (access_agile) ? tRCD_ab : tRCD;
+    uint32_t tRCD_curr= tRCD;
     uint32_t tRP_curr = 0;
 
     BankStatus & curr_bank = bank_status[rank_num][bank_num];
@@ -637,11 +620,10 @@ uint32_t MemoryController::process_event(uint64_t curr_time)
     uint64_t page_num = get_page_num(address);
     BankStatus & curr_bank = bank_status[rank_num][bank_num];
 
-    bool access_agile = false;
-    uint32_t mc_to_dir_t_curr = (access_agile) ? mc_to_dir_t_ab : mc_to_dir_t;
-    uint32_t tRAS_curr        = (access_agile) ? tRAS_ab : tRAS;
-    uint32_t tCL_curr         = (access_agile) ? tCL_ab  : tCL;
-    uint32_t tRP_curr         = (access_agile) ? tRP_ab  : tRP;
+    uint32_t mc_to_dir_t_curr = mc_to_dir_t;
+    uint32_t tRAS_curr        = tRAS;
+    uint32_t tCL_curr         = tCL;
+    uint32_t tRP_curr         = tRP;
     map<uint64_t, mc_bank_action>::iterator miter, rd_miter, wr_miter;
 
     switch (curr_bank.action_type)
@@ -654,7 +636,6 @@ uint32_t MemoryController::process_event(uint64_t curr_time)
         last_activate_time[rank_num] = curr_time;
         curr_bank.last_activate_time = curr_time;
         num_activate++;
-        num_ab_activate += (access_agile) ? 1 : 0;
         break;
       case mc_bank_activate:
       case mc_bank_read:
@@ -672,7 +653,6 @@ uint32_t MemoryController::process_event(uint64_t curr_time)
         }
         else
         {  // row hit
-          last_time_from_ab = access_agile;
           switch (type)
           {
             case et_rd_dir_info_req:
@@ -687,12 +667,7 @@ uint32_t MemoryController::process_event(uint64_t curr_time)
                 num_write_to_read_switch++;
               }
               num_read++;
-              num_ab_read += (access_agile) ? 1 : 0;
               curr_bank.action_time = curr_time;
-
-              if (last_time_from_ab == true)
-              {
-              }
 
               for (uint32_t j = 0; j < tBL; j++)
               {
@@ -758,12 +733,7 @@ uint32_t MemoryController::process_event(uint64_t curr_time)
               // write
               is_last_time_write[rank_num] = true;
               num_write++;
-              num_ab_write += (access_agile) ? 1 : 0;
               curr_bank.action_time = curr_time;
-
-              if (last_time_from_ab == true)
-              {
-              }
 
               for (uint32_t j = 0; j < tBL; j++)
               {

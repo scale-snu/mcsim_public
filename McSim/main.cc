@@ -27,12 +27,10 @@ using namespace PinPthread;
 struct Programs
 {
   int32_t num_threads;
-  int32_t agile_bank_th_perc;
   string num_skip_first_instrs;
   uint32_t tid_to_htid;  // id offset
   string trace_name;
   string directory;
-  string agile_page_list_file_name;
   vector<string> prog_n_argv;
   char * buffer;
   int pid;
@@ -99,29 +97,11 @@ int main(int argc, char * argv[])
     if (line.empty() == true || line[0] == '#') continue;
     programs.push_back(Programs());
     sline.clear();
-    if (line[0] == 'A')
-    {
-      sline.str(line);
-      sline >> temp >> programs[idx].num_threads >> programs[idx].agile_bank_th_perc
-        >> programs[idx].agile_page_list_file_name
-        >> programs[idx].num_skip_first_instrs
-        >> programs[idx].directory;
-    }
-    else
     {
       sline.str(line);
       sline >> programs[idx].num_threads;
-      if (programs[idx].num_threads < -100)
+      if (programs[idx].num_threads <= 0)
       {
-        programs[idx].agile_bank_th_perc = 100;
-        programs[idx].num_threads = programs[idx].num_threads/(-100);
-        programs[idx].trace_name = string();
-        sline >> programs[idx].num_skip_first_instrs >> programs[idx].directory;
-        nactive += programs[idx].num_threads;
-      }
-      else if (programs[idx].num_threads <= 0)
-      {
-        programs[idx].agile_bank_th_perc = 0 - programs[idx].num_threads;
         programs[idx].num_threads = 1;
         sline >>  programs[idx].trace_name >> programs[idx].directory;
         nactive++;
@@ -167,8 +147,8 @@ int main(int argc, char * argv[])
   char **pmmap = (char **)malloc(sizeof(char *)*programs.size());
   volatile bool **mmap_flag = (volatile bool **)malloc(sizeof(bool *) * programs.size()); 
   int mmap_fd[programs.size()];
-  char *temp_path     = "/tmp/";
-  char *temp_filename = "_mcsim.tmp"; 
+  const char *temp_path     = "/tmp/";
+  const char *temp_filename = "_mcsim.tmp"; 
   char **tmp_shared    = (char **)malloc(sizeof(char *) * programs.size());
 
   for (uint32_t i=0; i<programs.size(); i++){
@@ -262,7 +242,6 @@ int main(int argc, char * argv[])
 
       char ** argp = new char * [programs[i].prog_n_argv.size() + 17];
       int  curr_argc = 0;
-      char perc_str[10];
       argp[curr_argc++] = (char *)pin_name.c_str();
       //argp[curr_argc++] = (char *)"-separate_memory";
       //argp[curr_argc++] = (char *)"-pause_tool";
@@ -301,17 +280,6 @@ int main(int argc, char * argv[])
       {
         argp[curr_argc++] = (char *)"-skip_first";
         argp[curr_argc++] = (char *)programs[i].num_skip_first_instrs.c_str();
-      }
-      if (programs[i].agile_bank_th_perc > 0)
-      {
-        sprintf(perc_str, "%d", programs[i].agile_bank_th_perc);
-        argp[curr_argc++] = (char *)"-agile_bank_th_perc";
-        argp[curr_argc++] = perc_str;
-      }
-      if (programs[i].agile_page_list_file_name.empty() == false)
-      {
-        argp[curr_argc++] = (char *)"-agile_page_list_file_name";
-        argp[curr_argc++] = (char *)programs[i].agile_page_list_file_name.c_str();
       }
       argp[curr_argc++] = (char *)"--";
       for (uint32_t j = 0; j < programs[i].prog_n_argv.size(); j++)

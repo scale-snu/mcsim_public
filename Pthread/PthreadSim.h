@@ -122,8 +122,6 @@ namespace PinPthread
       char *            tmp_shared;
       string            trace_name;
       uint64_t          trace_skip_first;
-      double            agile_bank_th;
-      string            agile_page_list_file_name;
       void  initiate(CONTEXT * ctxt);
 
     private:

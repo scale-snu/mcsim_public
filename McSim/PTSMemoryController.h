@@ -117,14 +117,6 @@ namespace PinPthread
       uint32_t req_window_sz; // up to how many requests can be considered during scheduling
       uint32_t interleave_xor_base_bit;
 
-      uint32_t mc_to_dir_t_ab;
-      uint32_t tRCD_ab;
-      uint32_t tRAS_ab;
-      uint32_t tRP_ab;
-      uint32_t tCL_ab;
-      bool     last_time_from_ab;
-      uint32_t num_banks_with_agile_row;
-      uint32_t reciprocal_of_agile_row_portion;
     public:
       const uint32_t rank_interleave_base_bit;
       const uint32_t bank_interleave_base_bit;
@@ -151,9 +143,6 @@ namespace PinPthread
       uint64_t num_write;
       uint64_t num_activate;
       uint64_t num_precharge;
-      uint64_t num_ab_read;
-      uint64_t num_ab_write;
-      uint64_t num_ab_activate;
       uint64_t num_write_to_read_switch;
       uint64_t num_refresh;  // a refresh command is applied to all VMD/BANK in a rank
       uint64_t num_pred_miss;
@@ -203,8 +192,7 @@ namespace PinPthread
 
       inline uint32_t get_rank_num(uint64_t addr) { return ((addr >> rank_interleave_base_bit) ^ (addr >> interleave_xor_base_bit)) % num_ranks_per_mc; }
       inline uint32_t get_bank_num(uint64_t addr) {
-        uint32_t num_banks_per_rank_curr = (addr >> 63 != 0 && reciprocal_of_agile_row_portion == 0 ? num_banks_with_agile_row : num_banks_per_rank); 
-        uint32_t bank_num = ((addr >> bank_interleave_base_bit) ^ (addr >> interleave_xor_base_bit)) % num_banks_per_rank_curr;
+        uint32_t bank_num = ((addr >> bank_interleave_base_bit) ^ (addr >> interleave_xor_base_bit)) % num_banks_per_rank;
         return bank_num;
       }
   };
