@@ -129,7 +129,7 @@ $ cmake --build .  -- -j
   tool [2] (called `mypthreadtool`) as a dynamic library. (To build the front-end, 
   the absolute path of `pin` root directory should be provided)
 ```bash
-$ cd Pthread
+$ cd ../../Pthread
 $ make PIN_ROOT="$(pwd)"/../pin obj-intel64/mypthreadtool.so -j4
 ```
 
