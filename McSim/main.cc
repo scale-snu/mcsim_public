@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <string>
 #include <string.h>
+#include <typeinfo>
 #include <unistd.h>
 #include <wait.h>
 #include <arpa/inet.h>
@@ -18,8 +19,10 @@
 #include <sys/types.h>
 #include <sys/time.h>
 
-#include "PTS.h"
+#include "toml.hpp"
+
 #include "McSim.h"
+#include "PTS.h"
 
 using namespace std;
 using namespace PinPthread;
@@ -27,7 +30,8 @@ using namespace PinPthread;
 struct Programs
 {
   int32_t num_threads;
-  string num_skip_first_instrs;
+  // string num_skip_first_instrs;
+  int64_t num_instrs_to_skip_first;
   uint32_t tid_to_htid;  // id offset
   string trace_name;
   string directory;
@@ -78,6 +82,8 @@ int main(int argc, char * argv[])
     cout << "failed to open the runfile " << FLAGS_runfile << endl;
     exit(1);
   }
+  const auto data = toml::parse(fin);
+  fin.close();
 
   // it is assumed that pin and pintool names are listed in the first two lines
   char * pin_ptr     = getenv("PIN");
@@ -90,45 +96,70 @@ int main(int argc, char * argv[])
   uint32_t num_th_passed_instr_count = 0;
   //uint32_t num_hthreads = pts->get_num_hthreads();
 
-  while (getline(fin, line))
+  // loop over all the `[[run]]` defined in a file
+  for(const auto& run : toml::find<toml::array>(data, "run"))
   {
-    // #_threads #_skip_1st_instrs dir prog_n_argv
-    // if #_threads is 0, trace file is specified at the location of #_skip_1st_instrs
-    if (line.empty() == true || line[0] == '#') continue;
-    programs.push_back(Programs());
-    sline.clear();
-    {
-      sline.str(line);
-      sline >> programs[idx].num_threads;
-      if (programs[idx].num_threads <= 0)
-      {
-        programs[idx].num_threads = 1;
-        sline >>  programs[idx].trace_name >> programs[idx].directory;
-        nactive++;
-      }
-      else
-      {
-        programs[idx].trace_name = string();
-        sline >> programs[idx].num_skip_first_instrs >> programs[idx].directory;
-        nactive += programs[idx].num_threads;
-      }
+    if (!run.contains("type")) {
+      cerr << "A run table entry must have a 'type' key.  This entry would be ignored." << endl;
+      continue;
     }
 
-    //programs[idx].directory = string("PATH=")+programs[idx].directory+":"+string(getenv("PATH"));
-    programs[idx].tid_to_htid = offset;
-    for (int32_t j = 0; j < programs[idx].num_threads; j++)
+    string type = toml::find<toml::string>(run, "type");
+    programs.push_back(Programs());
+
+    if (type == "pintool") {
+      if (!run.contains("num_threads")) {
+        cerr << "A 'pintool' type entry should include num_threads." << endl;
+        exit(1);
+      }
+      if (!run.contains("path")) {
+        cerr << "A 'pintool' type entry should include path." << endl;
+        exit(1);
+      }
+      if (!run.contains("arg")) {
+        cerr << "A 'pintool' type entry should include arg." << endl;
+        exit(1);
+      }
+      programs.back().num_threads = toml::find<toml::integer>(run, "num_threads");
+    } else if (type == "trace") {
+      if (!run.contains("trace_file")) {
+        cerr << "A 'trace' type should include trace_file." << endl;
+      }
+      if (!run.contains("path")) {
+        cerr << "A 'pintool' type entry should include path." << endl;
+        continue;
+      }
+      if (!run.contains("arg")) {
+        cerr << "A 'pintool' type entry should include arg." << endl;
+        continue;
+      }
+      programs.back().num_threads = 1;
+      programs.back().trace_name = toml::find<toml::string>(run, "trace_file");
+    } else {
+      cerr << "Only 'pintool' and 'trace' types are supported as of now." << endl;
+      exit(1);
+    }
+
+    programs.back().num_instrs_to_skip_first = toml::find_or(run, "num_instrs_to_skip_first", 0);
+    programs.back().directory = toml::find<toml::string>(run, "path");
+    // programs.back().prog_n_argv.push_back(toml::find<toml::string>(run, "arg"));
+    istringstream ss(toml::find<toml::string>(run, "arg"));
+
+    do {
+      string word;
+      ss >> word;
+      programs.back().prog_n_argv.push_back(word);
+    } while (ss);
+
+    programs.back().tid_to_htid = offset;
+    for (int32_t j = 0; j < programs.back().num_threads; j++)
     {
       htid_to_tid.push_back(j);
       htid_to_pid.push_back(idx);
     }
-    while (sline.eof() == false)
-    {
-      sline >> temp;
-      programs[idx].prog_n_argv.push_back(temp);
-    }
 
     // Shared memory buffer
-    programs[idx].buffer = new char[sizeof(PTSMessage)];
+    programs.back().buffer = new char[sizeof(PTSMessage)];
 
     if (idx > 0)
     {
@@ -138,10 +169,9 @@ int main(int argc, char * argv[])
       pts->set_active(offset, true);
     }
 
-    offset += programs[idx].num_threads;
+    offset += programs.back().num_threads;
     idx++;
   }
-  fin.close();
 
   // Shared memory variable
   char **pmmap = (char **)malloc(sizeof(char *)*programs.size());
@@ -279,7 +309,8 @@ int main(int argc, char * argv[])
       else
       {
         argp[curr_argc++] = (char *)"-skip_first";
-        argp[curr_argc++] = (char *)programs[i].num_skip_first_instrs.c_str();
+        // argp[curr_argc++] = (char *)programs[i].num_skip_first_instrs.c_str();
+        argp[curr_argc++] = (char *)to_string(programs[i].num_instrs_to_skip_first).c_str();
       }
       argp[curr_argc++] = (char *)"--";
       for (uint32_t j = 0; j < programs[i].prog_n_argv.size(); j++)

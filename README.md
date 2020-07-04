@@ -160,14 +160,19 @@ export PINTOOL=${BASE}/Pthread/obj-intel64/mypthreadtool.so
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
 ```
 
-3. Add the absolute path of `stream` directory to `Apps/list/run-stream.py`
-```
-4 0 /home/djoh0967/mcsim_private/McSim/stream STREAM -p4 -n1048576 -r2 -s512
+3. Add the absolute path of `stream` directory to `Apps/list/run-stream.toml`
+```toml
+[[run]]
+type = "pintool"
+num_threads = 4
+num_instrs_to_skip_first = 0
+path = "/home/gajh/repository/mcsim_private/McSim/stream"
+arg  = "STREAM -p4 -n1048576 -r10 -s512"
 ```
 
 4. Type the following command:
 ```bash
-$ ./McSim/build/mcsim -mdfile Apps/md/asymmetric-o3-closed.py -runfile Apps/list/run-stream.py
+$ ./McSim/build/mcsim -mdfile Apps/md/asymmetric-o3-closed.py -runfile Apps/list/run-stream.toml
 ```
 
 
