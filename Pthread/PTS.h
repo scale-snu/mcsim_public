@@ -153,7 +153,6 @@ namespace PinPthread
       uint32_t get_num_hthreads();
       uint64_t get_param_uint64(const string & idx_, uint64_t def_value);
       bool     get_param_bool(const string & idx_, bool def_value);
-      string   get_param_str(const string & idx_);
       uint64_t get_curr_time();
 
       uint32_t           num_piled_instr;      // in this object

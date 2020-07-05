@@ -244,14 +244,6 @@ uint64_t PthreadTimingSimulator::get_param_uint64(const string & str, uint64_t d
 }
 
 
-
-string PthreadTimingSimulator::get_param_str(const string & str)
-{
-  //cout << "PthreadTimingSimulator::get_parm_str(string) function is not supported any more" << endl;
-  return string();
-}
-
-
 bool PthreadTimingSimulator::get_param_bool(const string & str, bool def_value)
 {
   if (num_piled_instr) send_instr_batch();
