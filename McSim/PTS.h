@@ -177,7 +177,10 @@ namespace PinPthread
       string   get_param_str(const string & idx_) const;
       uint64_t get_curr_time() const;
 
+    private:
       std::map<string, string> params;
+
+    public:
       std::vector<string>      trace_files;
 
       McSim * mcsim;

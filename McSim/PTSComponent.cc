@@ -125,14 +125,7 @@ uint32_t Component::get_param_uint64(const string & param, const string & prefix
 
 string Component::get_param_str(const string & param) const
 {
-  if (mcsim->pts->params.find(prefix_str()+param) != mcsim->pts->params.end())
-  {
-    return mcsim->pts->params.find(prefix_str()+param)->second;
-  }
-  else
-  {
-    return string();
-  }
+  return mcsim->pts->get_param_str(prefix_str()+param);
 }
 
 
