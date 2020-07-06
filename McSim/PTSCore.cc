@@ -190,8 +190,8 @@ Hthread::Hthread(
       get_param_uint64("gp_size", 0));
   ASSERTX(mem_acc.empty());
 
-  bypass_tlb = get_param_str("bypass_tlb") == "true" ? true : false;
-  display_barrier = get_param_str("display_barrier") == "true" ? true : false;
+  bypass_tlb = get_param_bool("bypass_tlb", false);
+  display_barrier = get_param_bool("display_barrier", false);
 }
 
 

@@ -106,7 +106,7 @@ MemoryController::MemoryController(
   process_interval = get_param_uint64("process_interval", 10);
   refresh_interval = get_param_uint64("refresh_interval",  0);
 
-  if (get_param_str("mc_asymmetric_mode") == "true")
+  if (get_param_bool("mc_asymmetric_mode", false))
   {
     stringstream num_to_str_;
     num_to_str_ <<num<<".";
@@ -170,14 +170,14 @@ MemoryController::MemoryController(
   base1 = iter->first; width1 = iter->second; ++iter;
   base0 = iter->first; width0 = iter->second; ++iter;
 
-  par_bs      = get_param_str("par_bs")      == "true" ? true : false;
-  full_duplex = get_param_str("full_duplex") == "true" ? true : false;
+  par_bs      = get_param_bool("par_bs", false);
+  full_duplex = get_param_bool("full_duplex", false);
 
-  is_fixed_latency      = get_param_str("is_fixed_latency") == "true" ? true : false;
-  is_fixed_bw_n_latency = get_param_str("is_fixed_bw_n_latency") == "true" ? true : false;
+  is_fixed_latency      = get_param_bool("is_fixed_latency", false);
+  is_fixed_bw_n_latency = get_param_bool("is_fixed_bw_n_latency", false);
   bimodal_entry         = 0;
 
-  display_os_page_usage = get_param_str("display_os_page_usage") == "true" ? true : false;
+  display_os_page_usage = get_param_bool("display_os_page_usage", false);
   num_reqs              = 0;
 
   curr_batch_last       = -1;

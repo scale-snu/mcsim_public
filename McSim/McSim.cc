@@ -170,10 +170,10 @@ ostream & operator << (ostream & output, ins_type it)
 
 McSim::McSim(PthreadTimingSimulator * pts_)
  :pts(pts_),
-  skip_all_instrs(pts_->get_param_str("pts.skip_all_instrs") == "true" ? true : false),
-  simulate_only_data_caches(pts_->get_param_str("pts.simulate_only_data_caches") == "true" ? true : false),
-  show_l2_stat_per_interval(pts_->get_param_str("pts.show_l2_stat_per_interval") == "true" ? true : false),
-  is_race_free_application(pts_->get_param_str("pts.is_race_free_application") == "false" ? false : true),
+  skip_all_instrs(pts_->get_param_bool("pts.skip_all_instrs", false)),
+  simulate_only_data_caches(pts_->get_param_bool("pts.simulate_only_data_caches", false)),
+  show_l2_stat_per_interval(pts_->get_param_bool("pts.show_l2_stat_per_interval", false)),
+  is_race_free_application(pts_->get_param_bool("pts.is_race_free_application", true)),
   max_acc_queue_size(pts_->get_param_uint64("pts.max_acc_queue_size", 1000)),
   cores(), hthreads(), l1ds(), l1is(), l2s(), dirs(), mcs(), tlbl1ds(), tlbl1is(), comps(),
   num_fetched_instrs(0), num_instrs_printed_last_time(0),
@@ -182,8 +182,8 @@ McSim::McSim(PthreadTimingSimulator * pts_)
 {
   global_q      = new GlobalEventQueue(this);
   num_hthreads  = pts->get_param_uint64("pts.num_hthreads", max_hthreads);
-  use_o3core    = pts->get_param_str("pts.use_o3core") == "true" ? true : false;
-  is_asymmetric = pts->get_param_str("is_asymmetric") == "true" ? true : false;
+  use_o3core    = pts->get_param_bool("pts.use_o3core", false);
+  is_asymmetric = pts->get_param_bool("is_asymmetric", false);
 
   uint32_t num_threads_per_l1_cache   = pts->get_param_uint64("pts.num_hthreads_per_l1$", 4);
   assert(use_o3core == false || num_threads_per_l1_cache == 1);

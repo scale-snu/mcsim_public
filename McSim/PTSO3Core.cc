@@ -108,9 +108,9 @@ O3Core::O3Core(
       get_param_uint64("gp_size", 0));
   ASSERTX(mem_acc.empty());
 
-  bypass_tlb      = get_param_str("bypass_tlb")      == "true" ? true : false;
-  display_barrier = get_param_str("display_barrier") == "true" ? true : false;
-  mimick_inorder  = get_param_str("mimick_inorder")  == "true" ? true : false;
+  bypass_tlb      = get_param_bool("bypass_tlb", false);
+  display_barrier = get_param_bool("display_barrier", false);
+  mimick_inorder  = get_param_bool("mimick_inorder", false);
 
   o3queue_max_size = get_param_uint64("o3queue_max_size", 64) + 4;
   o3rob_max_size   = get_param_uint64("o3rob_max_size",   16);

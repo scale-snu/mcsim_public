@@ -129,6 +129,12 @@ string Component::get_param_str(const string & param) const
 }
 
 
+bool Component::get_param_bool(const string & param, bool def_value) const
+{
+  return mcsim->pts->get_param_bool(prefix_str()+param, def_value);
+}
+
+
 
 uint32_t Component::log2(uint64_t num)
 {
@@ -154,7 +160,7 @@ GlobalEventQueue::GlobalEventQueue(McSim * mcsim_)
   interleave_base_bit = mcsim->pts->get_param_uint64("pts.mc.interleave_base_bit", 12);
   interleave_xor_base_bit = mcsim->pts->get_param_uint64("pts.mc.interleave_xor_base_bit", 20);
   page_sz_base_bit = mcsim->pts->get_param_uint64("pts.mc.page_sz_base_bit", 12);
-  is_asymmetric = mcsim->pts->get_param_str("is_asymmetric") == "true" ? true : false;
+  is_asymmetric = mcsim->pts->get_param_bool("is_asymmetric", false);
 }
 
 

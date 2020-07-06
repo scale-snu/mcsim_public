@@ -28,68 +28,65 @@
  * Authors: Jung Ho Ahn
  */
 
-#include "PTS.h"
-#include "McSim.h"
-#include <iostream>
 #include <fstream>
 #include <iomanip>
+#include <iostream>
 #include <sstream>
 #include <string>
+
+#include "McSim.h"
+#include "PTS.h"
 
 using namespace PinPthread;
 
 
+void PthreadTimingSimulator::md_table_decoding(const toml::table & table, const string & prefix) {
+  // cout << prefix << ": " << endl;
+  for (auto && [k, v]: table) {
+    if (v.is_table()) {
+      md_table_decoding(v.as_table(), prefix + k + ".");
+    } else {
+      if (v.is_boolean()) {
+        params_bool[prefix+k] = v.as_boolean();
+      } else if (v.is_integer()) {
+        params_uint64_t[prefix+k] = v.as_integer();
+      } else if (v.is_string()) {
+        params_string[prefix+k] = v.as_string();
+      } else {
+        cout << prefix << k << " is neither bool, int, nor string. Something wrong..." << endl;
+        exit(1);
+      }
+      // cout << prefix << k << " = " << v << endl;
+    }
+  }
+}
+
 PthreadTimingSimulator::PthreadTimingSimulator(const string & mdfile)
- :params(), trace_files()
+ :/*params(),*/ trace_files()
 {
   ifstream fin(mdfile.c_str());
-  bool print_md = false;
 
   if (fin.good() == false)
   {
-    std::cout << "  -- mdfile is not specified or can not be opened. default parameters will be used." << std::endl;
+    cout << "Failed to open an mdfile named " << mdfile << endl;
+    exit(1);
   }
-  else
+  const auto data = toml::parse(fin);
+  fin.close();
+
+  bool print_md = toml::find_or<toml::boolean>(data, "print_md", false);
+  md_table_decoding(data.as_table(), "");
+
+  if (print_md == true)
   {
-    string line, param, value, temp;
-    istringstream sline;
-
-    while (getline(fin, line))
-    {
-      if (line.empty() == true) continue;
-      sline.clear();
-      sline.str(line);
-      sline >> param >> temp >> value;
-      if (param.find("#") != string::npos || value.find("#") != string::npos) continue;
-
-      if (param == "trace_file_name")
-      {
-        trace_files.push_back(value);
-      }
-      else if (param == "print_md" && value == "true")
-      {
-        print_md = true;
-      }
-      else if (param.find("process_bw") != string::npos)
-      {
-        param.replace(param.find("process_bw"), 10, "process_interval");
-        params[param] = value;
-      }
-      else
-      {
-        params[param] = value;
-      }
+    for (auto && [k, v]: params_bool) {
+      cout << k << " = " << v << endl;
     }
-
-    fin.close();
-    if (print_md == true)
-    {
-      fin.open(mdfile.c_str());
-      while (getline(fin, line))
-      {
-        std::cout << line << std::endl;
-      }
-      fin.close();
+    for (auto && [k, v]: params_uint64_t) {
+      cout << k << " = " << v << endl;
+    }
+    for (auto && [k, v]: params_string) {
+      cout << k << " = " << v << endl;
     }
   }
 
@@ -162,57 +159,12 @@ uint32_t PthreadTimingSimulator::get_num_hthreads() const
 
 uint64_t PthreadTimingSimulator::get_param_uint64(const string & str, uint64_t def) const
 {
-  if (params.find(str) == params.end())
-  {
+  if (params_uint64_t.find(str) == params_uint64_t.end()) {
+    // cout << str << " not found. use " << def << endl;
     return def;
-  }
-  else
-  {
-    uint64_t ret = 0;
-    const string & value = params.find(str)->second;
-
-    if (value.find("0x", 0) != string::npos || value.find("0X", 0) != string::npos)
-    {
-      // hex
-      for (uint32_t i = 2; i < value.length(); i++)
-      {
-        ret <<= 4;
-        if (value.at(i) >= 'A' && value.at(i) <= 'F')
-        {
-          ret += (value.at(i) - 'A' + 10);
-        }
-        else if (value.at(i) >= 'a' && value.at(i) <= 'f')
-        {
-          ret += (value.at(i) - 'a' + 10);
-        }
-        else
-        {
-          ret += (value.at(i) - '0');
-        }
-      }
-    }
-    else if (value.find("^", 1) != string::npos)
-    {
-      // power of N
-      istringstream sbase(value.substr(0, value.find("^", 1)));
-      istringstream sexp(value.substr(value.find("^", 1) + 1));
-
-      uint64_t base, exp;
-      sbase >> base;
-      sexp  >> exp;
-
-      ret = 1;
-      for (uint32_t i = 0; i < exp; i++)
-      {
-        ret *= base;
-      }
-    }
-    else
-    {
-      istringstream sstr(params.find(str)->second);
-      sstr >> ret;
-    }
-    return ret;
+  } else {
+    // cout << str << " = " << params_uint64_t.find(str)->second << endl;
+    return params_uint64_t.find(str)->second;
   }
 }
 
@@ -220,22 +172,25 @@ uint64_t PthreadTimingSimulator::get_param_uint64(const string & str, uint64_t d
 
 string PthreadTimingSimulator::get_param_str(const string & str) const
 {
-  if (params.find(str) == params.end())
-  {
+  if (params_string.find(str) == params_string.end()) {
+    // cout << str << " not found." << endl;
     return string();
-  }
-  else
-  {
-    return params.find(str)->second;
+  } else {
+    // cout << str << " = " << params_string.find(str)->second << endl;
+    return params_string.find(str)->second;
   }
 }
 
 
 bool PthreadTimingSimulator::get_param_bool(const string & str, bool def_value) const
 {
-  if (get_param_str(str) == "true") return true;
-  else if (get_param_str(str) == "false") return false;
-  else return def_value;
+  if (params_bool.find(str) == params_bool.end()) {
+    // cout << str << " not found. use " << def_value << endl;
+    return def_value;
+  } else {
+    // cout << str << " = " << params_bool.find(str)->second << endl;
+    return params_bool.find(str)->second;
+  }
 }
 
 

@@ -41,6 +41,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#include "toml.hpp"
+
 typedef uint8_t  UINT8;   //LINUX HOSTS
 typedef uint16_t UINT16;
 typedef uint32_t UINT32;
@@ -178,7 +180,12 @@ namespace PinPthread
       uint64_t get_curr_time() const;
 
     private:
-      std::map<string, string> params;
+      // std::map<string, string> params;
+      std::map<string, bool> params_bool;
+      std::map<string, uint64_t> params_uint64_t;
+      std::map<string, string> params_string;
+
+      void md_table_decoding(const toml::table & table, const string & prefix);
 
     public:
       std::vector<string>      trace_files;

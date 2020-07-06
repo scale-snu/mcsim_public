@@ -64,8 +64,8 @@ Directory::Directory(
   num_dir_cache_access(0), num_dir_cache_miss(0), num_dir_cache_retry(0), num_dir_evict(0)
 {
   process_interval        = get_param_uint64("process_interval", 50);
-  has_directory_cache     = (get_param_str("has_directory_cache") == "true");
-  use_limitless           = (get_param_str("use_limitless") == "true");
+  has_directory_cache     = get_param_bool("has_directory_cache", false);
+  use_limitless           = get_param_bool("use_limitless", false);
   limitless_broadcast_threshold = get_param_uint64("limitless_broadcast_threshold", 4);
 
   dir_cache = std::vector< std::list<uint64_t> >(num_sets);

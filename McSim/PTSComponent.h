@@ -147,9 +147,10 @@ namespace PinPthread
 
     protected:
       const char * prefix_str() const;
-      uint32_t get_param_uint64(const string & param, uint32_t def = 0) const ;
+      uint32_t get_param_uint64(const string & param, uint32_t def = 0) const;
       uint32_t get_param_uint64(const string & param, const string & prefix, uint32_t def = 0) const;
       string   get_param_str(const string & param) const;
+      bool     get_param_bool(const string & param, bool def_value) const;
       uint32_t log2(uint64_t num);
   };
 

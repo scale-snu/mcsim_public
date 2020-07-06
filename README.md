@@ -172,7 +172,7 @@ arg  = "STREAM -p4 -n1048576 -r10 -s512"
 
 4. Type the following command:
 ```bash
-$ ./McSim/build/mcsim -mdfile Apps/md/asymmetric-o3-closed.py -runfile Apps/list/run-stream.toml
+$ ./McSim/build/mcsim -mdfile Apps/md/asymmetric-o3-closed.toml -runfile Apps/list/run-stream.toml
 ```
 
 
@@ -208,20 +208,19 @@ $ vim Apps/list/run-trace.py
 
 3. To play the trace file, Type the following command:
 ```bash
-$ ./McSim/build/mcsim -mdfile Apps/md/asymmetric-o3-closed.py -runfile Apps/list/run-trace.py
+$ ./McSim/build/mcsim -mdfile Apps/md/asymmetric-o3-closed.toml -runfile Apps/list/run-trace.toml
 ```
 
 
 Setting the configuration of the architecture
 ---------------------------------------------
 You can change the configureation of the architecture you will 
-simulate by modifying the `md.py` file.  Its format is similar to
-that of Python, but it is not a python file.  Most parameters are
-named intuitively, but please check the source files to understand
+simulate by modifying the `md.toml` file.  It uses [TOML](https://toml.io/en/) language.
+Most parameters are named intuitively, but please check the source files to understand
 the meaning of parameters that are not clear.
 
 To use asymmetric latency memory mode, see the example file 
-`asymmetric-o3-closed.py` in the path below. 
+`asymmetric-o3-closed.toml` in the path below. 
 
 ```
 # default setting

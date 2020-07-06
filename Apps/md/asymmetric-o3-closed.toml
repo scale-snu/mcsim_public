@@ -4,7 +4,7 @@
 # the simulation quits.
 max_total_instrs             = 1000000000 
 # stack size per hardware thread
-stack_sz                     = 2^23
+stack_sz                     = 0x800000
 addr_offset_lsb              = 48
 
 # if true, none of the instructions executed on Pin is delivered to McSim.
@@ -13,12 +13,12 @@ pts.simulate_only_data_caches = false
 pts.show_l2_stat_per_interval = false
 
 pts.num_hthreads             = 16 
-pts.num_hthreads_per_l1$     = 1
-pts.num_l1$_per_l2$          = 1 
+pts.'num_hthreads_per_l1$'     = 1
+pts.'num_l1$_per_l2$'          = 1 
 pts.num_mcs                  = 2 
 # display simulation statistics when every pts.print_interval
 # instruction is executed.
-pts.print_interval           = 10^6
+pts.print_interval           = 1000000
 pts.is_race_free_application = true
 pts.max_acc_queue_size       = 5
 pts.use_o3core               = true
@@ -45,40 +45,40 @@ pts.o3core.o3rob_max_size      = 64
 pts.o3core.max_issue_width     = 8
 pts.o3core.max_commit_width    = 8
 
-pts.l1i$.num_sets           = 64
-pts.l1i$.num_ways           = 4
+pts.'l1i$'.num_sets           = 64
+pts.'l1i$'.num_ways           = 4
 # which part of the address is mapped into a set
-pts.l1i$.set_lsb            = 6
-pts.l1i$.process_interval   = 10
-pts.l1i$.to_lsu_t           = 2               # unit: tick
-pts.l1i$.to_l2_t            = 20
+pts.'l1i$'.set_lsb            = 6
+pts.'l1i$'.process_interval   = 10
+pts.'l1i$'.to_lsu_t           = 2               # unit: tick
+pts.'l1i$'.to_l2_t            = 20
 # for how many ticks a cache is used per access
-pts.l1i$.num_sets_per_subarray = 8
-pts.l1i$.always_hit         = false
+pts.'l1i$'.num_sets_per_subarray = 8
+pts.'l1i$'.always_hit         = false
 
-pts.l1d$.num_banks          = 4
-pts.l1d$.num_sets           = 64
-pts.l1d$.num_ways           = 4
-pts.l1d$.set_lsb            = 6
-pts.l1d$.process_interval   = 10
-pts.l1d$.to_lsu_t           = 4 
-pts.l1d$.to_l2_t            = 40
-pts.l1d$.num_sets_per_subarray = 8
-pts.l1d$.always_hit         = false
+pts.'l1d$'.num_banks          = 4
+pts.'l1d$'.num_sets           = 64
+pts.'l1d$'.num_ways           = 4
+pts.'l1d$'.set_lsb            = 6
+pts.'l1d$'.process_interval   = 10
+pts.'l1d$'.to_lsu_t           = 4 
+pts.'l1d$'.to_l2_t            = 40
+pts.'l1d$'.num_sets_per_subarray = 8
+pts.'l1d$'.always_hit         = false
 
-pts.l2$.num_sets            = 1024
-pts.l2$.num_ways            = 16
-pts.l2$.set_lsb             = 6
-pts.l2$.process_interval    = 10
-pts.l2$.to_l1_t             = 40
-pts.l2$.to_dir_t            = 40
-pts.l2$.to_xbar_t           = 40
-pts.l2$.num_banks           = 4
+pts.'l2$'.num_sets            = 1024
+pts.'l2$'.num_ways            = 16
+pts.'l2$'.set_lsb             = 6
+pts.'l2$'.process_interval    = 10
+pts.'l2$'.to_l1_t             = 40
+pts.'l2$'.to_dir_t            = 40
+pts.'l2$'.to_xbar_t           = 40
+pts.'l2$'.num_banks           = 4
 # how many flits are needed for a packet with data.  it is 
 # assumed that a packet without data need a single flit.
-pts.l2$.num_flits_per_packet  = 3
-pts.l2$.num_sets_per_subarray = 16
-pts.l2$.always_hit            = false
+pts.'l2$'.num_flits_per_packet  = 3
+pts.'l2$'.num_sets_per_subarray = 16
+pts.'l2$'.always_hit            = false
 
 pts.dir.set_lsb              = 6
 pts.dir.process_interval     = 10
@@ -92,7 +92,7 @@ pts.dir.num_ways             = 16
 pts.dir.has_directory_cache  = false
 
 # NoC type = ring/mesh/xbar
-pts.noc_type                 = xbar 
+pts.noc_type                 = "xbar"
 pts.xbar.to_dir_t            = 40
 pts.xbar.to_l2_t             = 40
 pts.xbar.process_interval    = 10
@@ -136,7 +136,7 @@ pts.mc.req_window_sz        = 32
 pts.mc.rank_interleave_base_bit = 14
 pts.mc.bank_interleave_base_bit = 14
 pts.mc.page_sz_base_bit         = 12
-pts.mc.scheduling_policy        = closed
+pts.mc.scheduling_policy        = "closed"
 pts.mc.refresh_interval         = 720000
 pts.mc.num_pages_per_bank       = 8192
 pts.mc.par_bs       = true

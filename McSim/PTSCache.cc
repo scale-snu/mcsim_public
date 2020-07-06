@@ -83,7 +83,7 @@ CacheL1::CacheL1(
   num_sets   = get_param_uint64("num_sets", 64);
   num_ways   = get_param_uint64("num_ways", 4);
   set_lsb    = get_param_uint64("set_lsb",  6);
-  always_hit = (get_param_str("always_hit") == "true");
+  always_hit = get_param_bool("always_hit", false);
   process_interval = get_param_uint64("process_interval", 10);
   l2_set_lsb = get_param_uint64("set_lsb", "pts.l2$.", set_lsb);
 
@@ -102,7 +102,7 @@ CacheL1::CacheL1(
     }
   }
 
-  use_prefetch          = (get_param_str("use_prefetch") == "true");
+  use_prefetch          = get_param_bool("use_prefetch", false);
   num_prefetch_requests = 0;
   num_prefetch_hits     = 0;
   num_pre_entries       = get_param_uint64("num_pre_entries", 64);
@@ -697,8 +697,8 @@ CacheL2::CacheL2(
   num_banks_log2   = log2(num_banks);
 
   num_sets_per_subarray = get_param_uint64("num_sets_per_subarray", 1);
-  always_hit            = (get_param_str("always_hit") == "true");
-  display_life_time     = (get_param_str("display_life_time") == "true");
+  always_hit            = get_param_bool("always_hit", false);
+  display_life_time     = get_param_bool("display_life_time", false);
 
   num_destroyed_cache_lines = 0;
   cache_line_life_time      = 0;
