@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 find_package(gflags REQUIRED)
+find_package(glog REQUIRED)
 
 # set(CMAKE_BUILD_TYPE Release)
 if(NOT CMAKE_BUILD_TYPE)
@@ -50,3 +51,10 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3 -g")
 
 add_executable(mcsim ${SRC_FILES})
 target_link_libraries(mcsim gflags)
+target_link_libraries(mcsim glog::glog)
+# if (NOT GLOG_PATH)
+#   target_link_libraries(mcsim glog::glog)
+# else()
+#   target_link_libraries(mcsim unwind)
+#   target_link_libraries(mcsim ${GLOG_PATH}/libglog.a)
+# endif()

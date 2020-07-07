@@ -13,6 +13,7 @@
 #include <wait.h>
 #include <arpa/inet.h>
 #include <gflags/gflags.h>
+#include <glog/logging.h>
 #include <netinet/in.h>
 #include <sys/mman.h>
 #include <sys/socket.h>
@@ -46,16 +47,17 @@ DEFINE_string(instrs_skip, "0", "Number of instructions to skip before timing si
 DEFINE_bool(run_manually, false, "Whether to run the McSimA+ frontend manually or not.");
 DEFINE_string(remapfile, "remap.toml", "Mapping between apps and cores: TOML format used.");
 DEFINE_uint64(remap_interval, 0, "When positive, this specifies the number of instructions \
-after which a remapping between apps and cores are conducted.");
+    after which a remapping between apps and cores are conducted.");
 
 
 int main(int argc, char * argv[])
 {
   string usage{"McSimA+ backend\n"};
   usage += string{argv[0]} + " -mdfile mdfile -runfile runfile -run_manually" +
-           "-remapfile remapfile -remap_interval instrs";
+    "-remapfile remapfile -remap_interval instrs";
   gflags::SetUsageMessage(usage);
   gflags::ParseCommandLineFlags(&argc, &argv, true);
+  google::InitGoogleLogging(argv[0]);
 
   string line, temp;
   istringstream sline;
@@ -77,11 +79,8 @@ int main(int argc, char * argv[])
   bool              kill_with_sigint = pts->get_param_str("kill_with_sigint") == "true" ? true : false;
 
   ifstream fin(FLAGS_runfile.c_str());
-  if (fin.good() == false)
-  {
-    cout << "failed to open the runfile " << FLAGS_runfile << endl;
-    exit(1);
-  }
+  CHECK(fin.good()) << "failed to open the runfile " << FLAGS_runfile << endl;
+
   const auto data = toml::parse(fin);
   fin.close();
 
@@ -100,7 +99,7 @@ int main(int argc, char * argv[])
   for(const auto& run : toml::find<toml::array>(data, "run"))
   {
     if (!run.contains("type")) {
-      cerr << "A run table entry must have a 'type' key.  This entry would be ignored." << endl;
+      LOG(ERROR) << "A run table entry must have a 'type' key.  This entry would be ignored.\n";
       continue;
     }
 
@@ -108,36 +107,20 @@ int main(int argc, char * argv[])
     programs.push_back(Programs());
 
     if (type == "pintool") {
-      if (!run.contains("num_threads")) {
-        cerr << "A 'pintool' type entry should include num_threads." << endl;
-        exit(1);
-      }
-      if (!run.contains("path")) {
-        cerr << "A 'pintool' type entry should include path." << endl;
-        exit(1);
-      }
-      if (!run.contains("arg")) {
-        cerr << "A 'pintool' type entry should include arg." << endl;
-        exit(1);
-      }
+      CHECK(run.contains("num_threads")) << "A 'pintool' type entry should include num_threads.\n";
+      CHECK(run.contains("path")) << "A 'pintool' type entry should include path.\n";
+      CHECK(run.contains("arg")) << "A 'pintool' type entry should include arg.\n";
+
       programs.back().num_threads = toml::find<toml::integer>(run, "num_threads");
     } else if (type == "trace") {
-      if (!run.contains("trace_file")) {
-        cerr << "A 'trace' type should include trace_file." << endl;
-      }
-      if (!run.contains("path")) {
-        cerr << "A 'pintool' type entry should include path." << endl;
-        continue;
-      }
-      if (!run.contains("arg")) {
-        cerr << "A 'pintool' type entry should include arg." << endl;
-        continue;
-      }
+      CHECK(run.contains("trace_file")) << "A 'trace' type should include trace_file.\n";
+      CHECK(run.contains("path")) << "A 'pintool' type entry should include path.\n";
+      CHECK(run.contains("arg")) << "A 'pintool' type entry should include arg.\n";
+
       programs.back().num_threads = 1;
       programs.back().trace_name = toml::find<toml::string>(run, "trace_file");
     } else {
-      cerr << "Only 'pintool' and 'trace' types are supported as of now." << endl;
-      exit(1);
+      LOG(FATAL) << "Only 'pintool' and 'trace' types are supported as of now." << endl;
     }
 
     programs.back().num_instrs_to_skip_first = toml::find_or(run, "num_instrs_to_skip_first", 0);
@@ -191,18 +174,17 @@ int main(int argc, char * argv[])
     strcat (tmp_shared[i], tmp_pid); 
     strcat (tmp_shared[i], temp_filename);
     strcat (tmp_shared[i], ppid);
-  
+
     // Shared memory setup
     if ((mmap_fd[i] = open(tmp_shared[i], O_RDWR | O_CREAT, 0666)) < 0) {
       perror("ERROR: open syscall");
-
       exit(1);
     }
 
     ftruncate(mmap_fd[i], sizeof(PTSMessage)+2);
 
     if((pmmap[i] = (char *)mmap(0, sizeof(PTSMessage)+2,
-            PROT_READ | PROT_WRITE, MAP_SHARED, mmap_fd[i], 0)) == MAP_FAILED){
+            PROT_READ | PROT_WRITE, MAP_SHARED, mmap_fd[i], 0)) == MAP_FAILED) {
       perror("ERROR: mmap syscall");
       exit(1);
     }
@@ -217,16 +199,11 @@ int main(int argc, char * argv[])
   // error checkings
   if (offset > pts->get_num_hthreads())
   {
-    cout << "more threads (" << offset << ") than the number of threads (" 
-      << pts->get_num_hthreads() << ") specified in " << FLAGS_mdfile << endl;
-    exit(1);
+    LOG(FATAL) << "more threads (" << offset << ") than the number of threads (" 
+               << pts->get_num_hthreads() << ") specified in " << FLAGS_mdfile << endl;
   }
 
-  if (programs.size() <= 0)
-  {
-    cout << "we need at least one program to run" << endl;
-    exit(1);
-  }
+  CHECK(programs.size()) << "we need at least one program to run" << endl;
 
   if (FLAGS_run_manually == false)
   {
@@ -288,7 +265,7 @@ int main(int argc, char * argv[])
       argp[curr_argc++] = pid_str;
       argp[curr_argc++] = (char *)"-total_num";
       argp[curr_argc++] = total_num_str;
-      
+
       // Shared memory tmp_file
       argp[curr_argc++] = (char *)"-tmp_shared";
       argp[curr_argc++] = tmp_shared[i];
@@ -352,11 +329,7 @@ int main(int argc, char * argv[])
   if (FLAGS_remap_interval != 0)
   {
     fin.open(FLAGS_remapfile.c_str());
-    if (fin.good() == false)
-    {
-      cout << "failed to open the remapfile " << FLAGS_remapfile << endl;
-      exit(1);
-    }
+    CHECK(fin.good()) << "failed to open the remapfile " << FLAGS_remapfile << endl;
   }
 
   uint64_t * num_fetched_instrs = new uint64_t[htid_to_pid.size()];
@@ -386,7 +359,7 @@ int main(int argc, char * argv[])
     // recvfrom => shared recv
     while(mmap_flag[curr_pid][0]){}
     mmap_flag[curr_pid][0] = true;
-    memcpy((PTSMessage *)curr_p->buffer, (PTSMessage *)pmmap[curr_pid], sizeof(PTSMessage));
+    memcpy((PTSMessage *)curr_p->buffer, (PTSMessage *) pmmap[curr_pid], sizeof(PTSMessage));
     PTSMessage * pts_m = (PTSMessage *)curr_p->buffer;
 
     if (pts->mcsim->num_fetched_instrs >= max_total_instrs ||
@@ -610,6 +583,6 @@ int main(int argc, char * argv[])
   free (pmmap);
   free (mmap_flag);
   free (tmp_shared);
- 
+
   return 0;
 }

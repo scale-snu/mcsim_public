@@ -74,6 +74,11 @@ the required packages with the following command:
 
 [gflags]: https://gflags.github.io/gflags/
 
++ [glog][glog]
+  - Check [this](https://github.com/google/glog/blob/master/cmake/INSTALL.md) for using cmake.
+
+[glog]: https://github.com/google/glog/
+
 + [toml11][toml11]
   ```bash
   $ git clone https://github.com/ToruNiina/toml11.git
