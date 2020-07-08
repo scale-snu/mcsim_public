@@ -34,7 +34,7 @@
 #include "PTSTLB.h"
 #include <iomanip>
 
-using namespace PinPthread;
+namespace PinPthread {
 
 extern ostream & operator << (ostream & output, ins_type it);
 
@@ -482,3 +482,4 @@ bool BranchPredictor::miss(uint64_t addr, bool taken)
   return miss;
 }
 
+}  // namespace PinPthread

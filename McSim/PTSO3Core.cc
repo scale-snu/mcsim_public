@@ -35,7 +35,8 @@
 #include <iomanip>
 #include <sstream>
 
-using namespace PinPthread;
+
+namespace PinPthread {
 
 static const int32_t word_log = 3;
 
@@ -817,3 +818,4 @@ void O3Core::displayO3ROB()
   }
 }
 
+}  // namespace PinPthread

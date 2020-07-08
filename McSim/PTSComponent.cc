@@ -32,7 +32,8 @@
 #include "PTSComponent.h"
 #include "PTSCore.h"
 
-using namespace PinPthread;
+
+namespace PinPthread {
 
 extern ostream & operator << (ostream & output, coherence_state_type cs);
 extern ostream & operator << (ostream & output, component_type ct);
@@ -319,11 +320,10 @@ void GlobalEventQueue::display()
 }
 
 
-
 uint32_t GlobalEventQueue::which_mc(uint64_t address)
 {
   //  return (address >> interleave_base_bit) % num_mcs;
   return ((address >> interleave_base_bit) ^ (address >> interleave_xor_base_bit)) % num_mcs;
 }
 
-
+}  // namespace PinPthread

@@ -35,9 +35,9 @@
 #include <iomanip>
 #include <set>
 
-using namespace PinPthread;
 using namespace std;
 
+namespace PinPthread {
 
 extern ostream & operator << (ostream & output, coherence_state_type cs);
 extern ostream & operator << (ostream & output, component_type ct);
@@ -1808,3 +1808,5 @@ void CacheL2::test_tags(uint32_t set)
     }
   }
 }
+
+}  // namespace PinPthread

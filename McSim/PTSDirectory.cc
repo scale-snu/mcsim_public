@@ -36,9 +36,9 @@
 #include <iomanip>
 #include <sstream>
 
-using namespace PinPthread;
 using namespace std;
 
+namespace PinPthread {
 
 extern ostream & operator << (ostream & output, coherence_state_type cs);
 extern ostream & operator << (ostream & output, component_type ct);
@@ -990,4 +990,5 @@ void Directory::add_event_to_ULpp(
   }
 }
 
+}  // namespace PinPthread
 

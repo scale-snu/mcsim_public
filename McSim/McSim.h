@@ -28,160 +28,156 @@
  * Authors: Jung Ho Ahn
  */
 
-#ifndef __MCSIM_H__
-#define __MCSIM_H__
+#ifndef MCSIM_H_
+#define MCSIM_H_
 
 #include "PTS.h"
 #include "PTSComponent.h"
+#include <stdlib.h>
 #include <iostream>
 #include <list>
 #include <map>
 #include <queue>
 #include <set>
 #include <stack>
+#include <utility>
 #include <vector>
-#include <stdlib.h>
 
 
-using namespace std;
+static const ADDRINT search_addr   = 0x800e7fffde77a040;
+static const uint32_t max_hthreads = 1024;
 
-const static ADDRINT search_addr   = 0x800e7fffde77a040;
-const static uint32_t max_hthreads = 1024;
-
-namespace PinPthread 
-{
-  class Core;
-  class O3Core;
-  class Hthread;
-  class CacheL1;
-  class CacheL2;
-  class Directory;
-  class Crossbar;
-  class MemoryController;
-  class BranchPredictor;
-  class TLBL1;
-  class TLBL2;
-  class NoC;
-  class McSim;
+namespace PinPthread {
+class Core;
+class O3Core;
+class Hthread;
+class CacheL1;
+class CacheL2;
+class Directory;
+class Crossbar;
+class MemoryController;
+class BranchPredictor;
+class TLBL1;
+class TLBL2;
+class NoC;
+class McSim;
 
 
-  enum ins_type
-  {
-    mem_rd,
-    mem_2nd_rd,
-    mem_wr,
-    no_mem,
-    ins_branch_taken,
-    ins_branch_not_taken,
-    ins_lock,
-    ins_unlock,
-    ins_barrier,
-    ins_x87,
-    ins_notify,   // for thread migration
-    ins_waitfor,  // for thread migration
-    ins_invalid
-  };
+enum ins_type {
+  mem_rd,
+  mem_2nd_rd,
+  mem_wr,
+  no_mem,
+  ins_branch_taken,
+  ins_branch_not_taken,
+  ins_lock,
+  ins_unlock,
+  ins_barrier,
+  ins_x87,
+  ins_notify,   // for thread migration
+  ins_waitfor,  // for thread migration
+  ins_invalid
+};
 
-  enum coherence_state_type
-  {
-    cs_invalid,
-    cs_shared,
-    cs_exclusive,
-    cs_modified,
-    cs_tr_to_i,  // will be the invalid state
-    cs_tr_to_s,  // will be the shared state
-    cs_tr_to_m,  // will be the modified state
-    cs_tr_to_e,
-    cs_m_to_s    // modified -> shared
-  };
+enum coherence_state_type {
+  cs_invalid,
+  cs_shared,
+  cs_exclusive,
+  cs_modified,
+  cs_tr_to_i,  // will be the invalid state
+  cs_tr_to_s,  // will be the shared state
+  cs_tr_to_m,  // will be the modified state
+  cs_tr_to_e,
+  cs_m_to_s    // modified -> shared
+};
 
 
 
-  class McSim
-  {
-    public:
-      McSim(PthreadTimingSimulator * pts_);
-      ~McSim();
+class McSim {
+ public:
+  explicit McSim(PthreadTimingSimulator * pts_);
+  ~McSim();
 
-      pair<uint32_t, uint64_t> resume_simulation(bool must_switch);
-      uint32_t add_instruction(
-          uint32_t hthreadid_,
-          uint64_t curr_time_,
-          uint64_t waddr,
-          UINT32   wlen,
-          uint64_t raddr,
-          uint64_t raddr2,
-          UINT32   rlen,
-          uint64_t ip,
-          uint32_t category,
-          bool     isbranch,
-          bool     isbranchtaken,
-          bool     islock,
-          bool     isunlock,
-          bool     isbarrier,
-          uint32_t rr0, uint32_t rr1, uint32_t rr2, uint32_t rr3,
-          uint32_t rw0, uint32_t rw1, uint32_t rw2, uint32_t rw3
-          );  // return value -- whether we have to resume simulation
-      void link_thread(int32_t pth_id, bool * active_, int32_t * spinning_, ADDRINT * stack_, ADDRINT * stacksize_);
-      void set_stack_n_size(int32_t pth_id, ADDRINT stack, ADDRINT stacksize);
-      void set_active(int32_t pth_id, bool is_active);
+  pair<uint32_t, uint64_t> resume_simulation(bool must_switch);
+  // return value -- whether we have to resume simulation
+  uint32_t add_instruction(
+      uint32_t hthreadid_,
+      uint64_t curr_time_,
+      uint64_t waddr,
+      UINT32   wlen,
+      uint64_t raddr,
+      uint64_t raddr2,
+      UINT32   rlen,
+      uint64_t ip,
+      uint32_t category,
+      bool     isbranch,
+      bool     isbranchtaken,
+      bool     islock,
+      bool     isunlock,
+      bool     isbarrier,
+      uint32_t rr0, uint32_t rr1, uint32_t rr2, uint32_t rr3,
+      uint32_t rw0, uint32_t rw1, uint32_t rw2, uint32_t rw3);
+  void link_thread(int32_t pth_id, bool * active_, int32_t * spinning_,
+      ADDRINT * stack_, ADDRINT * stacksize_);
+  void set_stack_n_size(int32_t pth_id, ADDRINT stack, ADDRINT stacksize);
+  void set_active(int32_t pth_id, bool is_active);
 
-      PthreadTimingSimulator   * pts;
-      bool     skip_all_instrs;
-      bool     simulate_only_data_caches;
-      bool     show_l2_stat_per_interval;
-      bool     is_race_free_application;
-      uint32_t max_acc_queue_size;
-      uint32_t num_hthreads;
-      uint64_t print_interval;
-      bool     use_o3core;
-      bool     is_asymmetric;
+  PthreadTimingSimulator   * pts;
+  bool     skip_all_instrs;
+  bool     simulate_only_data_caches;
+  bool     show_l2_stat_per_interval;
+  bool     is_race_free_application;
+  uint32_t max_acc_queue_size;
+  uint32_t num_hthreads;
+  uint64_t print_interval;
+  bool     use_o3core;
+  bool     is_asymmetric;
 
-      vector<Core *>             cores;
-      vector<Hthread *>          hthreads;
-      vector<O3Core *>           o3cores;
-      vector<bool>               is_migrate_ready;
-      vector<CacheL1 *>          l1ds;
-      vector<CacheL1 *>          l1is;
-      vector<CacheL2 *>          l2s;
-      NoC *                      noc;
-      vector<Directory *>        dirs;
-      vector<MemoryController *> mcs;
-      GlobalEventQueue *         global_q;
-      vector<TLBL1 *>            tlbl1ds;
-      vector<TLBL1 *>            tlbl1is;
-      list<Component *>          comps;
+  vector<Core *>             cores;
+  vector<Hthread *>          hthreads;
+  vector<O3Core *>           o3cores;
+  vector<bool>               is_migrate_ready;
+  vector<CacheL1 *>          l1ds;
+  vector<CacheL1 *>          l1is;
+  vector<CacheL2 *>          l2s;
+  NoC *                      noc;
+  vector<Directory *>        dirs;
+  vector<MemoryController *> mcs;
+  GlobalEventQueue *         global_q;
+  vector<TLBL1 *>            tlbl1ds;
+  vector<TLBL1 *>            tlbl1is;
+  list<Component *>          comps;
 
-      uint32_t get_num_hthreads() const { return num_hthreads; }
-      uint64_t get_curr_time() const    { return global_q->curr_time; }
-      void     show_state(uint64_t);
-      void     show_l2_cache_summary();
+  uint32_t get_num_hthreads() const { return num_hthreads; }
+  uint64_t get_curr_time() const    { return global_q->curr_time; }
+  void     show_state(uint64_t);
+  void     show_l2_cache_summary();
 
-      map<uint64_t, uint64_t>   os_page_req_dist; 
-      void update_os_page_req_dist(uint64_t addr);
-      uint64_t num_fetched_instrs;
+  map<uint64_t, uint64_t>   os_page_req_dist;
+  void update_os_page_req_dist(uint64_t addr);
+  uint64_t num_fetched_instrs;
 
-      // some stat info
-    private:
-      uint64_t num_instrs_printed_last_time;
+  // some stat info
+ private:
+  uint64_t num_instrs_printed_last_time;
 
-      uint64_t num_destroyed_cache_lines_last_time;
-      uint64_t cache_line_life_time_last_time;
-      uint64_t time_between_last_access_and_cache_destroy_last_time;
+  uint64_t num_destroyed_cache_lines_last_time;
+  uint64_t cache_line_life_time_last_time;
+  uint64_t time_between_last_access_and_cache_destroy_last_time;
 
-      uint64_t lsu_process_interval;
-      uint64_t curr_time_last;
-      uint64_t num_fetched_instrs_last;
-      uint64_t num_mem_acc_last;
-      uint64_t num_used_pages_last;
-      uint64_t num_l1_acc_last;
-      uint64_t num_l1_miss_last;
-      uint64_t num_l2_acc_last;
-      uint64_t num_l2_miss_last;
-      uint64_t num_dependency_distance_last;
-  };
+  uint64_t lsu_process_interval;
+  uint64_t curr_time_last;
+  uint64_t num_fetched_instrs_last;
+  uint64_t num_mem_acc_last;
+  uint64_t num_used_pages_last;
+  uint64_t num_l1_acc_last;
+  uint64_t num_l1_miss_last;
+  uint64_t num_l2_acc_last;
+  uint64_t num_l2_miss_last;
+  uint64_t num_dependency_distance_last;
+};
 
-}
+}  // namespace PinPthread
 
-#endif
+#endif  // MCSIM_H_
 
