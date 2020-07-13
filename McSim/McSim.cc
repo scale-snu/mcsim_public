@@ -42,6 +42,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <glog/logging.h>
 
 extern "C" {
 #include "xed-category-enum.h"
@@ -202,8 +203,7 @@ McSim::McSim(PthreadTimingSimulator * pts_)
 
   if (noc_type != "mesh" && noc_type != "ring" &&
       num_mcs * num_l1_caches_per_l2_cache * num_threads_per_l1_cache > num_hthreads) {
-    cout << "the number of memory controller must not be larger than the number of L2 caches" << endl;
-    exit(1);
+    LOG(FATAL) << "the # of memory controllers must not be larger than the # of L2 caches\n";
   }
 
   if (is_asymmetric == false) {
@@ -395,7 +395,7 @@ McSim::McSim(PthreadTimingSimulator * pts_)
           l1dtlb->lsus.push_back(o3core);
         }
       } else {
-        MemoryController * mc  = new MemoryController(ct_memory_controller, num_dirs, this);
+        MemoryController * mc = new MemoryController(ct_memory_controller, num_dirs, this);
         Directory * dir = new Directory(ct_directory, num_dirs++, this);
         mcs.push_back(mc);
         dirs.push_back(dir);
@@ -428,45 +428,20 @@ McSim::~McSim() {
   delete noc;
   for (auto && el : l1is) delete el;
   for (auto && el : l1ds) delete el;
-  /* for (vector<Hthread *>::iterator iter = hthreads.begin(); iter != hthreads.end(); ++iter) {
-    delete (*iter);
-  }
-  for (vector<O3Core *>::iterator iter = o3cores.begin(); iter != o3cores.end(); ++iter) {
-    delete (*iter);
-  }
-  for (vector<CacheL2 *>::iterator iter = l2s.begin(); iter != l2s.end(); ++iter) {
-    delete (*iter);
-  }
-  for (vector<Directory *>::iterator iter = dirs.begin(); iter != dirs.end(); ++iter) {
-    delete (*iter);
-  }
-  for (vector<MemoryController *>::iterator iter = mcs.begin(); iter != mcs.end(); ++iter) {
-    delete (*iter);
-  }
-  delete noc;
-  for (vector<CacheL1 *>::iterator iter = l1is.begin(); iter != l1is.end(); ++iter) {
-    delete (*iter);
-  }
-  for (vector<CacheL1 *>::iterator iter = l1ds.begin(); iter != l1ds.end(); ++iter) {
-    delete (*iter);
-  } */
 
   delete global_q;
 }
 
 
 void McSim::show_state(uint64_t addr) {
-  for (list<Component *>::iterator iter = comps.begin(); iter != comps.end(); ++iter) {
-    (*iter)->show_state(addr);
-  }
+  for (auto && el : comps) el->show_state(addr);
 }
 
 
 pair<uint32_t, uint64_t> McSim::resume_simulation(bool must_switch) {
   pair<uint32_t, uint64_t> ret_val;  // <thread_id, time>
 
-  if (/*must_switch == true &&*/
-      global_q->event_queue.begin() == global_q->event_queue.end()) {
+  if (/*must_switch == true &&*/ global_q->event_queue.empty()) {
     bool any_resumable_thread = false;
     if (use_o3core == true) {
       for (uint32_t i = 0; i < o3cores.size(); i++) {
@@ -540,8 +515,12 @@ pair<uint32_t, uint64_t> McSim::resume_simulation(bool must_switch) {
     uint64_t num_l1_acc  = 0;
     uint64_t num_l1_miss = 0;
     for (unsigned int i = 0; i < l1ds.size(); i++) {
-      num_l1_acc += l1ds[i]->num_rd_access + l1ds[i]->num_wr_access + l1is[i]->num_rd_access + l1is[i]->num_wr_access - l1ds[i]->num_nack - l1is[i]->num_nack;
-      num_l1_miss += l1ds[i]->num_rd_miss + l1ds[i]->num_wr_miss + l1is[i]->num_rd_miss + l1is[i]->num_wr_miss - l1ds[i]->num_nack - l1is[i]->num_nack;
+      num_l1_acc += l1ds[i]->num_rd_access + l1ds[i]->num_wr_access 
+                  + l1is[i]->num_rd_access + l1is[i]->num_wr_access
+                  - l1ds[i]->num_nack - l1is[i]->num_nack;
+      num_l1_miss += l1ds[i]->num_rd_miss + l1ds[i]->num_wr_miss 
+                   + l1is[i]->num_rd_miss + l1is[i]->num_wr_miss
+                   - l1ds[i]->num_nack - l1is[i]->num_nack;
     }
 
     uint64_t num_l2_acc  = 0;
@@ -555,9 +534,9 @@ pair<uint32_t, uint64_t> McSim::resume_simulation(bool must_switch) {
       << setw(6) << num_l1_miss - num_l1_miss_last << "), ";
     cout << "L2 (acc, miss)=( " << setw(6) << num_l2_acc - num_l2_acc_last << ", "
       << setw(6) << num_l2_miss - num_l2_miss_last << "), ";
-    num_l1_acc_last = num_l1_acc;
+    num_l1_acc_last  = num_l1_acc;
     num_l1_miss_last = num_l1_miss;
-    num_l2_acc_last = num_l2_acc;
+    num_l2_acc_last  = num_l2_acc;
     num_l2_miss_last = num_l2_miss;
 
     uint64_t num_mem_acc = 0;
