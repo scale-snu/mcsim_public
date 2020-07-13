@@ -41,84 +41,68 @@ extern ostream & operator << (ostream & output, ins_type it);
 Core::Core(
     component_type type_,
     uint32_t num_,
-    McSim * mcsim_)
- :Component(type_, num_, mcsim_),
+    McSim * mcsim_):
+  Component(type_, num_, mcsim_),
   num_hthreads(get_param_uint64("num_hthreads", "pts.", max_hthreads)),
   hthreads(),
   is_active(),
   lastly_served_thread_num(0),
   last_time_no_mem_served(0),
   last_time_mem_served(0),
-  num_bubbled_slots(0)
-{
+  num_bubbled_slots(0) {
   process_interval = get_param_uint64("process_interval", "pts.lsu.", 10);
 }
 
 
-Core::~Core()
-{
-  if (num_bubbled_slots > 0)
-  {
+Core::~Core() {
+  if (num_bubbled_slots > 0) {
     cout << "  -- CORE[" << num << "] : num_bubbled_slots = " << num_bubbled_slots << endl;
   }
 }
 
 
-uint32_t Core::process_event(uint64_t curr_time)
-{
+uint32_t Core::process_event(uint64_t curr_time) {
   bool action = false;
 
-  for (uint32_t i = 0; i < hthreads.size() && action == false; i++)
-  {
+  for (uint32_t i = 0; i < hthreads.size() && action == false; i++) {
     uint32_t idx = (i + lastly_served_thread_num + 1) % hthreads.size();
     Hthread * hthread = hthreads[idx];
 
-    if (is_active[idx] == false || 
-        (hthread->resume_time > curr_time && 
-         (hthread->latest_bmp_time <= curr_time || curr_time % process_interval != 0)))
-    {
+    if (is_active[idx] == false ||
+        (hthread->resume_time > curr_time &&
+         (hthread->latest_bmp_time <= curr_time || curr_time % process_interval != 0))) {
       continue;
     }
 
-    if (mcsim->skip_all_instrs == true)
-    {
-      while (hthread->mem_acc.empty() == false)
-      {
+    if (mcsim->skip_all_instrs == true) {
+      while (hthread->mem_acc.empty() == false) {
         hthread->mem_acc.pop();
       }
       hthread->resume_time = curr_time;
     }
 
-    if (curr_time % process_interval == 0)
-    {
-      if (hthread->latest_bmp_time > curr_time)
-      {
+    if (curr_time % process_interval == 0) {
+      if (hthread->latest_bmp_time > curr_time) {
         action = true;
         lastly_served_thread_num = hthread->num;
         geq->add_event(curr_time + process_interval, this);
         num_bubbled_slots++;
         break;
       }
-      
-      if (hthread->mem_acc.empty() == true)
-      {
+
+      if (hthread->mem_acc.empty() == true) {
         is_active[idx] = false;
-        if (hthread->active == false)
-        {
+        if (hthread->active == false) {
           continue;
-        }
-        else
-        {
+        } else {
           return hthread->num;
         }
       }
 
-      switch (hthread->mem_acc.front().first)
-      {
+      switch (hthread->mem_acc.front().first) {
         case mem_rd:
         case mem_wr:
-          if (last_time_mem_served >= curr_time && curr_time > 0)
-          {
+          if (last_time_mem_served >= curr_time && curr_time > 0) {
             continue;
           }
           action = true;
@@ -127,8 +111,7 @@ uint32_t Core::process_event(uint64_t curr_time)
           hthread->process_event(curr_time);
           break;
         default:
-          if (last_time_no_mem_served >= curr_time && curr_time > 0)
-          {
+          if (last_time_no_mem_served >= curr_time && curr_time > 0) {
             continue;
           }
           action = true;
@@ -137,19 +120,14 @@ uint32_t Core::process_event(uint64_t curr_time)
           hthread->process_event(curr_time);
           break;
       }
-    }
-    else
-    {
+    } else {
       action = true;
       if (hthread->mem_acc.empty() == true ||
           (hthread->mem_acc.front().first != mem_rd &&
            hthread->mem_acc.front().first != mem_wr &&
-           (hthread->tlb_rd == false || hthread->bypass_tlb == true)))
-      {
+           (hthread->tlb_rd == false || hthread->bypass_tlb == true))) {
         geq->add_event(curr_time + (process_interval - curr_time%process_interval), this);
-      }
-      else
-      {
+      } else {
         hthread->process_event(curr_time);
       }
     }
@@ -163,12 +141,12 @@ uint32_t Core::process_event(uint64_t curr_time)
 Hthread::Hthread(
     component_type type_,
     uint32_t num_,
-    McSim * mcsim_)
- :Component(type_, num_, mcsim_),
+    McSim * mcsim_):
+  Component(type_, num_, mcsim_),
   active(false), spinning(NULL), stack(0), stacksize(0),
   resume_time(0),
   num_branch(0), num_branch_miss(0), num_nacks(0),
-  num_consecutive_nacks(0), 
+  num_consecutive_nacks(0),
   num_x87_ops(0), num_call_ops(0), total_mem_wr_time(0), total_mem_rd_time(0),
   lsu_to_l1i_t(get_param_uint64("to_l1i_t", 10)),
   lsu_to_l1d_t(get_param_uint64("to_l1d_t", 10)),
@@ -180,8 +158,7 @@ Hthread::Hthread(
   barrier_t(get_param_uint64("barrier_t", 100)),
   consecutive_nack_threshold(get_param_uint64("consecutive_nack_threshold", 1000)),
   was_nack(false),
-  latest_ip(0), latest_bmp_time(0)
-{
+  latest_ip(0), latest_bmp_time(0) {
   process_interval = get_param_uint64("process_interval", 100);
 
   num_hthreads = get_param_uint64("num_hthreads", "pts.", max_hthreads);
@@ -195,15 +172,12 @@ Hthread::Hthread(
 }
 
 
-
-Hthread::~Hthread()
-{
-  if (num_branch > 0 || latest_ip != 0)
-  {
+Hthread::~Hthread() {
+  if (num_branch > 0 || latest_ip != 0) {
     cout << "  -- HTH [" << num << "] : branch (miss, access) = ("
       << num_branch_miss << ", " << num_branch << ") = "
       << ((num_branch == 0) ? 0 : 100.00*num_branch_miss/num_branch) << "%, "
-      << " #_nacks = " << num_nacks 
+      << " #_nacks = " << num_nacks
       << ", #_x87_ops = " << num_x87_ops
       << ", #_call_ops = " << num_call_ops
       << ", latest_ip = 0x" << hex << latest_ip << dec
@@ -215,11 +189,8 @@ Hthread::~Hthread()
 }
 
 
-
-uint32_t Hthread::process_event(uint64_t curr_time)
-{
-  if (bypass_tlb == true)
-  {
+uint32_t Hthread::process_event(uint64_t curr_time) {
+  if (bypass_tlb == true) {
     tlb_rd   = true;
     mem_time = curr_time;
   }
@@ -229,8 +200,7 @@ uint32_t Hthread::process_event(uint64_t curr_time)
   ins_type it   = mem_acc.front().first;
   uint64_t addr = mem_acc.front().second;
 
-  switch (it)
-  {
+  switch (it) {
     case ins_lock:
     case ins_unlock:
       mem_acc.pop();
@@ -243,8 +213,7 @@ uint32_t Hthread::process_event(uint64_t curr_time)
       resume_time = curr_time + barrier_t;
       geq->add_event(resume_time, core);
 
-      if (display_barrier == true)
-      {
+      if (display_barrier == true) {
         cout << "  -- [" << setw(12) << curr_time << "] :";
         cout << " thread " << num << " reached a barrier : prev ip = 0x";
         cout << hex << latest_ip << dec << endl;
@@ -254,29 +223,24 @@ uint32_t Hthread::process_event(uint64_t curr_time)
     case ins_branch_taken:
     case ins_branch_not_taken:
       num_branch++;
-      if (bp->miss(addr, it == ins_branch_taken))
-      {
+      if (bp->miss(addr, it == ins_branch_taken)) {
         num_branch_miss++;
         geq->add_event(curr_time + process_interval, core);
         curr_time += branch_miss_penalty;
         latest_bmp_time = curr_time;
       }
     case ins_x87:
-      if ((bypass_tlb == true || tlb_rd == false) && it == ins_x87)
-      {
+      if ((bypass_tlb == true || tlb_rd == false) && it == ins_x87) {
         num_x87_ops++;
       }
       to_l1i_t = lsu_to_l1i_t_for_x87_op;
     case no_mem:
-      if ((latest_ip >> cachel1i->set_lsb) == (addr >> cachel1i->set_lsb))
-      {
+      if ((latest_ip >> cachel1i->set_lsb) == (addr >> cachel1i->set_lsb)) {
         // instruction locates at an instruction buffer
-        if (curr_time%process_interval != 0)
-        {
+        if (curr_time%process_interval != 0) {
           curr_time += process_interval - curr_time%process_interval;
         }
-        if (addr != 0)
-        {
+        if (addr != 0) {
           latest_ip = addr;
         }
         mem_acc.pop();
@@ -287,24 +251,19 @@ uint32_t Hthread::process_event(uint64_t curr_time)
       lqe = new LocalQueueElement();
       lqe->from.push(this);
       lqe->address = addr;
-      if (tlb_rd == false)
-      {
-        if (curr_time%process_interval != 0)
-        {
+      if (tlb_rd == false) {
+        if (curr_time%process_interval != 0) {
           curr_time += process_interval - curr_time%process_interval;
         }
         lqe->type = et_tlb_rd;
         tlbl1i->add_req_event(curr_time + to_l1i_t, lqe);
         resume_time = (uint64_t)-1;
-      }
-      else
-      {
-        if (lqe->address != 0)
-        {
+      } else {
+        if (lqe->address != 0) {
           latest_ip = lqe->address;
         }
         lqe->type = et_read;
-        cachel1i->add_req_event(curr_time + to_l1i_t, lqe); 
+        cachel1i->add_req_event(curr_time + to_l1i_t, lqe);
         mcsim->update_os_page_req_dist(addr);
         resume_time = (uint64_t)-1;
       }
@@ -316,23 +275,17 @@ uint32_t Hthread::process_event(uint64_t curr_time)
       lqe->th_id = num;
       lqe->from.push(this);
       lqe->address = addr;
-      if (tlb_rd == false)
-      {
+      if (tlb_rd == false) {
         lqe->type = et_tlb_rd;
         tlbl1d->add_req_event(curr_time + lsu_to_l1d_t, lqe);
         resume_time = (uint64_t)-1;
         mem_time    = curr_time;
-      }
-      else
-      {
+      } else {
         lqe->type = (mem_acc.front().first == mem_rd) ? et_read : et_write;
-        if ((*spinning) > 0 || was_nack == true)
-        {
+        if ((*spinning) > 0 || was_nack == true) {
           cachel1d->add_req_event(curr_time + lsu_to_l1d_t + process_interval*spinning_slowdown, lqe);
           was_nack = false;
-        }
-        else
-        {
+        } else {
           cachel1d->add_req_event(curr_time + lsu_to_l1d_t, lqe);
         }
         mcsim->update_os_page_req_dist(addr);
@@ -340,43 +293,34 @@ uint32_t Hthread::process_event(uint64_t curr_time)
       }
       return num_hthreads;
       break;
-  }  
+  }
 }
-
 
 
 // a hack to differentiate I$ and D$ accesses -- NACK is supported
 void Hthread::add_req_event(
-    uint64_t event_time, 
+    uint64_t event_time,
     LocalQueueElement * local_event,
-    Component * from)
-{
+    Component * from) {
   geq->add_event(event_time, core);
-  if (local_event->type == et_tlb_rd)
-  {
+  if (local_event->type == et_tlb_rd) {
     tlb_rd = true;
     resume_time = event_time;
-  }
-  else if (local_event->type == et_nack)
-  {
+  } else if (local_event->type == et_nack) {
     num_nacks++;
     num_consecutive_nacks++;
     resume_time = event_time;
     was_nack = true;
 
-    if (num_consecutive_nacks > consecutive_nack_threshold)
-    {
+    if (num_consecutive_nacks > consecutive_nack_threshold) {
       display();
       cout << " " << num << ", latest_ip = 0x" << hex << latest_ip << dec << endl;
       local_event->display();
       geq->display();  ASSERTX(0);
     }
-  }
-  else 
-  {
+  } else {
     num_consecutive_nacks = 0;
-    if (mem_acc.empty() == true)
-    {
+    if (mem_acc.empty() == true) {
       display();  local_event->display();  geq->display();  ASSERTX(0);
     }
     resume_time = event_time;
@@ -387,56 +331,42 @@ void Hthread::add_req_event(
 }
 
 
-
 void Hthread::add_rep_event(
-    uint64_t event_time, 
+    uint64_t event_time,
     LocalQueueElement * local_event,
-    Component * from)
-{
-  if (event_time%process_interval != 0)
-  {
+    Component * from) {
+  if (event_time%process_interval != 0) {
     event_time += process_interval - event_time%process_interval;
   }
   geq->add_event(event_time, core);
-  if (local_event->type == et_nack)
-  {
+  if (local_event->type == et_nack) {
     num_nacks++;
     num_consecutive_nacks++;
     resume_time = event_time;
     was_nack = true;
 
-    if (num_consecutive_nacks > consecutive_nack_threshold)
-    {
+    if (num_consecutive_nacks > consecutive_nack_threshold) {
       display();
       cout << " # of nacks = " << num_consecutive_nacks << ", latest_ip = 0x" << hex << latest_ip << dec << endl;
-      //mcsim->show_state(local_event->address);
+      // mcsim->show_state(local_event->address);
       local_event->display();  geq->display();  ASSERTX(0);
     }
-  }
-  else
-  {
+  } else {
     num_consecutive_nacks = 0;
     if (mem_acc.empty() == false &&
-        (mem_acc.front().first == mem_rd || mem_acc.front().first == mem_wr))
-    {
-      if (mem_acc.front().first == mem_rd)
-      {
+        (mem_acc.front().first == mem_rd || mem_acc.front().first == mem_wr)) {
+      if (mem_acc.front().first == mem_rd) {
         total_mem_rd_time += (event_time - mem_time) + process_interval - (event_time - mem_time)%process_interval;
-      }
-      else
-      {
+      } else {
         total_mem_wr_time += (event_time - mem_time) + process_interval - (event_time - mem_time)%process_interval;
       }
       mem_acc.pop();
       resume_time = event_time;
       tlb_rd = false;
-    }
-    else
-    {
+    } else {
       display();  local_event->display();
 
-      while (mem_acc.empty() == false)
-      {
+      while (mem_acc.empty() == false) {
         cout << "  -- (" << mem_acc.front().first << ", " << mem_acc.front().second << ")" << endl;
         mem_acc.pop();
       }
@@ -447,29 +377,23 @@ void Hthread::add_rep_event(
 }
 
 
-bool Hthread::is_private(ADDRINT addr)
-{
+bool Hthread::is_private(ADDRINT addr) {
   // currently only memory accesses in a stack are treated as a private access
-  if (addr < stack || addr >= stack + stacksize)
-  {
+  if (addr < stack || addr >= stack + stacksize) {
     return false;
-  }
-  else
-  {
+  } else {
     return true;
   }
 }
 
 
-BranchPredictor::BranchPredictor(uint32_t num_entries_, uint32_t gp_size_)
- :num_entries(num_entries_), gp_size(gp_size_), bimodal_entry(num_entries, 1),
-  global_history(0)
-{
+BranchPredictor::BranchPredictor(uint32_t num_entries_, uint32_t gp_size_):
+  num_entries(num_entries_), gp_size(gp_size_), bimodal_entry(num_entries, 1),
+  global_history(0) {
 }
 
 
-bool BranchPredictor::miss(uint64_t addr, bool taken)
-{
+bool BranchPredictor::miss(uint64_t addr, bool taken) {
   bool miss;
   global_history      = (gp_size == 0) ? 0 : ((global_history << 1) + (taken == true ? 1 : 0));
   addr                = addr ^ (global_history << (64 - gp_size));

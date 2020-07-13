@@ -28,116 +28,112 @@
  * Authors: Jung Ho Ahn
  */
 
-#ifndef __PTSCORE_H__
-#define __PTSCORE_H__
+#ifndef PTSCORE_H_
+#define PTSCORE_H_
+
+#include <queue>
+#include <utility>
+#include <vector>
 
 #include "PTS.h"
 #include "PTSComponent.h"
 
 
-using namespace std;
-
-namespace PinPthread
-{
-  class Hthread;
-  class BranchPredictor;
+namespace PinPthread {
+class Hthread;
+class BranchPredictor;
 
 
-  class Core : public Component
-  {
-    public:
-      Core(component_type type_, uint32_t num_, McSim * mcsim_);
-      ~Core();
-      uint32_t process_event(uint64_t curr_time);
+class Core : public Component {
+ public:
+  explicit Core(component_type type_, uint32_t num_, McSim * mcsim_);
+  ~Core();
+  uint32_t process_event(uint64_t curr_time);
 
-      const uint32_t num_hthreads;
+  const uint32_t num_hthreads;
 
-      std::vector<Hthread *> hthreads;
-      std::vector<bool>      is_active;
+  std::vector<Hthread *> hthreads;
+  std::vector<bool>      is_active;
 
-      uint32_t lastly_served_thread_num;
-      uint64_t last_time_no_mem_served;
-      uint64_t last_time_mem_served;
-      uint64_t num_bubbled_slots;
-  };
-
+  uint32_t lastly_served_thread_num;
+  uint64_t last_time_no_mem_served;
+  uint64_t last_time_mem_served;
+  uint64_t num_bubbled_slots;
+};
 
 
-  // Hthread includes the functionality of load store unit
-  class Hthread : public Component  // hardware thread
-  {
-    public:
-      Hthread(component_type type_, uint32_t num_, McSim * mcsim_);
-      ~Hthread();
-      uint32_t process_event(uint64_t curr_time);
-      void     add_req_event(uint64_t, LocalQueueElement *, Component * from);
-      void     add_rep_event(uint64_t, LocalQueueElement *, Component * from);
+// Hthread includes the functionality of load store unit
+class Hthread : public Component {  // hardware thread
+ public:
+  Hthread(component_type type_, uint32_t num_, McSim * mcsim_);
+  ~Hthread();
+  uint32_t process_event(uint64_t curr_time);
+  void     add_req_event(uint64_t, LocalQueueElement *, Component * from);
+  void     add_rep_event(uint64_t, LocalQueueElement *, Component * from);
 
-      Core    * core;
-      CacheL1 * cachel1d;
-      CacheL1 * cachel1i;
-      TLBL1   * tlbl1d;
-      TLBL1   * tlbl1i;
-      BranchPredictor * bp;
+  Core    * core;
+  CacheL1 * cachel1d;
+  CacheL1 * cachel1i;
+  TLBL1   * tlbl1d;
+  TLBL1   * tlbl1i;
+  BranchPredictor * bp;
 
-      // pointer to the member variables in the corresponding Pthread object
-      bool active;
-      int32_t * spinning;
-      ADDRINT stack;
-      ADDRINT stacksize;
+  // pointer to the member variables in the corresponding Pthread object
+  bool active;
+  int32_t * spinning;
+  ADDRINT stack;
+  ADDRINT stacksize;
 
-      uint32_t num_hthreads;
-      //pthread_queue_t::iterator current; // pointer to the current thread running
-      bool     tlb_rd;
-      uint64_t resume_time;
-      uint64_t mem_time;
+  uint32_t num_hthreads;
+  // pthread_queue_t::iterator current; // pointer to the current thread running
+  bool     tlb_rd;
+  uint64_t resume_time;
+  uint64_t mem_time;
 
-      uint64_t num_branch;
-      uint64_t num_branch_miss;
-      uint64_t num_nacks;
-      uint64_t num_consecutive_nacks;
-      uint64_t num_x87_ops;
-      uint64_t num_call_ops;
-      uint64_t total_mem_wr_time;
-      uint64_t total_mem_rd_time;
+  uint64_t num_branch;
+  uint64_t num_branch_miss;
+  uint64_t num_nacks;
+  uint64_t num_consecutive_nacks;
+  uint64_t num_x87_ops;
+  uint64_t num_call_ops;
+  uint64_t total_mem_wr_time;
+  uint64_t total_mem_rd_time;
 
-      const uint32_t lsu_to_l1i_t;
-      const uint32_t lsu_to_l1d_t;
-      const uint32_t lsu_to_l1i_t_for_x87_op;
-      const uint32_t branch_miss_penalty;
-      const uint32_t spinning_slowdown;
-      bool           bypass_tlb;
-      const uint32_t lock_t;
-      const uint32_t unlock_t;
-      const uint32_t barrier_t;
-      const uint32_t consecutive_nack_threshold;
-      bool           display_barrier;
-      bool           was_nack;
+  const uint32_t lsu_to_l1i_t;
+  const uint32_t lsu_to_l1d_t;
+  const uint32_t lsu_to_l1i_t_for_x87_op;
+  const uint32_t branch_miss_penalty;
+  const uint32_t spinning_slowdown;
+  bool           bypass_tlb;
+  const uint32_t lock_t;
+  const uint32_t unlock_t;
+  const uint32_t barrier_t;
+  const uint32_t consecutive_nack_threshold;
+  bool           display_barrier;
+  bool           was_nack;
 
-      std::queue< std::pair<ins_type, uint64_t> > mem_acc;
-      uint64_t  latest_ip;
-      uint64_t  latest_bmp_time;  // latest branch miss prediction time
+  std::queue< std::pair<ins_type, uint64_t> > mem_acc;
+  uint64_t  latest_ip;
+  uint64_t  latest_bmp_time;  // latest branch miss prediction time
 
-      bool      is_private(ADDRINT);
-  };
-
+  bool      is_private(ADDRINT);
+};
 
 
-  class BranchPredictor
-  {
-    public:
-      BranchPredictor(uint32_t num_entries_, uint32_t gp_size_);
-      ~BranchPredictor() { }
+class BranchPredictor {
+ public:
+  BranchPredictor(uint32_t num_entries_, uint32_t gp_size_);
+  ~BranchPredictor() { }
 
-      bool miss(uint64_t addr, bool taken);
+  bool miss(uint64_t addr, bool taken);
 
-    private:
-      uint32_t num_entries;
-      uint32_t gp_size;
-      std::vector<uint32_t> bimodal_entry;  // 0 -- strongly not taken
-      uint64_t global_history;
-  };
-}
+ private:
+  uint32_t num_entries;
+  uint32_t gp_size;
+  std::vector<uint32_t> bimodal_entry;  // 0 -- strongly not taken
+  uint64_t global_history;
+};
+}  // namespace PinPthread
 
-#endif
+#endif  // PTSCORE_H_
 

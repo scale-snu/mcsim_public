@@ -31,6 +31,7 @@
 #include <algorithm>
 #include <iomanip>
 #include <set>
+#include <sstream>
 #include <glog/logging.h>
 
 #include "PTSCache.h"
@@ -736,9 +737,9 @@ void CacheL2::show_state(uint64_t address) {
         << ", " << set_iter->type_l1l2;
       for (std::set<Component *>::iterator iter = set_iter->sharedl1.begin();
           iter != set_iter->sharedl1.end(); ++iter) {
-         << ", (" << (*iter)->type << ", " << (*iter)->num << ") ";
+        ss << ", (" << (*iter)->type << ", " << (*iter)->num << ") ";
       }
-      LOG(WARNING) << ss << endl;
+      LOG(WARNING) << ss.str() << std::endl;
       break;
     }
   }
@@ -1460,7 +1461,7 @@ void CacheL2::test_tags(uint32_t set) {
         for (uint32_t kk = 0; kk < num_ways; kk++) {
           ss << tags[set][kk]->type << tags[set][kk]->tag << ", ";
         }
-        LOG(ERROR) << ss.str() << endl;
+        LOG(ERROR) << ss.str() << std::endl;
         ASSERTX(0);
       }
       tag_set.insert(iter->tag);
