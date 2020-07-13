@@ -28,15 +28,16 @@
  * Authors: Jung Ho Ahn
  */
 
+#include <glog/logging.h>
+#include <iomanip>
 #include <sstream>
 
 #include "PTSXbar.h"
 #include "PTSCache.h"
 #include "PTSDirectory.h"
-#include <iomanip>
 
-using namespace PinPthread;
 
+namespace PinPthread {
 
 NoC::NoC(
     component_type type_,
@@ -53,7 +54,7 @@ NoC::~NoC()
 {
   if (num_req > 0)
   {
-    std::cout << "  -- NoC [" << setw(3) << num << "] : (req, crq, rep) = ("
+    std::cout << "  -- NoC [" << std::setw(3) << num << "] : (req, crq, rep) = ("
               << num_req << ", " << num_crq << ", " << num_rep
               << "), num_data_transfers = " << num_data_transfers << std::endl;
   }
@@ -97,7 +98,7 @@ void Crossbar::add_req_event(
   num_req++;
   num_flits++;
   geq->add_event(event_time, this);
-  req_events.insert(pair<uint64_t, EventPair>(event_time, EventPair(local_event, from)));
+  req_events.insert(std::pair<uint64_t, EventPair>(event_time, EventPair(local_event, from)));
 }
 
 
@@ -115,7 +116,7 @@ void Crossbar::add_crq_event(
   num_crq++;
   num_flits++;
   geq->add_event(event_time, this);
-  crq_events.insert(pair<uint64_t, EventPair>(event_time, EventPair(local_event, from)));
+  crq_events.insert(std::pair<uint64_t, EventPair>(event_time, EventPair(local_event, from)));
 }
 
 
@@ -157,7 +158,7 @@ void Crossbar::add_rep_event(
   num_rep++;
   num_flits++;
   geq->add_event(event_time, this);
-  rep_events.insert(pair<uint64_t, EventPair>(event_time, EventPair(local_event, from)));
+  rep_events.insert(std::pair<uint64_t, EventPair>(event_time, EventPair(local_event, from)));
 }
 
 
@@ -326,9 +327,9 @@ Mesh2D::Mesh2D(
   sw_to_sw_t(get_param_uint64("sw_to_sw_t", 10)),
   num_rows  (get_param_uint64("num_rows", 4)),
   num_cols  (get_param_uint64("num_cols", 2)),
-  req_qs(num_rows, vector< vector< multimap<uint64_t, EventPair> > >(num_cols, vector< multimap<uint64_t, EventPair> >(mesh_invalid))),
-  crq_qs(num_rows, vector< vector< multimap<uint64_t, EventPair> > >(num_cols, vector< multimap<uint64_t, EventPair> >(mesh_invalid))),
-  rep_qs(num_rows, vector< vector< multimap<uint64_t, EventPair> > >(num_cols, vector< multimap<uint64_t, EventPair> >(mesh_invalid))),
+  req_qs(num_rows, std::vector< std::vector< std::multimap<uint64_t, EventPair> > >(num_cols, std::vector< std::multimap<uint64_t, EventPair> >(mesh_invalid))),
+  crq_qs(num_rows, std::vector< std::vector< std::multimap<uint64_t, EventPair> > >(num_cols, std::vector< std::multimap<uint64_t, EventPair> >(mesh_invalid))),
+  rep_qs(num_rows, std::vector< std::vector< std::multimap<uint64_t, EventPair> > >(num_cols, std::vector< std::multimap<uint64_t, EventPair> >(mesh_invalid))),
   already_sent(mesh_invalid),
   token(0), num_hops(0), num_hops2(0)
 {
@@ -338,21 +339,21 @@ Mesh2D::Mesh2D(
   // specify the positions of memory controllers in a mesh network.
   for (uint32_t i = 0; i < num_mcs; i++)
   {
-    stringstream out;
+    std::stringstream out;
     out << i;
-    string pos = get_param_str(string("mc_pos")+out.str());
+    std::string pos = get_param_str(std::string("mc_pos")+out.str());
 
     uint32_t row, col;
 
-    if (pos.length() < 1 || pos.find(",", 1) == string::npos)
+    if (pos.length() < 1 || pos.find(",", 1) == std::string::npos)
     {
       row = 0;
       col = 0;
     }
     else
     {
-      istringstream srow(pos.substr(0, pos.find(",", 1)));
-      istringstream scol(pos.substr(pos.find(",", 1) + 1));
+      std::istringstream srow(pos.substr(0, pos.find(",", 1)));
+      std::istringstream scol(pos.substr(pos.find(",", 1) + 1));
       
       srow >> row;
       scol >> col;
@@ -373,8 +374,8 @@ Mesh2D::~Mesh2D()
 {
   if (num_hops > 0)
   {
-    cout << "  -- MESH[" << num << "] : average hop = "
-         << 1.0 * num_hops / num_flits << endl;
+    std::cout << "  -- MESH[" << num << "] : average hop = "
+         << 1.0 * num_hops / num_flits << std::endl;
   }
 }
 
@@ -395,7 +396,7 @@ void Mesh2D::add_req_event(
   uint32_t col = cluster_num % num_cols;
   uint32_t row = cluster_num / num_cols;
 
-  req_qs[row][col][mesh_cluster].insert(pair<uint64_t, EventPair>(event_time, EventPair(local_event, from)));
+  req_qs[row][col][mesh_cluster].insert(std::pair<uint64_t, EventPair>(event_time, EventPair(local_event, from)));
   ++num_req_in_mesh;
   ++num_req;
   num_flits++;
@@ -420,7 +421,7 @@ void Mesh2D::add_crq_event(
   uint32_t col = mc_pos[mc_num] % num_cols;
   uint32_t row = mc_pos[mc_num] / num_cols;
 
-  crq_qs[row][col][mesh_directory].insert(pair<uint64_t, EventPair>(event_time, EventPair(local_event, from)));
+  crq_qs[row][col][mesh_directory].insert(std::pair<uint64_t, EventPair>(event_time, EventPair(local_event, from)));
   ++num_req_in_mesh;
   ++num_crq;
   num_flits++;
@@ -480,7 +481,7 @@ void Mesh2D::add_rep_event(
     col = cluster_num % num_cols;
     row = cluster_num / num_cols;
 
-    rep_qs[row][col][mesh_cluster].insert(pair<uint64_t, EventPair>(event_time, EventPair(local_event, from)));
+    rep_qs[row][col][mesh_cluster].insert(std::pair<uint64_t, EventPair>(event_time, EventPair(local_event, from)));
   }
   else
   {
@@ -488,7 +489,7 @@ void Mesh2D::add_rep_event(
     col = mc_pos[mc_num] % num_cols;
     row = mc_pos[mc_num] / num_cols;
 
-    rep_qs[row][col][mesh_directory].insert(pair<uint64_t, EventPair>(event_time, EventPair(local_event, from)));
+    rep_qs[row][col][mesh_directory].insert(std::pair<uint64_t, EventPair>(event_time, EventPair(local_event, from)));
   }
   ++num_req_in_mesh;
   ++num_rep;
@@ -571,7 +572,7 @@ void Mesh2D::process_qs(
     uint32_t dir,
     uint64_t curr_time)
 {
-  vector< vector< vector< multimap<uint64_t, EventPair > > > > * curr_qs;
+  std::vector< std::vector< std::vector< std::multimap<uint64_t, EventPair > > > > * curr_qs;
   Directory * to_dir = NULL;
   CacheL2   * to_l2  = NULL;
   uint32_t  col, row;
@@ -651,7 +652,7 @@ void Mesh2D::process_qs(
       return;
     }
     already_sent[mesh_west] = true;
-    (*curr_qs)[i][j-1][mesh_east].insert(pair<uint64_t, EventPair>(curr_time + sw_to_sw_t, curr_q));
+    (*curr_qs)[i][j-1][mesh_east].insert(std::pair<uint64_t, EventPair>(curr_time + sw_to_sw_t, curr_q));
   }
   else if (j < col)
   {
@@ -660,7 +661,7 @@ void Mesh2D::process_qs(
       return;
     }
     already_sent[mesh_east] = true;
-    (*curr_qs)[i][j+1][mesh_west].insert(pair<uint64_t, EventPair>(curr_time + sw_to_sw_t, curr_q));
+    (*curr_qs)[i][j+1][mesh_west].insert(std::pair<uint64_t, EventPair>(curr_time + sw_to_sw_t, curr_q));
   }
   else if (i > row)
   {
@@ -669,7 +670,7 @@ void Mesh2D::process_qs(
       return;
     }
     already_sent[mesh_north] = true;
-    (*curr_qs)[i-1][j][mesh_south].insert(pair<uint64_t, EventPair>(curr_time + sw_to_sw_t, curr_q));
+    (*curr_qs)[i-1][j][mesh_south].insert(std::pair<uint64_t, EventPair>(curr_time + sw_to_sw_t, curr_q));
   }
   else if (i < row)
   {
@@ -678,7 +679,7 @@ void Mesh2D::process_qs(
       return;
     }
     already_sent[mesh_south] = true;
-    (*curr_qs)[i+1][j][mesh_north].insert(pair<uint64_t, EventPair>(curr_time + sw_to_sw_t, curr_q));
+    (*curr_qs)[i+1][j][mesh_north].insert(std::pair<uint64_t, EventPair>(curr_time + sw_to_sw_t, curr_q));
   }
   else
   {
@@ -760,18 +761,18 @@ Ring::Ring(
   uint32_t num_mcs = get_param_uint64("num_mcs", "pts.", 2);
   uint32_t num_l2s = num_hthreads / num_threads_per_l1_cache / num_l1_caches_per_l2_cache;
 
-  vector<uint32_t> router_radix(num_nodes, 2);
+  std::vector<uint32_t> router_radix(num_nodes, 2);
 
   // specify the positions of memory controllers in a ring network
   for (uint32_t i = 0; i < num_mcs; i++)
   {
-    stringstream out;
+    std::stringstream out;
     out << i;
-    uint32_t pos = get_param_uint64(string("mc_pos")+out.str(), 0);
+    uint32_t pos = get_param_uint64(std::string("mc_pos")+out.str(), 0);
 
     if (pos >= num_nodes)
     {
-      cout << "there are only " << num_nodes << " rings." << endl;
+      LOG(ERROR) << "there are only " << num_nodes << " rings." << std::endl;
       ASSERTX(0);
     }
 
@@ -783,13 +784,13 @@ Ring::Ring(
   // specify the positions of L2 caches in a ring network
   for (uint32_t i = 0; i < num_l2s; i++)
   {
-    stringstream out;
+    std::stringstream out;
     out << i;
-    uint32_t pos = get_param_uint64(string("l2_pos")+out.str(), 0);
+    uint32_t pos = get_param_uint64(std::string("l2_pos")+out.str(), 0);
 
     if (pos >= num_nodes)
     {
-      cout << "there are only " << num_nodes << " rings." << endl;
+      LOG(ERROR) << "there are only " << num_nodes << " rings." << std::endl;
       ASSERTX(0);
     }
 
@@ -809,10 +810,10 @@ Ring::Ring(
     }
   }
 
-  already_sent = vector<bool>(max_radix, false);
-  req_qs = vector< vector< multimap<uint64_t, EventPair> > >(num_nodes, vector< multimap<uint64_t, EventPair> >(max_radix));
-  crq_qs = vector< vector< multimap<uint64_t, EventPair> > >(num_nodes, vector< multimap<uint64_t, EventPair> >(max_radix));
-  rep_qs = vector< vector< multimap<uint64_t, EventPair> > >(num_nodes, vector< multimap<uint64_t, EventPair> >(max_radix));
+  already_sent = std::vector<bool>(max_radix, false);
+  req_qs = std::vector< std::vector< std::multimap<uint64_t, EventPair> > >(num_nodes, std::vector< std::multimap<uint64_t, EventPair> >(max_radix));
+  crq_qs = std::vector< std::vector< std::multimap<uint64_t, EventPair> > >(num_nodes, std::vector< std::multimap<uint64_t, EventPair> >(max_radix));
+  rep_qs = std::vector< std::vector< std::multimap<uint64_t, EventPair> > >(num_nodes, std::vector< std::multimap<uint64_t, EventPair> >(max_radix));
 }
 
 
@@ -821,8 +822,8 @@ Ring::~Ring()
 {
   if (num_hops > 0)
   {
-    cout << "  -- RING[" << num << "] : average hop = "
-         << 1.0 * num_hops / (num_req + num_crq + num_rep) << endl;
+    std::cout << "  -- RING[" << num << "] : average hop = "
+         << 1.0 * num_hops / (num_req + num_crq + num_rep) << std::endl;
   }
 }
 
@@ -844,7 +845,7 @@ void Ring::add_req_event(
   uint32_t cluster_pos      = l2_pos[cluster_num];
   uint32_t cluster_port_num = l2_port_num[cluster_num];
 
-  req_qs[cluster_pos][cluster_port_num].insert(pair<uint64_t, EventPair>(event_time, EventPair(local_event, from)));
+  req_qs[cluster_pos][cluster_port_num].insert(std::pair<uint64_t, EventPair>(event_time, EventPair(local_event, from)));
   ++num_req_in_ring;
   ++num_req;
   num_flits++;
@@ -869,7 +870,7 @@ void Ring::add_crq_event(
   uint32_t dir_pos = mc_pos[dir_num];
   uint32_t dir_port_num = mc_port_num[dir_num];
 
-  crq_qs[dir_pos][dir_port_num].insert(pair<uint64_t, EventPair>(event_time, EventPair(local_event, from)));
+  crq_qs[dir_pos][dir_port_num].insert(std::pair<uint64_t, EventPair>(event_time, EventPair(local_event, from)));
   ++num_req_in_ring;
   ++num_crq;
   num_flits++;
@@ -928,7 +929,7 @@ void Ring::add_rep_event(
     uint32_t cluster_pos      = l2_pos[cluster_num];
     uint32_t cluster_port_num = l2_port_num[cluster_num];
 
-    rep_qs[cluster_pos][cluster_port_num].insert(pair<uint64_t, EventPair>(event_time, EventPair(local_event, from)));
+    rep_qs[cluster_pos][cluster_port_num].insert(std::pair<uint64_t, EventPair>(event_time, EventPair(local_event, from)));
   }
   else
   {
@@ -936,7 +937,7 @@ void Ring::add_rep_event(
     uint32_t dir_pos = mc_pos[dir_num];
     uint32_t dir_port_num = mc_port_num[dir_num];
 
-    rep_qs[dir_pos][dir_port_num].insert(pair<uint64_t, EventPair>(event_time, EventPair(local_event, from)));
+    rep_qs[dir_pos][dir_port_num].insert(std::pair<uint64_t, EventPair>(event_time, EventPair(local_event, from)));
   }
   ++num_req_in_ring;
   ++num_rep;
@@ -1014,7 +1015,7 @@ void Ring::process_qs(
     uint32_t dir,
     uint64_t curr_time)
 {
-  vector< vector< multimap<uint64_t, EventPair > > > * curr_qs;
+  std::vector< std::vector< std::multimap<uint64_t, EventPair > > > * curr_qs;
   Directory * to_dir = NULL;
   CacheL2   * to_l2  = NULL;
   uint32_t  target_pos = 0;
@@ -1097,7 +1098,7 @@ void Ring::process_qs(
     }
     already_sent[ring_cw] = true;
     uint32_t router_pos = (i + 1) % num_nodes;
-    (*curr_qs)[router_pos][ring_ccw].insert(pair<uint64_t, EventPair>(curr_time + sw_to_sw_t, curr_q));
+    (*curr_qs)[router_pos][ring_ccw].insert(std::pair<uint64_t, EventPair>(curr_time + sw_to_sw_t, curr_q));
   }
   else if (target_pos != i)
   {
@@ -1108,7 +1109,7 @@ void Ring::process_qs(
     }
     already_sent[ring_ccw] = true;
     uint32_t router_pos = (num_nodes + i - 1) % num_nodes;
-    (*curr_qs)[router_pos][ring_cw].insert(pair<uint64_t, EventPair>(curr_time + sw_to_sw_t, curr_q));
+    (*curr_qs)[router_pos][ring_cw].insert(std::pair<uint64_t, EventPair>(curr_time + sw_to_sw_t, curr_q));
   }
   else
   {
@@ -1162,3 +1163,4 @@ void Ring::process_qs(
   num_hops++;
 }
 
+}  // namespace PinPthread

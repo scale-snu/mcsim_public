@@ -38,9 +38,9 @@
 
 namespace PinPthread {
 
-extern ostream & operator << (ostream & output, coherence_state_type cs);
-extern ostream & operator << (ostream & output, component_type ct);
-extern ostream & operator << (ostream & output, event_type et);
+extern std::ostream & operator << (std::ostream & output, coherence_state_type cs);
+extern std::ostream & operator << (std::ostream & output, component_type ct);
+extern std::ostream & operator << (std::ostream & output, event_type et);
 
 
 void LocalQueueElement::display() {
@@ -73,7 +73,7 @@ Component::Component(
 
 
 void Component::display() {
-  cout << "(" << type << ", " << num << ")";
+  std::cout << "(" << type << ", " << num << ")";
 }
 
 
@@ -105,22 +105,22 @@ const char * Component::prefix_str() const {
 }
 
 
-uint32_t Component::get_param_uint64(const string & param, uint32_t def) const {
+uint32_t Component::get_param_uint64(const std::string & param, uint32_t def) const {
   return get_param_uint64(param, prefix_str(), def);
 }
 
 
-uint32_t Component::get_param_uint64(const string & param, const string & prefix, uint32_t def) const {
+uint32_t Component::get_param_uint64(const std::string & param, const std::string & prefix, uint32_t def) const {
   return mcsim->pts->get_param_uint64(prefix+param, def);
 }
 
 
-string Component::get_param_str(const string & param) const {
+std::string Component::get_param_str(const std::string & param) const {
   return mcsim->pts->get_param_str(prefix_str()+param);
 }
 
 
-bool Component::get_param_bool(const string & param, bool def_value) const {
+bool Component::get_param_bool(const std::string & param, bool def_value) const {
   return mcsim->pts->get_param_bool(prefix_str()+param, def_value);
 }
 
@@ -217,7 +217,7 @@ uint32_t GlobalEventQueue::process_event() {
           }
           break;
         default:
-          cout << "  -- unsupported component type " << (*comp_iter)->type << endl;
+          LOG(ERROR) << "  -- unsupported component type " << (*comp_iter)->type << std::endl;
           exit(1);
           break;
       }
@@ -252,7 +252,7 @@ uint32_t GlobalEventQueue::process_event() {
 
       } */
 
-      cout << "  -- event became empty at cycle = " << curr_time << endl;
+      LOG(WARNING) << "  -- event became empty at cycle = " << curr_time << std::endl;
       return num_hthreads;
       // ASSERTX(0);
     }
@@ -263,7 +263,7 @@ uint32_t GlobalEventQueue::process_event() {
 void GlobalEventQueue::display() {
   auto event_queue_iter = event_queue.begin();
 
-  LOG(WARNING) << "  -- global event queue : at cycle = " << curr_time << endl;
+  LOG(WARNING) << "  -- global event queue : at cycle = " << curr_time << std::endl;
 
   while (event_queue_iter != event_queue.end()) {
     std::stringstream ss;

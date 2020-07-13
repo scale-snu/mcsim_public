@@ -31,8 +31,6 @@
 #ifndef MCSIM_H_
 #define MCSIM_H_
 
-#include "PTS.h"
-#include "PTSComponent.h"
 #include <stdlib.h>
 #include <iostream>
 #include <list>
@@ -43,6 +41,8 @@
 #include <utility>
 #include <vector>
 
+#include "PTS.h"
+#include "PTSComponent.h"
 
 static const ADDRINT search_addr   = 0x800e7fffde77a040;
 static const uint32_t max_hthreads = 1024;
@@ -98,7 +98,7 @@ class McSim {
   explicit McSim(PthreadTimingSimulator * pts_);
   ~McSim();
 
-  pair<uint32_t, uint64_t> resume_simulation(bool must_switch);
+  std::pair<uint32_t, uint64_t> resume_simulation(bool must_switch);
   // return value -- whether we have to resume simulation
   uint32_t add_instruction(
       uint32_t hthreadid_,
@@ -133,27 +133,27 @@ class McSim {
   bool     use_o3core;
   bool     is_asymmetric;
 
-  vector<Core *>             cores;
-  vector<Hthread *>          hthreads;
-  vector<O3Core *>           o3cores;
-  vector<bool>               is_migrate_ready;
-  vector<CacheL1 *>          l1ds;
-  vector<CacheL1 *>          l1is;
-  vector<CacheL2 *>          l2s;
-  NoC *                      noc;
-  vector<Directory *>        dirs;
-  vector<MemoryController *> mcs;
-  GlobalEventQueue *         global_q;
-  vector<TLBL1 *>            tlbl1ds;
-  vector<TLBL1 *>            tlbl1is;
-  list<Component *>          comps;
+  std::vector<Core *>             cores;
+  std::vector<Hthread *>          hthreads;
+  std::vector<O3Core *>           o3cores;
+  std::vector<bool>               is_migrate_ready;
+  std::vector<CacheL1 *>          l1ds;
+  std::vector<CacheL1 *>          l1is;
+  std::vector<CacheL2 *>          l2s;
+  NoC *                           noc;
+  std::vector<Directory *>        dirs;
+  std::vector<MemoryController *> mcs;
+  GlobalEventQueue *              global_q;
+  std::vector<TLBL1 *>            tlbl1ds;
+  std::vector<TLBL1 *>            tlbl1is;
+  std::list<Component *>          comps;
 
   uint32_t get_num_hthreads() const { return num_hthreads; }
   uint64_t get_curr_time() const    { return global_q->curr_time; }
   void     show_state(uint64_t);
   void     show_l2_cache_summary();
 
-  map<uint64_t, uint64_t>   os_page_req_dist;
+  std::map<uint64_t, uint64_t>   os_page_req_dist;
   void update_os_page_req_dist(uint64_t addr);
   uint64_t num_fetched_instrs;
 

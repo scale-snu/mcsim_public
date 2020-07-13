@@ -74,7 +74,7 @@ class Cache : public Component {
   uint64_t tot_awake_time;
 
   virtual void show_state(uint64_t) = 0;
-  void display_event(uint64_t curr_time, LocalQueueElement *, const string &);
+  void display_event(uint64_t curr_time, LocalQueueElement *, const std::string &);
 
  public:
   friend class McSim;
@@ -92,7 +92,7 @@ class CacheL1 : public Cache {
   void show_state(uint64_t);
 
   CacheL2 * cachel2;       // downlink
-  vector<Component *> lsus;  // uplink
+  std::vector<Component *> lsus;  // uplink
 
   class PrefetchEntry {
    public:
@@ -111,7 +111,7 @@ class CacheL1 : public Cache {
   uint64_t         num_prefetch_hits;
 
  private:
-  pair< uint64_t, coherence_state_type > *** tags;  // address + coherence state of a set-associative cache
+  std::pair< uint64_t, coherence_state_type > *** tags;  // address + coherence state of a set-associative cache
   // vector< list< pair< uint64_t, coherence_state_type > > > tags;  // address + coherence state of a set-associative cache
 
   const uint32_t l1_to_lsu_t;

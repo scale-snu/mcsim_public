@@ -40,7 +40,7 @@
 using namespace PinPthread;
 
 
-void PthreadTimingSimulator::md_table_decoding(const toml::table & table, const string & prefix) {
+void PthreadTimingSimulator::md_table_decoding(const toml::table & table, const std::string & prefix) {
   // cout << prefix << ": " << endl;
   for (auto && [k, v]: table) {
     if (v.is_table()) {
@@ -53,7 +53,7 @@ void PthreadTimingSimulator::md_table_decoding(const toml::table & table, const 
       } else if (v.is_string()) {
         params_string[prefix+k] = v.as_string();
       } else {
-        cout << prefix << k << " is neither bool, int, nor string. Something wrong..." << endl;
+        std::cout << prefix << k << " is neither bool, int, nor string. Something wrong..." << std::endl;
         exit(1);
       }
       // cout << prefix << k << " = " << v << endl;
@@ -61,14 +61,14 @@ void PthreadTimingSimulator::md_table_decoding(const toml::table & table, const 
   }
 }
 
-PthreadTimingSimulator::PthreadTimingSimulator(const string & mdfile)
+PthreadTimingSimulator::PthreadTimingSimulator(const std::string & mdfile)
  :/*params(),*/ trace_files()
 {
-  ifstream fin(mdfile.c_str());
+  std::ifstream fin(mdfile.c_str());
 
   if (fin.good() == false)
   {
-    cout << "Failed to open an mdfile named " << mdfile << endl;
+    std::cout << "Failed to open an mdfile named " << mdfile << std::endl;
     exit(1);
   }
   const auto data = toml::parse(fin);
@@ -80,13 +80,13 @@ PthreadTimingSimulator::PthreadTimingSimulator(const string & mdfile)
   if (print_md == true)
   {
     for (auto && [k, v]: params_bool) {
-      cout << k << " = " << v << endl;
+      std::cout << k << " = " << v << std::endl;
     }
     for (auto && [k, v]: params_uint64_t) {
-      cout << k << " = " << v << endl;
+      std::cout << k << " = " << v << std::endl;
     }
     for (auto && [k, v]: params_string) {
-      cout << k << " = " << v << endl;
+      std::cout << k << " = " << v << std::endl;
     }
   }
 
@@ -102,7 +102,7 @@ PthreadTimingSimulator::~PthreadTimingSimulator()
 
 
 
-pair<uint32_t, uint64_t> PthreadTimingSimulator::resume_simulation(bool must_switch)
+std::pair<uint32_t, uint64_t> PthreadTimingSimulator::resume_simulation(bool must_switch)
 {
   return mcsim->resume_simulation(must_switch);  // <thread_id, time>
 }
@@ -157,7 +157,7 @@ uint32_t PthreadTimingSimulator::get_num_hthreads() const
 
 
 
-uint64_t PthreadTimingSimulator::get_param_uint64(const string & str, uint64_t def) const
+uint64_t PthreadTimingSimulator::get_param_uint64(const std::string & str, uint64_t def) const
 {
   if (params_uint64_t.find(str) == params_uint64_t.end()) {
     // cout << str << " not found. use " << def << endl;
@@ -170,11 +170,11 @@ uint64_t PthreadTimingSimulator::get_param_uint64(const string & str, uint64_t d
 
 
 
-string PthreadTimingSimulator::get_param_str(const string & str) const
+std::string PthreadTimingSimulator::get_param_str(const std::string & str) const
 {
   if (params_string.find(str) == params_string.end()) {
     // cout << str << " not found." << endl;
-    return string();
+    return std::string();
   } else {
     // cout << str << " = " << params_string.find(str)->second << endl;
     return params_string.find(str)->second;
@@ -182,7 +182,7 @@ string PthreadTimingSimulator::get_param_str(const string & str) const
 }
 
 
-bool PthreadTimingSimulator::get_param_bool(const string & str, bool def_value) const
+bool PthreadTimingSimulator::get_param_bool(const std::string & str, bool def_value) const
 {
   if (params_bool.find(str) == params_bool.end()) {
     // cout << str << " not found. use " << def_value << endl;

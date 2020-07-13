@@ -30,8 +30,10 @@
 
 #include <algorithm>
 #include <iomanip>
+#include <queue>
 #include <set>
 #include <sstream>
+#include <string>
 #include <glog/logging.h>
 
 #include "PTSCache.h"
@@ -41,9 +43,9 @@
 
 namespace PinPthread {
 
-extern ostream & operator << (ostream & output, coherence_state_type cs);
-extern ostream & operator << (ostream & output, component_type ct);
-extern ostream & operator << (ostream & output, event_type et);
+extern std::ostream & operator << (std::ostream & output, coherence_state_type cs);
+extern std::ostream & operator << (std::ostream & output, component_type ct);
+extern std::ostream & operator << (std::ostream & output, event_type et);
 
 
 Cache::Cache(
@@ -57,14 +59,14 @@ Cache::Cache(
   num_coherency_access(0), num_upgrade_req(0),
   num_bypass(0), num_nack(0) {
   num_banks = get_param_uint64("num_banks", 1);
-  req_qs    = vector< queue<LocalQueueElement * > >(num_banks);
+  req_qs    = std::vector< std::queue<LocalQueueElement * > >(num_banks);
 }
 
 
-void Cache::display_event(uint64_t curr_time, LocalQueueElement * lqe, const string & postfix) {
+void Cache::display_event(uint64_t curr_time, LocalQueueElement * lqe, const std::string & postfix) {
   if (lqe->address >= ((search_addr >> set_lsb) << set_lsb) &&
       lqe->address <  (((search_addr >> set_lsb) + 1) << set_lsb)) {
-    LOG(WARNING) << "  -- [" << setw(7) << curr_time << "] " << type << postfix << " [" << num << "] ";
+    LOG(WARNING) << "  -- [" << std::setw(7) << curr_time << "] " << type << postfix << " [" << num << "] ";
     lqe->display();
     show_state(lqe->address);
   }
@@ -90,11 +92,11 @@ CacheL1::CacheL1(
   // tags = vector< list< pair< uint64_t, coherence_state_type > > >(num_sets,
   //                list< pair< uint64_t, coherence_state_type > >(num_ways,
   //                      pair< uint64_t, coherence_state_type >(0, cs_invalid)));
-  tags = new pair<uint64_t, coherence_state_type> ** [num_sets];
+  tags = new std::pair<uint64_t, coherence_state_type> ** [num_sets];
   for (uint32_t i = 0; i < num_sets; i++) {
-    tags[i] = new pair<uint64_t, coherence_state_type> * [num_ways];
+    tags[i] = new std::pair<uint64_t, coherence_state_type> * [num_ways];
     for (uint32_t j = 0; j < num_ways; j++) {
-      tags[i][j] = new pair<uint64_t, coherence_state_type> (0, cs_invalid);
+      tags[i][j] = new std::pair<uint64_t, coherence_state_type> (0, cs_invalid);
     }
   }
 
@@ -113,25 +115,25 @@ CacheL1::CacheL1(
 
 CacheL1::~CacheL1() {
   if (num_rd_access > 0) {
-    cout << "  -- L1$" << ((type == ct_cachel1d || type == ct_cachel1d_t1 || type == ct_cachel1d_t2) ? "D[" : "I[") << setw(3) << num << "] : RD (miss, access)=( "
-         << setw(10) << num_rd_miss << ", " << setw(10) << num_rd_access << ")= "
-         << setw(6) << setiosflags(ios::fixed) << setprecision(2) << 100.00*num_rd_miss/num_rd_access << "%, PRE (hit, reqs)=( "
-         << num_prefetch_hits << ", " << num_prefetch_requests << " )" << endl;
+    std::cout << "  -- L1$" << ((type == ct_cachel1d || type == ct_cachel1d_t1 || type == ct_cachel1d_t2) ? "D[" : "I[") << std::setw(3) << num << "] : RD (miss, access)=( "
+         << std::setw(10) << num_rd_miss << ", " << std::setw(10) << num_rd_access << ")= "
+         << std::setw(6) << std::setiosflags(std::ios::fixed) << std::setprecision(2) << 100.00*num_rd_miss/num_rd_access << "%, PRE (hit, reqs)=( "
+         << num_prefetch_hits << ", " << num_prefetch_requests << " )" << std::endl;
   }
   if (num_wr_access > 0) {
-    cout << "  -- L1$" << ((type == ct_cachel1d || type == ct_cachel1d_t1 || type == ct_cachel1d_t2) ? "D[" : "I[") << setw(3) << num << "] : WR (miss, access)=( "
-         << setw(10) << num_wr_miss << ", " << setw(10) << num_wr_access << ")= "
-         << setw(6) << setiosflags(ios::fixed) << setprecision(2) << 100.00*num_wr_miss/num_wr_access << "%" << endl;
+    std::cout << "  -- L1$" << ((type == ct_cachel1d || type == ct_cachel1d_t1 || type == ct_cachel1d_t2) ? "D[" : "I[") << std::setw(3) << num << "] : WR (miss, access)=( "
+         << std::setw(10) << num_wr_miss << ", " << std::setw(10) << num_wr_access << ")= "
+         << std::setw(6) << std::setiosflags(std::ios::fixed) << std::setprecision(2) << 100.00*num_wr_miss/num_wr_access << "%" << std::endl;
   }
 
   if ((type == ct_cachel1d || type == ct_cachel1d_t1 || type == ct_cachel1d_t2) && (num_ev_coherency > 0 || num_ev_capacity > 0 || num_coherency_access > 0)) {
-    cout << "  -- L1$D[" << setw(3) << num
+    std::cout << "  -- L1$D[" << std::setw(3) << num
          << "] : (ev_coherency, ev_capacity, coherency_access, up_req, bypass, nack)=( "
-         << setw(10) << num_ev_coherency << ", " << setw(10) << num_ev_capacity << ", "
-         << setw(10) << num_coherency_access << ", " << setw(10) << num_upgrade_req << ", "
-         << setw(10) << num_bypass << ", " << setw(10) << num_nack << "), ";
+         << std::setw(10) << num_ev_coherency << ", " << std::setw(10) << num_ev_capacity << ", "
+         << std::setw(10) << num_coherency_access << ", " << std::setw(10) << num_upgrade_req << ", "
+         << std::setw(10) << num_bypass << ", " << std::setw(10) << num_nack << "), ";
 
-    map<uint64_t, uint64_t> dirty_cl_per_offset;
+    std::map<uint64_t, uint64_t> dirty_cl_per_offset;
     int32_t  addr_offset_lsb = get_param_uint64("addr_offset_lsb", "", 48);
 
     for (uint32_t j = 0; j < num_sets; j++) {
@@ -149,17 +151,17 @@ CacheL1::~CacheL1() {
       }
     }
 
-    cout << "num_dirty_lines (pid:#) = ";
+    std::cout << "num_dirty_lines (pid:#) = ";
 
     for (auto m_iter = dirty_cl_per_offset.begin(); m_iter != dirty_cl_per_offset.end(); m_iter++) {
-      cout << m_iter->first << " : " << m_iter->second << " , ";
+      std::cout << m_iter->first << " : " << m_iter->second << " , ";
     }
-    cout << endl;
+    std::cout << std::endl;
   } else if ((type == ct_cachel1i || type == ct_cachel1i_t1 || type == ct_cachel1i_t2) &&
            (num_ev_coherency > 0 || num_coherency_access > 0)) {
-    cout << "  -- L1$I[" << setw(3) << num << "] : (ev_coherency, coherency_access, bypass)=( "
-         << setw(10) << num_ev_coherency << ", " << setw(10) << num_coherency_access << ", "
-         << setw(10) << num_bypass << ")" << endl;
+    std::cout << "  -- L1$I[" << std::setw(3) << num << "] : (ev_coherency, coherency_access, bypass)=( "
+         << std::setw(10) << num_ev_coherency << ", " << std::setw(10) << num_coherency_access << ", "
+         << std::setw(10) << num_bypass << ")" << std::endl;
   }
 }
 
@@ -173,7 +175,7 @@ void CacheL1::add_req_event(
     event_time += process_interval - event_time%process_interval;
   } */
   geq->add_event(event_time, this);
-  req_event.insert(pair<uint64_t, LocalQueueElement *>(event_time, local_event));
+  req_event.insert(std::pair<uint64_t, LocalQueueElement *>(event_time, local_event));
 }
 
 
@@ -186,7 +188,7 @@ void CacheL1::add_rep_event(
     event_time += process_interval - event_time%process_interval;
   } */
   geq->add_event(event_time, this);
-  rep_event.insert(pair<uint64_t, LocalQueueElement *>(event_time, local_event));
+  rep_event.insert(std::pair<uint64_t, LocalQueueElement *>(event_time, local_event));
 }
 
 
@@ -195,7 +197,7 @@ void CacheL1::show_state(uint64_t address) {
   uint64_t tag = (address >> set_lsb) / num_sets;
   for (uint32_t i = 0; i < num_ways; i++) {
     if (tags[set][i]->second != cs_invalid && tags[set][i]->first == tag) {
-      LOG(WARNING) << "  -- L1" << ((type == ct_cachel1d || type == ct_cachel1d_t1 || type == ct_cachel1d_t2) ? "D[" : "I[") << num << "] : " << tags[set][i]->second << endl;
+      LOG(WARNING) << "  -- L1" << ((type == ct_cachel1d || type == ct_cachel1d_t1 || type == ct_cachel1d_t2) ? "D[" : "I[") << num << "] : " << tags[set][i]->second << std::endl;
       break;
     }
   }
@@ -213,10 +215,10 @@ void CacheL1::show_state(uint64_t address) {
 
 
 uint32_t CacheL1::process_event(uint64_t curr_time) {
-  multimap<uint64_t, LocalQueueElement *>::iterator req_event_iter = req_event.begin();
-  multimap<uint64_t, LocalQueueElement *>::iterator rep_event_iter = rep_event.begin();
+  std::multimap<uint64_t, LocalQueueElement *>::iterator req_event_iter = req_event.begin();
+  std::multimap<uint64_t, LocalQueueElement *>::iterator rep_event_iter = rep_event.begin();
   // list< pair< uint64_t, coherence_state_type > >::iterator set_iter;
-  pair< uint64_t, coherence_state_type > * set_iter = NULL;
+  std::pair< uint64_t, coherence_state_type > * set_iter = NULL;
 
   LocalQueueElement * rep_lqe = NULL;
   LocalQueueElement * req_lqe = NULL;
@@ -618,26 +620,26 @@ CacheL2::CacheL2(
 
 CacheL2::~CacheL2() {
   if (num_rd_access > 0) {
-    cout << "  -- L2$ [" << setw(3) << num << "] : RD (miss, access)=( "
-      << setw(10) << num_rd_miss << ", " << setw(10) << num_rd_access << ")= "
-      << setw(6) << setiosflags(ios::fixed) << setprecision(2) << 100.00*num_rd_miss/num_rd_access << "%" << endl;
+    std::cout << "  -- L2$ [" << std::setw(3) << num << "] : RD (miss, access)=( "
+      << std::setw(10) << num_rd_miss << ", " << std::setw(10) << num_rd_access << ")= "
+      << std::setw(6) << std::setiosflags(std::ios::fixed) << std::setprecision(2) << 100.00*num_rd_miss/num_rd_access << "%" << std::endl;
   }
   if (num_wr_access > 0) {
-    cout << "  -- L2$ [" << setw(3) << num << "] : WR (miss, access)=( "
-      << setw(10) << num_wr_miss << ", " << setw(10) << num_wr_access << ")= "
-      << setw(6) << setiosflags(ios::fixed) << setprecision(2) << 100.00*num_wr_miss/num_wr_access << "%" << endl;
+    std::cout << "  -- L2$ [" << std::setw(3) << num << "] : WR (miss, access)=( "
+      << std::setw(10) << num_wr_miss << ", " << std::setw(10) << num_wr_access << ")= "
+      << std::setw(6) << std::setiosflags(std::ios::fixed) << std::setprecision(2) << 100.00*num_wr_miss/num_wr_access << "%" << std::endl;
   }
 
   if (num_ev_coherency > 0 || num_ev_capacity > 0 || num_coherency_access > 0 || num_upgrade_req > 0) {
-    cout << "  -- L2$ [" << setw(3) << num << "] : (ev_coherency, ev_capacity, coherency_access, up_req, bypass, nack)=( "
-      << setw(10) << num_ev_coherency << ", " << setw(10) << num_ev_capacity << ", "
-      << setw(10) << num_coherency_access << ", " << setw(10) << num_upgrade_req << ", "
-      << setw(10) << num_bypass << ", " << setw(10) << num_nack << ")" << endl;
+    std::cout << "  -- L2$ [" << std::setw(3) << num << "] : (ev_coherency, ev_capacity, coherency_access, up_req, bypass, nack)=( "
+      << std::setw(10) << num_ev_coherency << ", " << std::setw(10) << num_ev_capacity << ", "
+      << std::setw(10) << num_coherency_access << ", " << std::setw(10) << num_upgrade_req << ", "
+      << std::setw(10) << num_bypass << ", " << std::setw(10) << num_nack << ")" << std::endl;
   }
   if (num_ev_from_l1 > 0) {
-    cout << "  -- L2$ [" << setw(3) << num << "] : EV_from_L1 (miss, access)=( "
-      << setw(10) << num_ev_from_l1_miss << ", " << setw(10) << num_ev_from_l1 << ")= "
-      << setiosflags(ios::fixed) << setprecision(2) << 100.0*num_ev_from_l1_miss/num_ev_from_l1 << "%, ";
+    std::cout << "  -- L2$ [" << std::setw(3) << num << "] : EV_from_L1 (miss, access)=( "
+      << std::setw(10) << num_ev_from_l1_miss << ", " << std::setw(10) << num_ev_from_l1 << ")= "
+      << std::setiosflags(std::ios::fixed) << std::setprecision(2) << 100.0*num_ev_from_l1_miss/num_ev_from_l1 << "%, ";
   }
   if (num_rd_access > 0 || num_wr_access > 0) {
     uint32_t num_cache_lines    = 0;
@@ -648,7 +650,7 @@ CacheL2::~CacheL2() {
     uint32_t num_tr_cache_lines = 0;
     int32_t  addr_offset_lsb = get_param_uint64("addr_offset_lsb", "", 48);
 
-    map<uint64_t, uint64_t> dirty_cl_per_offset;
+    std::map<uint64_t, uint64_t> dirty_cl_per_offset;
 
     for (uint32_t j = 0; j < num_sets; j++) {
       // for (list<CacheL2::L2Entry>::iterator iter = tags[j].begin(); iter != tags[j].end(); ++iter)
@@ -676,25 +678,25 @@ CacheL2::~CacheL2() {
     num_cache_lines = num_i_cache_lines + num_e_cache_lines +
       num_s_cache_lines + num_m_cache_lines + num_tr_cache_lines;
 
-    cout << " L2$ (i,e,s,m,tr) ratio=("
-      << setiosflags(ios::fixed) << setw(4) << 1000 * num_i_cache_lines  / num_cache_lines << ", "
-      << setiosflags(ios::fixed) << setw(4) << 1000 * num_e_cache_lines  / num_cache_lines << ", "
-      << setiosflags(ios::fixed) << setw(4) << 1000 * num_s_cache_lines  / num_cache_lines << ", "
-      << setiosflags(ios::fixed) << setw(4) << 1000 * num_m_cache_lines  / num_cache_lines << ", "
-      << setiosflags(ios::fixed) << setw(4) << 1000 * num_tr_cache_lines / num_cache_lines << "), num_dirty_lines (pid:#) = ";
+    std::cout << " L2$ (i,e,s,m,tr) ratio=("
+      << std::setiosflags(std::ios::fixed) << std::setw(4) << 1000 * num_i_cache_lines  / num_cache_lines << ", "
+      << std::setiosflags(std::ios::fixed) << std::setw(4) << 1000 * num_e_cache_lines  / num_cache_lines << ", "
+      << std::setiosflags(std::ios::fixed) << std::setw(4) << 1000 * num_s_cache_lines  / num_cache_lines << ", "
+      << std::setiosflags(std::ios::fixed) << std::setw(4) << 1000 * num_m_cache_lines  / num_cache_lines << ", "
+      << std::setiosflags(std::ios::fixed) << std::setw(4) << 1000 * num_tr_cache_lines / num_cache_lines << "), num_dirty_lines (pid:#) = ";
 
     for (auto m_iter = dirty_cl_per_offset.begin(); m_iter != dirty_cl_per_offset.end(); m_iter++) {
-      cout << m_iter->first << " : " << m_iter->second << " , ";
+      std::cout << m_iter->first << " : " << m_iter->second << " , ";
     }
-    cout << endl;
+    std::cout << std::endl;
   }
   if (display_life_time == true && num_destroyed_cache_lines > 0) {
-    cout << "  -- L2$ [" << setw(3) << num << "] : (cache_line_life_time, time_between_last_access_and_cache_destroy) = ("
-      << setiosflags(ios::fixed) << setprecision(2)
+    std::cout << "  -- L2$ [" << std::setw(3) << num << "] : (cache_line_life_time, time_between_last_access_and_cache_destroy) = ("
+      << std::setiosflags(std::ios::fixed) << std::setprecision(2)
       << 1.0 * cache_line_life_time / (process_interval * num_destroyed_cache_lines) << ", "
-      << setiosflags(ios::fixed) << setprecision(2)
+      << std::setiosflags(std::ios::fixed) << std::setprecision(2)
       << 1.0 * time_between_last_access_and_cache_destroy / (process_interval * num_destroyed_cache_lines)
-      << ") L2$ cycles" << endl;
+      << ") L2$ cycles" << std::endl;
   }
 }
 
@@ -707,7 +709,7 @@ void CacheL2::add_req_event(
     event_time += process_interval - event_time%process_interval;
   }
   geq->add_event(event_time, this);
-  req_event.insert(pair<uint64_t, LocalQueueElement *>(event_time, local_event));
+  req_event.insert(std::pair<uint64_t, LocalQueueElement *>(event_time, local_event));
 }
 
 
@@ -719,14 +721,14 @@ void CacheL2::add_rep_event(
     event_time += process_interval - event_time%process_interval;
   }
   geq->add_event(event_time, this);
-  rep_event.insert(pair<uint64_t, LocalQueueElement *>(event_time, local_event));
+  rep_event.insert(std::pair<uint64_t, LocalQueueElement *>(event_time, local_event));
 }
 
 
 void CacheL2::show_state(uint64_t address) {
   uint32_t set = (address >> set_lsb) % num_sets;
   uint64_t tag = (address >> set_lsb) / num_sets;
-  list< L2Entry >::iterator set_iter;
+  std::list< L2Entry >::iterator set_iter;
 
   // for (set_iter = tags[set].begin(); set_iter != tags[set].end(); ++set_iter)
   for (uint32_t k = 0; k < num_ways; k++) {
@@ -747,8 +749,8 @@ void CacheL2::show_state(uint64_t address) {
 
 
 uint32_t CacheL2::process_event(uint64_t curr_time) {
-  multimap<uint64_t, LocalQueueElement *>::iterator req_event_iter = req_event.begin();
-  multimap<uint64_t, LocalQueueElement *>::iterator rep_event_iter = rep_event.begin();
+  std::multimap<uint64_t, LocalQueueElement *>::iterator req_event_iter = req_event.begin();
+  std::multimap<uint64_t, LocalQueueElement *>::iterator rep_event_iter = rep_event.begin();
   // list< L2Entry >::iterator set_iter;
   uint32_t idx = 0;
   L2Entry * set_iter = NULL;
@@ -1046,7 +1048,7 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
         add_event_to_LL(curr_time, rep_lqe, false);
       } else {
         if (set_iter->type != cs_modified) {
-          LOG(ERROR) << "type = " << set_iter->type << ", type_l1l2 = " << set_iter->type_l1l2 << endl;
+          LOG(ERROR) << "type = " << set_iter->type << ", type_l1l2 = " << set_iter->type_l1l2 << std::endl;
           show_state(rep_lqe->address);
           rep_lqe->from.top()->show_state(rep_lqe->address);
           rep_lqe->display();  geq->display();  ASSERTX(0);
@@ -1058,7 +1060,7 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
           add_event_to_LL(curr_time, rep_lqe, true, true);
         } else if (set_iter->type_l1l2 == cs_modified) {
           if (set_iter->sharedl1.size() != 1) {
-            LOG(ERROR) << "sharedl1.size() = " << set_iter->sharedl1.size() << endl;
+            LOG(ERROR) << "sharedl1.size() = " << set_iter->sharedl1.size() << std::endl;
             display();  rep_lqe->display();  geq->display();  ASSERTX(0);
           }
           // special case: data is in L1
@@ -1080,7 +1082,7 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
           set_iter->pending          = rep_lqe;
         } else {
           // DIR->L2->L1->L2->DIR traffic -- not implemented yet
-          LOG(ERROR) << "type_l1l2 = " << set_iter->type_l1l2 << endl;
+          LOG(ERROR) << "type_l1l2 = " << set_iter->type_l1l2 << std::endl;
           display();  rep_lqe->display();  geq->display();  ASSERTX(0);
         }
       }
@@ -1098,9 +1100,9 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
 
       if (idx != num_ways) {
         if (set_iter->type != cs_exclusive && set_iter->type != cs_shared && set_iter->type != cs_tr_to_m) {
-          LOG(ERROR) << "address = 0x" << hex << address << dec << endl;
+          LOG(ERROR) << "address = 0x" << std::hex << address << std::dec << std::endl;
           LOG(ERROR) << "[" << curr_time << "]  sharedl1.size() = " << set_iter->sharedl1.size()
-            << " " << set_iter->type << endl;
+            << " " << set_iter->type << std::endl;
           display();  rep_lqe->display();  geq->display();  ASSERTX(0);
         }
         set_iter->last_access_time = curr_time;
@@ -1121,12 +1123,12 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
         if (set_iter->type == cs_tr_to_s ||  // set_iter->type == cs_tr_to_m ||
             set_iter->type == cs_tr_to_e || set_iter->type == cs_tr_to_i) {
           show_state(rep_lqe->address);
-          LOG(ERROR) << "etype = " << etype << endl;
+          LOG(ERROR) << "etype = " << etype << std::endl;
           display();  rep_lqe->display();  geq->display();  ASSERTX(0);
         } else if (set_iter->type == cs_modified && set_iter->type_l1l2 == cs_modified) {
           enter_intermediate_state = true;
           if (set_iter->sharedl1.size() != 1) {
-            LOG(ERROR) << "sharedl1.size() = " << set_iter->sharedl1.size() << endl;
+            LOG(ERROR) << "sharedl1.size() = " << set_iter->sharedl1.size() << std::endl;
             display();  rep_lqe->display();  geq->display();  ASSERTX(0);
           }
           // special case: data is in L1
@@ -1177,7 +1179,7 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
     } else if (etype == et_nop) {
       delete rep_lqe;
     } else {
-      LOG(ERROR) << "etype = " << etype << endl;
+      LOG(ERROR) << "etype = " << etype << std::endl;
       display();  rep_lqe->display();  geq->display();  ASSERTX(0);
     }
   } else {
@@ -1236,8 +1238,8 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
             } else if (set_iter->type_l1l2 == cs_modified && set_iter->type == cs_modified) {
               // cache hit, and type_l1l2 will be cs_shared, m_to_s event request will be delivered to L1
               if (set_iter->sharedl1.size() > 1) {
-                LOG(ERROR) << "[" << curr_time << "]  sharedl1.size() = " << set_iter->sharedl1.size() << endl;
-                LOG(ERROR) << "type = " << set_iter->type << ", type_l1l2 = " << set_iter->type_l1l2 << endl;
+                LOG(ERROR) << "[" << curr_time << "]  sharedl1.size() = " << set_iter->sharedl1.size() << std::endl;
+                LOG(ERROR) << "type = " << set_iter->type << ", type_l1l2 = " << set_iter->type_l1l2 << std::endl;
                 display();  req_lqe->display();  geq->display();  ASSERTX(0);
               }
 
@@ -1259,7 +1261,7 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
                 set_iter->type_l1l2 == cs_tr_to_i || set_iter->type == cs_tr_to_m) {
               req_lqe->type = et_nack;
             } else {
-              LOG(ERROR) << "type = " << set_iter->type << ", type_l1l2 = " << set_iter->type_l1l2 << endl;
+              LOG(ERROR) << "type = " << set_iter->type << ", type_l1l2 = " << set_iter->type_l1l2 << std::endl;
               display();  req_lqe->display();  geq->display();  ASSERTX(0);
             }
 
@@ -1311,8 +1313,8 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
             } else if (set_iter->type == cs_modified && set_iter->type_l1l2 == cs_modified) {
               // cache hit, and type_l1l2 will be cs_modified
               if (set_iter->sharedl1.size() != 1) {
-                LOG(ERROR) << "[" << curr_time << "]  sharedl1.size() = " << set_iter->sharedl1.size() << endl;
-                LOG(ERROR) << "type = " << set_iter->type << ", type_l1l2 = " << set_iter->type_l1l2 << endl;
+                LOG(ERROR) << "[" << curr_time << "]  sharedl1.size() = " << set_iter->sharedl1.size() << std::endl;
+                LOG(ERROR) << "type = " << set_iter->type << ", type_l1l2 = " << set_iter->type_l1l2 << std::endl;
                 display();  req_lqe->display();  geq->display();  ASSERTX(0);
               }
               if (*(set_iter->sharedl1.begin()) != req_lqe->from.top()) {
@@ -1335,8 +1337,8 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
             } else if (set_iter->type == cs_modified && set_iter->type_l1l2 == cs_exclusive) {
               // cache hit, and type_l1l2 will be cs_modified
               if (set_iter->sharedl1.size() > 1) {
-                LOG(ERROR) << "[" << curr_time << "]  sharedl1.size() = " << set_iter->sharedl1.size() << endl;
-                LOG(ERROR) << "type = " << set_iter->type << ", type_l1l2 = " << set_iter->type_l1l2 << endl;
+                LOG(ERROR) << "[" << curr_time << "]  sharedl1.size() = " << set_iter->sharedl1.size() << std::endl;
+                LOG(ERROR) << "type = " << set_iter->type << ", type_l1l2 = " << set_iter->type_l1l2 << std::endl;
                 display();  req_lqe->display();  geq->display();  ASSERTX(0);
               }
 
@@ -1372,7 +1374,7 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
               // tags[set].erase(set_iter);
               break;
             } else {
-              LOG(ERROR) << "type = " << set_iter->type << ", type_l1l2 = " << set_iter->type_l1l2 << endl;
+              LOG(ERROR) << "type = " << set_iter->type << ", type_l1l2 = " << set_iter->type_l1l2 << std::endl;
               display();  req_lqe->display();  geq->display();  ASSERTX(0);
             }
 
@@ -1390,7 +1392,7 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
           }
         }
       } else {
-        LOG(ERROR) << "etype = " << etype << endl;
+        LOG(ERROR) << "etype = " << etype << std::endl;
         req_lqe->display();  geq->display();  ASSERTX(0);
       }
 

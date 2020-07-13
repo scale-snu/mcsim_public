@@ -31,16 +31,18 @@
 #ifndef PTSDIRECTORY_H_
 #define PTSDIRECTORY_H_
 
-#include "McSim.h"
 #include <list>
-#include <stack>
+#include <map>
 #include <queue>
 #include <set>
+#include <stack>
+#include <vector>
 
-namespace PinPthread
-{
-class Directory : public Component
-{
+#include "McSim.h"
+
+namespace PinPthread {
+
+class Directory : public Component {
  public:
   class DirEntry {
    public:
@@ -54,10 +56,10 @@ class Directory : public Component
     DirEntry() : type(cs_invalid), sharedl2(), pending(NULL), got_cl(false), not_in_dc(false), num_sharer(0) { }
   };
 
-  Directory(component_type type_, uint32_t num_, McSim * mcsim_);
+  explicit Directory(component_type type_, uint32_t num_, McSim * mcsim_);
   ~Directory();
 
-  //MemoryController * memorycontroller;  // downlink
+  // MemoryController * memorycontroller;  // downlink
   Component * memorycontroller;  // downlink
   CacheL2          * cachel2;           // uplink
   NoC              * crossbar;          // uplink
@@ -107,7 +109,7 @@ class Directory : public Component
   void add_event_to_UL(uint64_t curr_time, LocalQueueElement *, bool is_data);
   void add_event_to_ULpp(uint64_t curr_time, LocalQueueElement *, bool is_data);
   void add_event_to_UL(uint64_t curr_time,
-      Component * comp, 
+      Component * comp,
       LocalQueueElement * lqe);
 };
 
