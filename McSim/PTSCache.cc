@@ -28,13 +28,13 @@
  * Authors: Jung Ho Ahn
  */
 
+#include <glog/logging.h>
 #include <algorithm>
 #include <iomanip>
 #include <queue>
 #include <set>
 #include <sstream>
 #include <string>
-#include <glog/logging.h>
 
 #include "PTSCache.h"
 #include "PTSDirectory.h"

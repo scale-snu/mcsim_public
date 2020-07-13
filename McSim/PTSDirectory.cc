@@ -41,9 +41,9 @@
 
 namespace PinPthread {
 
-extern ostream & operator << (ostream & output, coherence_state_type cs);
-extern ostream & operator << (ostream & output, component_type ct);
-extern ostream & operator << (ostream & output, event_type et);
+extern std::ostream & operator << (std::ostream & output, coherence_state_type cs);
+extern std::ostream & operator << (std::ostream & output, component_type ct);
+extern std::ostream & operator << (std::ostream & output, event_type et);
 
 
 Directory::Directory(
@@ -79,20 +79,20 @@ Directory::~Directory() {
   }
 
   if (num_i_to_tr > 0) {
-    cout << "  -- Dir [" << setw(3) << num << "] : (i->tr, e->tr, s->tr, m->tr, m->i, tr->i, tr->e, tr->s, tr->m) = ("
+    std::cout << "  -- Dir [" << std::setw(3) << num << "] : (i->tr, e->tr, s->tr, m->tr, m->i, tr->i, tr->e, tr->s, tr->m) = ("
          << num_i_to_tr << ", " << num_e_to_tr << ", " << num_s_to_tr << ", " << num_m_to_tr << ", "
          << num_m_to_i << ", "
-         << num_tr_to_i << ", " << num_tr_to_e << ", " << num_tr_to_s << ", " << num_tr_to_m << ")" << endl;
-    cout << "  -- Dir [" << setw(3) << num << "] : (nack, bypass, evict, invalidate, from_mc, dir_acc, dir_$_miss, dir_$_retry, dir_$_evict) = ("
+         << num_tr_to_i << ", " << num_tr_to_e << ", " << num_tr_to_s << ", " << num_tr_to_m << ")" << std::endl;
+    std::cout << "  -- Dir [" << std::setw(3) << num << "] : (nack, bypass, evict, invalidate, from_mc, dir_acc, dir_$_miss, dir_$_retry, dir_$_evict) = ("
          << num_nack << ", " << num_bypass << ", " << num_evict << ", "
          << num_invalidate << ", " << num_from_mc << ", "
          << num_dir_cache_access << ", " << num_dir_cache_miss << ", "
          << num_dir_cache_retry << ", " << num_dir_evict << "), ";
 
     for (unsigned int i = 1; i < num_sharer_histogram.size(); i++) {
-      cout << num_sharer_histogram[i] << ", ";
+      std::cout << num_sharer_histogram[i] << ", ";
     }
-    cout << endl;
+    std::cout << std::endl;
   }
 }
 
@@ -101,19 +101,19 @@ void Directory::show_state(uint64_t address) {
   uint64_t dir_entry = (address >> set_lsb);
 
   if (dir.find(dir_entry) != dir.end()) {
-    cout << "  -- DIR[" << num << "] : " << dir[dir_entry].type;
+    std::cout << "  -- DIR[" << num << "] : " << dir[dir_entry].type;
     if (dir[dir_entry].not_in_dc == true) {
-      cout << ", not_in_dc";
+      std::cout << ", not_in_dc";
     }
     // for(std::set<Component *>::iterator iter = dir[dir_entry].sharedl2.begin();
     //    iter != dir[dir_entry].sharedl2.end(); ++iter)
     for (auto && iter : dir[dir_entry].sharedl2) {
-      cout << ", (" << iter->type << ", " << iter->num << ") ";
+      std::cout << ", (" << iter->type << ", " << iter->num << ") ";
     }
     if (dir[dir_entry].pending != NULL) {
       dir[dir_entry].pending->display();
     } else {
-      cout << endl;
+      std::cout << std::endl;
     }
   }
 }
@@ -127,7 +127,7 @@ void Directory::add_req_event(
     event_time = event_time + process_interval - event_time%process_interval;
   }
   geq->add_event(event_time, this);
-  req_event.insert(pair<uint64_t, LocalQueueElement *>(event_time, local_event));
+  req_event.insert(std::pair<uint64_t, LocalQueueElement *>(event_time, local_event));
 }
 
 
@@ -141,9 +141,9 @@ void Directory::add_rep_event(
   geq->add_event(event_time, this);
 
   if (local_event->type == et_rd_dir_info_req) {
-    req_event.insert(pair<uint64_t, LocalQueueElement *>(event_time, local_event));
+    req_event.insert(std::pair<uint64_t, LocalQueueElement *>(event_time, local_event));
   } else {
-    rep_event.insert(pair<uint64_t, LocalQueueElement *>(event_time, local_event));
+    rep_event.insert(std::pair<uint64_t, LocalQueueElement *>(event_time, local_event));
   }
 }
 
@@ -197,7 +197,7 @@ uint32_t Directory::process_event(uint64_t curr_time) {
   if (rep_lqe != NULL) {
     /* if (rep_lqe->address >= search_addr && rep_lqe->address < search_addr + 0x40)
     {
-      cout << "  -- [" << setw(7) << curr_time << "] DIRp "; rep_lqe->display();
+      std::cout << "  -- [" << setw(7) << curr_time << "] DIRp "; rep_lqe->display();
       show_state(rep_lqe->address);
     } */
 
@@ -218,8 +218,8 @@ uint32_t Directory::process_event(uint64_t curr_time) {
       if (has_directory_cache == true) {
         // check if the entry exists in the directory cache.
         // evict an oldest directory cache line to the memory
-        list<uint64_t> & curr_set = dir_cache[set];
-        list<uint64_t>::iterator iter;
+        std::list<uint64_t> & curr_set = dir_cache[set];
+        std::list<uint64_t>::iterator iter;
         bool in_dir_cache = false;
 
         for (iter = curr_set.begin(); iter != curr_set.end(); ++iter) {
@@ -292,7 +292,7 @@ uint32_t Directory::process_event(uint64_t curr_time) {
 
       if (d_entry.type == cs_modified || d_entry.type == cs_m_to_s) {
         if (d_entry.sharedl2.size() > 1) {
-          LOG(ERROR) << "sharedl2.size() = " << d_entry.sharedl2.size() << endl;
+          LOG(ERROR) << "sharedl2.size() = " << d_entry.sharedl2.size() << std::endl;
           rep_lqe->display();  geq->display();  ASSERTX(0);
         }
         if (d_entry.sharedl2.find(rep_lqe->from.top()) == d_entry.sharedl2.end()) {
@@ -331,7 +331,7 @@ uint32_t Directory::process_event(uint64_t curr_time) {
         DirEntry & d_entry = dir[dir_entry];
 
         if (d_entry.type != cs_tr_to_m) {
-          cout << "d_entry.type = " << d_entry.type << endl;
+          LOG(ERROR) << "d_entry.type = " << d_entry.type << std::endl;
           rep_lqe->display();  geq->display();  ASSERTX(0);
         }
         if (etype == et_e_to_i) {
@@ -353,7 +353,7 @@ uint32_t Directory::process_event(uint64_t curr_time) {
         DirEntry & d_entry = dir[dir_entry];
 
         if (d_entry.type != cs_tr_to_m) {
-          LOG(ERROR) << "d_entry.type = " << d_entry.type << endl;
+          LOG(ERROR) << "d_entry.type = " << d_entry.type << std::endl;
           rep_lqe->display();  geq->display();  ASSERTX(0);
         }
         d_entry.got_cl = (etype == et_invalidate) ? true : d_entry.got_cl;
@@ -382,7 +382,7 @@ uint32_t Directory::process_event(uint64_t curr_time) {
     } else if (etype == et_e_to_s_nd || etype == et_s_to_s_nd || etype == et_dir_rd_nd) {
       if (dir.find(dir_entry) == dir.end() ||
           (dir[dir_entry].type != cs_tr_to_s && dir[dir_entry].type != cs_m_to_s)) {
-        cout << "etype = " << etype << endl;
+        LOG(ERROR) << "etype = " << etype << std::endl;
         rep_lqe->display();  geq->display();  ASSERTX(0);
       }
       DirEntry & d_entry = dir[dir_entry];
@@ -403,7 +403,7 @@ uint32_t Directory::process_event(uint64_t curr_time) {
     } else if (etype == et_dir_rd || etype == et_e_to_s || etype == et_s_to_s) {
       if (dir.find(dir_entry) == dir.end() ||
           (dir[dir_entry].type != cs_m_to_s && dir[dir_entry].type != cs_tr_to_s)) {
-        LOG(ERROR) << "etype = " << etype << endl;
+        LOG(ERROR) << "etype = " << etype << std::endl;
         rep_lqe->display();  geq->display();  ASSERTX(0);
       }
       DirEntry & d_entry = dir[dir_entry];
@@ -444,7 +444,7 @@ uint32_t Directory::process_event(uint64_t curr_time) {
   } else if (req_lqe != NULL) {
     /* if (req_lqe->address >= search_addr && req_lqe->address < search_addr + 0x40)
     {
-      cout << "  -- [" << setw(7) << curr_time << "] DIRq "; req_lqe->display();
+      std::cout << "  -- [" << setw(7) << curr_time << "] DIRq "; req_lqe->display();
       show_state(req_lqe->address);
     } */
     uint64_t address   = req_lqe->address;
@@ -455,8 +455,8 @@ uint32_t Directory::process_event(uint64_t curr_time) {
     if (dir.find(dir_entry) == dir.end()) {
       if (has_directory_cache == true) {
         // evict an oldest directory cache line to the memory
-        list<uint64_t> & curr_set = dir_cache[set];
-        list<uint64_t>::iterator iter;
+        std::list<uint64_t> & curr_set = dir_cache[set];
+        std::list<uint64_t>::iterator iter;
         num_dir_cache_miss++;
 
         if (curr_set.size() == num_ways) {
@@ -491,7 +491,7 @@ uint32_t Directory::process_event(uint64_t curr_time) {
 
       // add the entry to the directory
       // and load the directory information from the memory if there is a directory cache
-      dir.insert(pair<uint64_t, DirEntry>(dir_entry, DirEntry()));
+      dir.insert(std::pair<uint64_t, DirEntry>(dir_entry, DirEntry()));
       dir[dir_entry].sharedl2.insert(req_lqe->from.top());
       dir[dir_entry].num_sharer = 1;
 
@@ -506,8 +506,8 @@ uint32_t Directory::process_event(uint64_t curr_time) {
       if (has_directory_cache == true) {
         // check if the entry exists in the directory cache.
         // evict an oldest directory cache line to the memory
-        list<uint64_t> & curr_set = dir_cache[set];
-        list<uint64_t>::iterator iter;
+        std::list<uint64_t> & curr_set = dir_cache[set];
+        std::list<uint64_t>::iterator iter;
 
         for (iter = curr_set.begin(); iter != curr_set.end(); ++iter) {
           if (*iter == dir_entry) {
@@ -600,7 +600,7 @@ uint32_t Directory::process_event(uint64_t curr_time) {
           add_event_to_ULpp(curr_time, req_lqe, false);
         } else if (ctype == cs_exclusive || ctype == cs_modified) {
           if (d_entry.sharedl2.size() != 1) {
-            cout << "d_entry.sharedl2.size() = " << d_entry.sharedl2.size() << endl;
+            LOG(ERROR) << "d_entry.sharedl2.size() = " << d_entry.sharedl2.size() << std::endl;
             req_lqe->display();  geq->display();  ASSERTX(0);
           }
           // hold the request in the directory
@@ -623,14 +623,14 @@ uint32_t Directory::process_event(uint64_t curr_time) {
           lqe->th_id = req_lqe->th_id;
           add_event_to_UL(curr_time, *(d_entry.sharedl2.begin()), lqe);
         } else {
-          cout << "ctype = " << ctype << endl;
+          LOG(ERROR) << "ctype = " << ctype << std::endl;
           display();  req_lqe->display();  geq->display();  ASSERTX(0);
         }
       } else if (etype == et_write) {
         switch (ctype) {
           case cs_exclusive:
             if (d_entry.sharedl2.size() != 1) {
-              cout << "ctype = " << ctype << endl;
+              LOG(ERROR) << "ctype = " << ctype << std::endl;
               display();  req_lqe->display();  geq->display();  ASSERTX(0);
             }
 
@@ -661,7 +661,7 @@ uint32_t Directory::process_event(uint64_t curr_time) {
 
           case cs_shared:
             if (d_entry.sharedl2.empty() == true) {
-              cout << "ctype = " << ctype << endl;
+              LOG(ERROR) << "ctype = " << ctype << std::endl;
               display();  req_lqe->display();  geq->display();  ASSERTX(0);
             }
             // hold the request in the directory
@@ -701,7 +701,7 @@ uint32_t Directory::process_event(uint64_t curr_time) {
           case cs_modified:
             // invalidate L2 which has an old value
             if (d_entry.pending != NULL || d_entry.sharedl2.size() != 1) {
-              cout << "ctype = " << ctype << endl;
+              LOG(ERROR) << "ctype = " << ctype << std::endl;
               show_state(address);
               display();  req_lqe->display();  geq->display();  ASSERTX(0);
             }
@@ -731,7 +731,7 @@ uint32_t Directory::process_event(uint64_t curr_time) {
 
           case cs_invalid:
           default:
-            LOG(ERROR) << "ctype = " << ctype << endl;
+            LOG(ERROR) << "ctype = " << ctype << std::endl;
             display();  req_lqe->display();  geq->display();  ASSERTX(0);
             break;
         }
@@ -741,8 +741,8 @@ uint32_t Directory::process_event(uint64_t curr_time) {
     }
   } else {
     geq->display();
-    if (req_event_iter != req_event.end()) LOG(ERROR) << req_event_iter->first << endl;
-    if (rep_event_iter != rep_event.end()) LOG(ERROR) << rep_event_iter->first << endl;
+    if (req_event_iter != req_event.end()) LOG(ERROR) << req_event_iter->first << std::endl;
+    if (rep_event_iter != rep_event.end()) LOG(ERROR) << rep_event_iter->first << std::endl;
     ASSERTX(0);
   }
 
@@ -752,7 +752,7 @@ uint32_t Directory::process_event(uint64_t curr_time) {
 
 void Directory::remove_directory_cache_entry(uint32_t set, uint64_t dir_entry) {
   if (has_directory_cache == true) {
-    list<uint64_t> & curr_set = dir_cache[set];
+    std::list<uint64_t> & curr_set = dir_cache[set];
 
     for (auto iter = curr_set.begin(); iter != curr_set.end(); ++iter) {
       if (*iter == dir_entry) {

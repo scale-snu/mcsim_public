@@ -32,11 +32,13 @@
 #include "PTSCache.h"
 #include "PTSCore.h"
 #include "PTSTLB.h"
+
+#include <glog/logging.h>
 #include <iomanip>
 
 namespace PinPthread {
 
-extern ostream & operator << (ostream & output, ins_type it);
+extern std::ostream & operator << (std::ostream & output, ins_type it);
 
 Core::Core(
     component_type type_,
@@ -56,7 +58,7 @@ Core::Core(
 
 Core::~Core() {
   if (num_bubbled_slots > 0) {
-    cout << "  -- CORE[" << num << "] : num_bubbled_slots = " << num_bubbled_slots << endl;
+    std::cout << "  -- CORE[" << num << "] : num_bubbled_slots = " << num_bubbled_slots << std::endl;
   }
 }
 
@@ -174,15 +176,15 @@ Hthread::Hthread(
 
 Hthread::~Hthread() {
   if (num_branch > 0 || latest_ip != 0) {
-    cout << "  -- HTH [" << num << "] : branch (miss, access) = ("
+    std::cout << "  -- HTH [" << num << "] : branch (miss, access) = ("
       << num_branch_miss << ", " << num_branch << ") = "
       << ((num_branch == 0) ? 0 : 100.00*num_branch_miss/num_branch) << "%, "
       << " #_nacks = " << num_nacks
       << ", #_x87_ops = " << num_x87_ops
       << ", #_call_ops = " << num_call_ops
-      << ", latest_ip = 0x" << hex << latest_ip << dec
+      << ", latest_ip = 0x" << std::hex << latest_ip << std::dec
       << ", tot_mem_wr_time = " << total_mem_wr_time
-      << ", tot_mem_rd_time = " << total_mem_rd_time << endl;
+      << ", tot_mem_rd_time = " << total_mem_rd_time << std::endl;
   }
 
   delete bp;
@@ -214,9 +216,9 @@ uint32_t Hthread::process_event(uint64_t curr_time) {
       geq->add_event(resume_time, core);
 
       if (display_barrier == true) {
-        cout << "  -- [" << setw(12) << curr_time << "] :";
-        cout << " thread " << num << " reached a barrier : prev ip = 0x";
-        cout << hex << latest_ip << dec << endl;
+        std::cout << "  -- [" << std::setw(12) << curr_time << "] :";
+        std::cout << " thread " << num << " reached a barrier : prev ip = 0x";
+        std::cout << std::hex << latest_ip << std::dec << std::endl;
       }
       return num_hthreads;
 
@@ -314,7 +316,7 @@ void Hthread::add_req_event(
 
     if (num_consecutive_nacks > consecutive_nack_threshold) {
       display();
-      cout << " " << num << ", latest_ip = 0x" << hex << latest_ip << dec << endl;
+      LOG(ERROR) << " " << num << ", latest_ip = 0x" << std::hex << latest_ip << std::dec << std::endl;
       local_event->display();
       geq->display();  ASSERTX(0);
     }
@@ -347,7 +349,7 @@ void Hthread::add_rep_event(
 
     if (num_consecutive_nacks > consecutive_nack_threshold) {
       display();
-      cout << " # of nacks = " << num_consecutive_nacks << ", latest_ip = 0x" << hex << latest_ip << dec << endl;
+      LOG(ERROR) << " # of nacks = " << num_consecutive_nacks << ", latest_ip = 0x" << std::hex << latest_ip << std::dec << std::endl;
       // mcsim->show_state(local_event->address);
       local_event->display();  geq->display();  ASSERTX(0);
     }
@@ -367,7 +369,7 @@ void Hthread::add_rep_event(
       display();  local_event->display();
 
       while (mem_acc.empty() == false) {
-        cout << "  -- (" << mem_acc.front().first << ", " << mem_acc.front().second << ")" << endl;
+        LOG(ERROR) << "  -- (" << mem_acc.front().first << ", " << mem_acc.front().second << ")" << std::endl;
         mem_acc.pop();
       }
       geq->display();  ASSERTX(0);

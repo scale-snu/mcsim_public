@@ -28,42 +28,41 @@
  * Authors: Jung Ho Ahn
  */
 
-#ifndef PTS_TLB_H
-#define PTS_TLB_H
+#ifndef PTSTLB_H_
+#define PTSTLB_H_
 
 #include "McSim.h"
-#include <list>
-#include <stack>
+
+#include <map>
 #include <queue>
+#include <stack>
+#include <vector>
 
-using namespace std;
+namespace PinPthread {
 
-namespace PinPthread
-{
-  class TLBL1 : public Component
-  {
-    public:
-      TLBL1(component_type type_, uint32_t num_, McSim * mcsim_);
-      ~TLBL1();
+class TLBL1 : public Component {
+ public:
+  explicit TLBL1(component_type type_, uint32_t num_, McSim * mcsim_);
+  ~TLBL1();
 
-      // currently it is assumed that L1 TLBs are fully-associative
-      vector<Component *> lsus;           // uplink
-      map<uint64_t, uint64_t> entries;  // <page_num, time>
-      map<uint64_t, map<uint64_t, uint64_t>::iterator> LRU;
+  // currently it is assumed that L1 TLBs are fully-associative
+  std::vector<Component *> lsus;           // uplink
+  std::map<uint64_t, uint64_t> entries;  // <page_num, time>
+  std::map<uint64_t, std::map<uint64_t, uint64_t>::iterator> LRU;
 
-      const uint32_t num_entries;
-      const uint32_t l1_to_lsu_t;
-      const uint32_t page_sz_log2;
-      const uint32_t miss_penalty;
+  const uint32_t num_entries;
+  const uint32_t l1_to_lsu_t;
+  const uint32_t page_sz_log2;
+  const uint32_t miss_penalty;
 
-      uint64_t num_access;
-      uint64_t num_miss;
-      uint32_t speedup;
+  uint64_t num_access;
+  uint64_t num_miss;
+  uint32_t speedup;
 
-      void add_req_event(uint64_t, LocalQueueElement *, Component * from = NULL);
-      uint32_t process_event(uint64_t curr_time);
-  };
+  void add_req_event(uint64_t, LocalQueueElement *, Component * from = NULL);
+  uint32_t process_event(uint64_t curr_time);
+};
 
-}
+}  // namespace PinPthread
 
-#endif
+#endif  // PTSTLB_H_
