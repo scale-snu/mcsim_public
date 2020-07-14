@@ -447,7 +447,7 @@ int main(int argc, char * argv[])
     {
       case pts_resume_simulation:
         {
-          pair<uint32_t, uint64_t> ret = pts->mcsim->resume_simulation(pts_m->bool_val);  // <thread_id, time>
+          std::pair<uint32_t, uint64_t> ret = pts->mcsim->resume_simulation(pts_m->bool_val);  // <thread_id, time>
           curr_pid = old_mapping[htid_to_pid[ret.first]];
           curr_p = &(programs[curr_pid]);
           pts_m  = (PTSMessage *)curr_p->buffer;
@@ -539,7 +539,7 @@ int main(int argc, char * argv[])
         break;
       case pts_destructor:
         {
-          pair<uint32_t, uint64_t> ret = pts->resume_simulation(true);  // <thread_id, time>
+          std::pair<uint32_t, uint64_t> ret = pts->resume_simulation(true);  // <thread_id, time>
           if (ret.first == pts->get_num_hthreads())
           {
             any_thread = false;

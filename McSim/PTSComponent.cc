@@ -252,7 +252,7 @@ uint32_t GlobalEventQueue::process_event() {
 
       } */
 
-      LOG(WARNING) << "  -- event became empty at cycle = " << curr_time << std::endl;
+      LOG(INFO) << "  -- event became empty at cycle = " << curr_time << std::endl;
       return num_hthreads;
       // ASSERTX(0);
     }
