@@ -181,7 +181,11 @@ int main(int argc, char * argv[])
       exit(1);
     }
 
-    ftruncate(mmap_fd[i], sizeof(PTSMessage)+2);
+    int ok = ftruncate(mmap_fd[i], sizeof(PTSMessage)+2);
+    if (ok == -1) {
+      perror("ERROR: mmap ftruncate");
+      exit(1);
+    }
 
     if((pmmap[i] = (char *)mmap(0, sizeof(PTSMessage)+2,
             PROT_READ | PROT_WRITE, MAP_SHARED, mmap_fd[i], 0)) == MAP_FAILED) {
@@ -223,7 +227,11 @@ int main(int argc, char * argv[])
     else if (pID == 0)
     {
       // child process
-      chdir(programs[i].directory.c_str());
+      int ok = chdir(programs[i].directory.c_str());
+      if (ok == -1) {
+        cout << programs[i].directory.c_str() << ": No such directory" << endl;
+        exit(1);
+      }
       char * envp[3];
       envp [0] = NULL;
       envp [1] = NULL;
