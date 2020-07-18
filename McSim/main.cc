@@ -76,16 +76,12 @@ DEFINE_string(mdfile, "md.toml", "Machine Description file: TOML format is used.
 DEFINE_string(runfile, "run.toml", "How to run applications: TOML format is used.");
 DEFINE_string(instrs_skip, "0", "Number of instructions to skip before timing simulation starts.");
 DEFINE_bool(run_manually, false, "Whether to run the McSimA+ frontend manually or not.");
-DEFINE_string(remapfile, "remap.toml", "Mapping between apps and cores: TOML format used.");
-DEFINE_uint64(remap_interval, 0, "When positive, this specifies the number of instructions \
-    after which a remapping between apps and cores are conducted.");
 
 
 int main(int argc, char * argv[]) {
   std::string usage{"McSimA+ backend\n"};
   usage += argv[0];
   usage += " -mdfile mdfile -runfile runfile -run_manually";
-  usage +  "-remapfile remapfile -remap_interval instrs";
   gflags::SetUsageMessage(usage);
   gflags::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
@@ -98,16 +94,15 @@ int main(int argc, char * argv[]) {
 
   auto pts = new PinPthread::PthreadTimingSimulator(FLAGS_mdfile);
   std::string pin_name;
-  std::string pintool_name;
-  std::string ld_library_path_full;
+  std::string ld_library_path_full{ "LD_LIBRARY_PATH=" };
   std::vector<Programs>  programs;
   std::vector<uint32_t>  htid_to_tid;
   std::vector<uint32_t>  htid_to_pid;
-  int32_t           addr_offset_lsb = pts->get_param_uint64("addr_offset_lsb", 48);
-  uint64_t          max_total_instrs = pts->get_param_uint64("max_total_instrs", 1000000000);
-  uint64_t          num_instrs_per_th = pts->get_param_uint64("num_instrs_per_th", 0);
-  int32_t           interleave_base_bit = pts->get_param_uint64("pts.mc.interleave_base_bit", 14);
-  bool              kill_with_sigint = pts->get_param_str("kill_with_sigint") == "true" ? true : false;
+  int32_t  addr_offset_lsb = pts->get_param_uint64("addr_offset_lsb", 48);
+  uint64_t max_total_instrs = pts->get_param_uint64("max_total_instrs", 1000000000);
+  uint64_t num_instrs_per_th = pts->get_param_uint64("num_instrs_per_th", 0);
+  int32_t  interleave_base_bit = pts->get_param_uint64("pts.mc.interleave_base_bit", 14);
+  bool     kill_with_sigint = pts->get_param_str("kill_with_sigint") == "true" ? true : false;
 
   std::ifstream fin(FLAGS_runfile.c_str());
   CHECK(fin.good()) << "failed to open the runfile " << FLAGS_runfile << std::endl;
@@ -119,8 +114,11 @@ int main(int argc, char * argv[]) {
   char * pin_ptr     = getenv("PIN");
   char * pintool_ptr = getenv("PINTOOL");
   char * ld_library_path = getenv("LD_LIBRARY_PATH");
-  pin_name           = (pin_ptr == NULL) ? "pinbin" : pin_ptr;
-  pintool_name       = (pintool_ptr == NULL) ? "mypthreadtool" : pintool_ptr;
+  pin_ptr            = (pin_ptr == nullptr) ? const_cast<char *>("pinbin") : pin_ptr;
+  pintool_ptr        = (pintool_ptr == nullptr) ? const_cast<char *>("mypthreadtool") : pintool_ptr;
+  CHECK(std::experimental::filesystem::exists(pin_ptr)) << "PIN should be an existing filename." << std::endl;
+  CHECK(std::experimental::filesystem::exists(pintool_ptr)) << "PINTOOL should be an existing filename." << std::endl;
+  ld_library_path_full +=ld_library_path;
   uint32_t idx    = 0;
   uint32_t offset = 0;
   uint32_t num_th_passed_instr_count = 0;
@@ -192,12 +190,12 @@ int main(int argc, char * argv[]) {
     temp_file /= ss.str();
     program.tmp_shared_name = temp_file.string();
 
-    // Shared memory setup
+    // shared memory setup
     if ((program.mmap_fd = open(program.tmp_shared_name.c_str(), O_RDWR | O_CREAT, 0666)) < 0) {
       LOG(FATAL) << "ERROR: open syscall" << std::endl;
     }
 
-    CHECK(ftruncate(program.mmap_fd, sizeof(PTSMessage) + 2) == 0) << "ftruncate failed" << std::endl;;
+    CHECK_EQ(ftruncate(program.mmap_fd, sizeof(PTSMessage) + 2), 0) << "ftruncate failed" << std::endl;;
 
     if ((program.pmmap = reinterpret_cast<char *>(mmap(0, sizeof(PTSMessage) + 2,
             PROT_READ | PROT_WRITE, MAP_SHARED, program.mmap_fd, 0))) == MAP_FAILED) {
@@ -219,9 +217,10 @@ int main(int argc, char * argv[]) {
 
   CHECK(programs.size()) << "we need at least one program to run" << std::endl;
 
+  std::stringstream ss;
   if (FLAGS_run_manually == false) {
-    std::cout << "in case when the program exits with an error, please run the following command" << std::endl;
-    std::cout << "kill -9 ";
+    LOG(INFO) << "in case when the program exits with an error, please run the following command" << std::endl;
+    ss << "kill -9 ";
   }
 
   // fork n execute
@@ -237,30 +236,22 @@ int main(int argc, char * argv[]) {
       envp[1] = NULL;
       envp[2] = NULL;
 
-      ld_library_path_full = std::string("LD_LIBRARY_PATH=")+ld_library_path;
-
       // envp[0] = (char *)programs[i].directory.c_str();
       envp[0] = const_cast<char *>("PATH=::$PATH:");
-
-      if (ld_library_path == NULL) {
-        envp[1] = const_cast<char *>("LD_LIBRARY_PATH=");
-      } else {
-        envp[1] = const_cast<char *>(ld_library_path_full.c_str());
-        // envp[1] = (char *)(std::string("LD_LIBRARY_PATH=")+std::string(ld_library_path)).c_str();
-      }
+      envp[1] = const_cast<char *>(ld_library_path_full.c_str());
       // std::string ld_path = std::string("LD_LIBRARY_PATH=")+ld_library_path;
       // envp[1] = (char *)(ld_path.c_str());
       // envp[2] = NULL;
 
       char ** argp = new char * [programs[i].prog_n_argv.size() + 17];
       int  curr_argc = 0;
-      argp[curr_argc++] = const_cast<char *>(pin_name.c_str());
+      argp[curr_argc++] = pin_ptr;
       // argp[curr_argc++] = (char *)"-separate_memory";
       // argp[curr_argc++] = (char *)"-pause_tool";
       // argp[curr_argc++] = (char *)"30";
       // argp[curr_argc++] = (char *)"-appdebug";
       argp[curr_argc++] = const_cast<char *>("-t");
-      argp[curr_argc++] = const_cast<char *>(pintool_name.c_str());
+      argp[curr_argc++] = const_cast<char *>(pintool_ptr);
 
       argp[curr_argc++] = const_cast<char *>("-pid");
       argp[curr_argc++] = const_cast<char *>(std::to_string(i).c_str());
@@ -296,44 +287,32 @@ int main(int argc, char * argv[]) {
       if (FLAGS_run_manually == true) {
         int jdx = 0;
         while (argp[jdx] != NULL) {
-          std::cout << argp[jdx] << " ";
+          ss << argp[jdx] << " ";
           jdx++;
         }
-        std::cout << std::endl;
-        exit(1);
+        LOG(INFO) << ss.str() << std::endl;
+        ss.flush();
       } else {
-        execve(pin_name.c_str(), argp, envp);
+        execve(pin_ptr, argp, envp);
       }
     } else {
       if (FLAGS_run_manually == false) {
-        std::cout << pID << " ";
+        ss << pID << " ";
       }
       programs[i].pid = pID;
     }
   }
-  if (FLAGS_run_manually == false) {
-    std::cout << std::endl;
-  }
 
-  if (FLAGS_remap_interval != 0) {
-    fin.open(FLAGS_remapfile.c_str());
-    CHECK(fin.good()) << "failed to open the remapfile " << FLAGS_remapfile << std::endl;
+  if (FLAGS_run_manually == false) {
+    LOG(INFO) << ss.str() << std::endl;
+  } else {
+    exit(1);
   }
 
   uint64_t * num_fetched_instrs = new uint64_t[htid_to_pid.size()];
   for (uint32_t i = 0; i < htid_to_pid.size(); i++) {
     num_fetched_instrs[i] = 0;
   }
-  int32_t * old_mapping = new int32_t[htid_to_pid.size()];
-  int32_t * old_mapping_inv = new int32_t[htid_to_pid.size()];
-  int32_t * new_mapping = new int32_t[htid_to_pid.size()];
-
-  for (uint32_t i = 0; i < htid_to_pid.size(); i++) {
-    old_mapping[i] = i;
-    old_mapping_inv[i] = i;
-  }
-
-  uint64_t old_total_instrs = 0;
 
   int  curr_pid   = 0;
   bool any_thread = true;
@@ -370,51 +349,11 @@ int main(int argc, char * argv[]) {
       }
     }
 
-    if (FLAGS_remap_interval > 0 &&
-        pts_m->type == pts_resume_simulation &&
-        pts->mcsim->num_fetched_instrs/FLAGS_remap_interval > old_total_instrs/FLAGS_remap_interval) {
-      old_total_instrs = pts->mcsim->num_fetched_instrs;
-
-      if (!getline(fin, line)) {
-        for (uint32_t i = 0; i < programs.size(); i++) {
-          kill(programs[i].pid, SIGKILL/*SIGTERM*/);
-        }
-        break;
-      } else {
-        sline.clear();
-        sline.str(line);
-        for (uint32_t i = 0; i < htid_to_pid.size(); i++) {
-          sline >> new_mapping[i];
-
-          if (curr_pid == old_mapping[i]) {
-            curr_pid = new_mapping[i];
-          }
-        }
-      }
-
-      for (uint32_t i = 0; i < htid_to_pid.size(); i++) {
-        if (old_mapping[i] == new_mapping[i]) continue;
-        pts->mcsim->add_instruction(old_mapping[i], pts->get_curr_time(), 0, 0, 0, 0, 0, 0, 0,
-            false, false, true, true, false,
-            0, 0, 0, 0, new_mapping[i], 0, 0, 0);
-      }
-      for (uint32_t i = 0; i < htid_to_pid.size(); i++) {
-        if (old_mapping[i] == new_mapping[i]) continue;
-        pts->mcsim->add_instruction(new_mapping[i], pts->get_curr_time(), 0, 0, 0, 0, 0, 0, 0,
-            false, false, true, true, true,
-            0, 0, 0, 0, old_mapping[i], 0, 0, 0);
-      }
-      for (uint32_t i = 0; i < htid_to_pid.size(); i++) {
-        old_mapping[i] = new_mapping[i];
-        old_mapping_inv[new_mapping[i]] = i;
-      }
-    }
-
     // if (pts->get_curr_time() >= 12100000) std::cout << " ** " << pts_m->type << std::endl;
     switch (pts_m->type) {
       case pts_resume_simulation: {
           std::pair<uint32_t, uint64_t> ret = pts->mcsim->resume_simulation(pts_m->bool_val);  // <thread_id, time>
-          curr_pid = old_mapping[htid_to_pid[ret.first]];
+          curr_pid = htid_to_pid[ret.first];
           curr_p = &(programs[curr_pid]);
           pts_m  = curr_p->buffer;
           pts_m->type         = pts_resume_simulation;
@@ -431,7 +370,7 @@ int main(int argc, char * argv[]) {
           for (uint32_t i = 0; i < num_instrs && !sig_int; i++) {
             PTSInstr * ptsinstr = &(pts_m->val.instr[i]);
             num_available_slot = pts->mcsim->add_instruction(
-                old_mapping_inv[curr_p->tid_to_htid + ptsinstr->hthreadid_],
+                curr_p->tid_to_htid + ptsinstr->hthreadid_,
                 ptsinstr->curr_time_,
                 ptsinstr->waddr + (ptsinstr->waddr  == 0 ? 0 : ((((uint64_t)curr_pid) << addr_offset_lsb) + (((uint64_t)curr_pid) << interleave_base_bit))),
                 ptsinstr->wlen,
@@ -489,11 +428,11 @@ int main(int argc, char * argv[]) {
         pts_m->uint64_t_val = pts->get_curr_time();
         break;
       case pts_set_active:
-        pts->set_active(old_mapping_inv[curr_p->tid_to_htid + pts_m->uint32_t_val], pts_m->bool_val);
+        pts->set_active(curr_p->tid_to_htid + pts_m->uint32_t_val, pts_m->bool_val);
         break;
       case pts_set_stack_n_size:
         pts->set_stack_n_size(
-            old_mapping_inv[curr_p->tid_to_htid + pts_m->uint32_t_val],
+            curr_p->tid_to_htid + pts_m->uint32_t_val,
             pts_m->stack_val + (((uint64_t)curr_pid) << addr_offset_lsb) + (((uint64_t)curr_pid) << interleave_base_bit),
             pts_m->stacksize_val);
         break;
@@ -506,7 +445,7 @@ int main(int argc, char * argv[]) {
             break;
           }
           pts_m->uint32_t_val = pts->get_num_hthreads();
-          curr_pid            = old_mapping[htid_to_pid[ret.first]];
+          curr_pid            = htid_to_pid[ret.first];
           curr_p              = &(programs[curr_pid]);
           pts_m               = curr_p->buffer;
           pts_m->type         = pts_resume_simulation;
@@ -516,8 +455,7 @@ int main(int argc, char * argv[]) {
           break;
         }
       default:
-        std::cout << "type " << pts_m->type << " is not supported" << std::endl;
-        assert(0);
+        LOG(FATAL) << "type " << pts_m->type << " is not supported" << std::endl;
         break;
     }
 
@@ -534,9 +472,9 @@ int main(int argc, char * argv[]) {
   double msec = (finish.tv_sec*1000 + finish.tv_usec/1000) - (start.tv_sec*1000 + start.tv_usec/1000);
   std::cout << "simulation time(sec) = " << msec/1000 << std::endl;
 
-  for (uint32_t i = 0; i < programs.size(); i++) {
-    munmap(programs[i].pmmap, sizeof(PTSMessage)+2);
-    remove(programs[i].tmp_shared_name.c_str());
+  for (auto && program : programs) {
+    munmap(program.pmmap, sizeof(PTSMessage)+2);
+    remove(program.tmp_shared_name.c_str());
   }
 
   return 0;
