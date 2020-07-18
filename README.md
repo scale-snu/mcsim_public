@@ -128,7 +128,7 @@ $ cmake ..
   the absolute path of `pin` root directory should be provided)
 ```bash
 $ cd ../../Pthread
-$ make PIN_ROOT="$(pwd)"/../pin obj-intel64/mypthreadtool.so -j4
+$ make PIN_ROOT="$(pwd)"/../pin -j
 ```
 
 7. Go to `TraceGen` and compile the trace generator pin tool.
