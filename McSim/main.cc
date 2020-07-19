@@ -56,6 +56,8 @@
 #include "PTS.h"
 
 
+namespace fs = std::experimental::filesystem;
+
 struct Programs {
   int32_t num_threads;
   // std::string num_skip_first_instrs;
@@ -74,7 +76,7 @@ struct Programs {
 
 DEFINE_string(mdfile, "md.toml", "Machine Description file: TOML format is used.");
 DEFINE_string(runfile, "run.toml", "How to run applications: TOML format is used.");
-DEFINE_string(instrs_skip, "0", "Number of instructions to skip before timing simulation starts.");
+DEFINE_string(instrs_skip, "0", "# of instructions to skip before timing simulation starts.");
 DEFINE_bool(run_manually, false, "Whether to run the McSimA+ frontend manually or not.");
 
 
@@ -86,23 +88,20 @@ int main(int argc, char * argv[]) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
 
-  std::string line, temp;
-  std::istringstream sline;
   uint32_t nactive = 0;
   struct timeval start, finish;
   gettimeofday(&start, NULL);
 
   auto pts = new PinPthread::PthreadTimingSimulator(FLAGS_mdfile);
-  std::string pin_name;
   std::string ld_library_path_full{ "LD_LIBRARY_PATH=" };
   std::vector<Programs>  programs;
   std::vector<uint32_t>  htid_to_tid;
   std::vector<uint32_t>  htid_to_pid;
-  int32_t  addr_offset_lsb = pts->get_param_uint64("addr_offset_lsb", 48);
-  uint64_t max_total_instrs = pts->get_param_uint64("max_total_instrs", 1000000000);
-  uint64_t num_instrs_per_th = pts->get_param_uint64("num_instrs_per_th", 0);
+  int32_t  addr_offset_lsb     = pts->get_param_uint64("addr_offset_lsb", 48);
+  uint64_t max_total_instrs    = pts->get_param_uint64("max_total_instrs", 1000000000);
+  uint64_t num_instrs_per_th   = pts->get_param_uint64("num_instrs_per_th", 0);
   int32_t  interleave_base_bit = pts->get_param_uint64("pts.mc.interleave_base_bit", 14);
-  bool     kill_with_sigint = pts->get_param_str("kill_with_sigint") == "true" ? true : false;
+  bool     kill_with_sigint    = pts->get_param_bool("kill_with_sigint", false);
 
   std::ifstream fin(FLAGS_runfile.c_str());
   CHECK(fin.good()) << "failed to open the runfile " << FLAGS_runfile << std::endl;
@@ -114,14 +113,13 @@ int main(int argc, char * argv[]) {
   char * pin_ptr     = getenv("PIN");
   char * pintool_ptr = getenv("PINTOOL");
   char * ld_library_path = getenv("LD_LIBRARY_PATH");
-  pin_ptr            = (pin_ptr == nullptr) ? const_cast<char *>("pinbin") : pin_ptr;
-  pintool_ptr        = (pintool_ptr == nullptr) ? const_cast<char *>("mypthreadtool") : pintool_ptr;
-  CHECK(std::experimental::filesystem::exists(pin_ptr)) << "PIN should be an existing filename." << std::endl;
-  CHECK(std::experimental::filesystem::exists(pintool_ptr)) << "PINTOOL should be an existing filename." << std::endl;
+  pin_ptr     = (pin_ptr == nullptr) ? const_cast<char *>("pinbin") : pin_ptr;
+  pintool_ptr = (pintool_ptr == nullptr) ? const_cast<char *>("mypthreadtool") : pintool_ptr;
+  CHECK(fs::exists(pin_ptr)) << "PIN should be an existing filename." << std::endl;
+  CHECK(fs::exists(pintool_ptr)) << "PINTOOL should be an existing filename." << std::endl;
   ld_library_path_full +=ld_library_path;
   uint32_t idx    = 0;
   uint32_t offset = 0;
-  uint32_t num_th_passed_instr_count = 0;
   // uint32_t num_hthreads = pts->get_num_hthreads();
 
   // loop over all the `[[run]]` defined in a file
@@ -151,6 +149,7 @@ int main(int argc, char * argv[]) {
       LOG(FATAL) << "Only 'pintool' and 'trace' types are supported as of now." << std::endl;
     }
 
+    nactive += programs.back().num_threads;
     programs.back().num_instrs_to_skip_first = toml::find_or(run, "num_instrs_to_skip_first", 0);
     programs.back().directory = toml::find<toml::string>(run, "path");
     // programs.back().prog_n_argv.push_back(toml::find<toml::string>(run, "arg"));
@@ -182,25 +181,21 @@ int main(int argc, char * argv[]) {
     idx++;
   }
 
-  for (uint32_t i = 0; i < programs.size(); i++) {
-    Programs & program = programs[i];
-    auto temp_file = std::experimental::filesystem::temp_directory_path();
+  for (auto && program : programs) {
+    auto temp_file = fs::temp_directory_path();
     std::stringstream ss;
-    ss << getpid() << "_mcsim.tmp" << i;
+    ss << getpid() << "_mcsim.tmp" << program.tid_to_htid;
     temp_file /= ss.str();
     program.tmp_shared_name = temp_file.string();
 
     // shared memory setup
-    if ((program.mmap_fd = open(program.tmp_shared_name.c_str(), O_RDWR | O_CREAT, 0666)) < 0) {
-      LOG(FATAL) << "ERROR: open syscall" << std::endl;
-    }
+    program.mmap_fd = open(program.tmp_shared_name.c_str(), O_RDWR | O_CREAT, 0666);
+    CHECK(program.mmap_fd >= 0) << "ERROR: open syscall" << std::endl;
+    CHECK_EQ(ftruncate(program.mmap_fd, sizeof(PTSMessage) + 2), 0) << "ftruncate failed\n";
 
-    CHECK_EQ(ftruncate(program.mmap_fd, sizeof(PTSMessage) + 2), 0) << "ftruncate failed" << std::endl;;
-
-    if ((program.pmmap = reinterpret_cast<char *>(mmap(0, sizeof(PTSMessage) + 2,
-            PROT_READ | PROT_WRITE, MAP_SHARED, program.mmap_fd, 0))) == MAP_FAILED) {
-      LOG(FATAL) << "ERROR: mmap syscall" << std::endl;
-    }
+    program.pmmap = reinterpret_cast<char *>(mmap(0, sizeof(PTSMessage) + 2,
+            PROT_READ | PROT_WRITE, MAP_SHARED, program.mmap_fd, 0));
+    CHECK_NE(program.pmmap, MAP_FAILED) << "ERROR: mmap syscall" << std::endl;
 
     close(program.mmap_fd);
 
@@ -219,7 +214,7 @@ int main(int argc, char * argv[]) {
 
   std::stringstream ss;
   if (FLAGS_run_manually == false) {
-    LOG(INFO) << "in case when the program exits with an error, please run the following command" << std::endl;
+    LOG(INFO) << "if the program exits with an error, run the following command" << std::endl;
     ss << "kill -9 ";
   }
 
@@ -231,10 +226,7 @@ int main(int argc, char * argv[]) {
     if (pID == 0) {
       // child process
       CHECK(chdir(programs[i].directory.c_str()) == 0) << "chdir failed" << std::endl;
-      char * envp[3];
-      envp[0] = NULL;
-      envp[1] = NULL;
-      envp[2] = NULL;
+      char * envp[3] = {nullptr, nullptr, nullptr};
 
       // envp[0] = (char *)programs[i].directory.c_str();
       envp[0] = const_cast<char *>("PATH=::$PATH:");
@@ -309,14 +301,12 @@ int main(int argc, char * argv[]) {
     exit(1);
   }
 
-  uint64_t * num_fetched_instrs = new uint64_t[htid_to_pid.size()];
-  for (uint32_t i = 0; i < htid_to_pid.size(); i++) {
-    num_fetched_instrs[i] = 0;
-  }
+  std::vector<uint64_t> num_fetched_instrs(htid_to_pid.size(), 0);
 
   int  curr_pid   = 0;
   bool any_thread = true;
   bool sig_int    = false;
+  uint32_t num_th_passed_instr_count = 0;
 
   while (any_thread) {
     Programs * curr_p = &(programs[curr_pid]);
@@ -451,7 +441,6 @@ int main(int argc, char * argv[]) {
           pts_m->type         = pts_resume_simulation;
           pts_m->uint32_t_val = htid_to_tid[ret.first];
           pts_m->uint64_t_val = ret.second;
-          // std::cout << curr_pid << "   " << pts_m->uint32_t_val << "   " << pts_m->uint64_t_val << std::endl;
           break;
         }
       default:
@@ -475,6 +464,7 @@ int main(int argc, char * argv[]) {
   for (auto && program : programs) {
     munmap(program.pmmap, sizeof(PTSMessage)+2);
     remove(program.tmp_shared_name.c_str());
+    delete program.buffer;
   }
 
   return 0;
