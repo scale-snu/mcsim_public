@@ -139,10 +139,10 @@ $(OBJDIR)PthreadMalloc$(OBJ_SUFFIX): PthreadMalloc.cpp
 $(OBJDIR)EEPthreadSim$(OBJ_SUFFIX): EEPthreadSim.cpp
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
-$(OBJDIR)EEPthreadScheduler$(OBJ_SUFFIX): EEPthreadScheduler.cpp EEPthreadScheduler.h
+$(OBJDIR)EEPthreadScheduler$(OBJ_SUFFIX): EEPthreadScheduler.cpp EEPthreadScheduler.h PTS.h
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
-$(OBJDIR)PTS$(OBJ_SUFFIX): PTS.cpp
+$(OBJDIR)PTS$(OBJ_SUFFIX): PTS.cpp PTS.h
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
 $(OBJDIR)mcsim_snappy$(OBJ_SUFFIX): mcsim_snappy.cpp
