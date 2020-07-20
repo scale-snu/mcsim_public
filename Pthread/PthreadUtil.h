@@ -59,6 +59,7 @@ END_LEGAL */
 #define __SIZEOF_PTHREAD_BARRIER_T 32
 #define __SIZEOF_PTHREAD_BARRIERATTR_T 4
 
+using namespace std;
 
 typedef union {
   char __size[__SIZEOF_PTHREAD_BARRIER_T];

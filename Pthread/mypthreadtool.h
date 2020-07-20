@@ -44,6 +44,8 @@ END_LEGAL */
 #include "PthreadOnce.h"
 #include "PthreadAttr.h"
 
+using namespace std;
+
 namespace PinPthread
 {
 

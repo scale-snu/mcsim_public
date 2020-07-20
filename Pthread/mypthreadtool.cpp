@@ -4,6 +4,7 @@
 #include <ostream>
 
 using namespace PinPthread;
+using namespace std;
 
 
 int main(int argc, char** argv) 
@@ -695,7 +696,7 @@ namespace PinPthread
       {
         for (INS ins = BBL_InsHead(bbl); INS_Valid(ins); ins = INS_Next(ins)) 
         {
-          if (INS_IsCall(ins) && !INS_IsDirectBranchOrCall(ins))    // indirect call
+          if (INS_IsCall(ins) && !INS_IsDirectControlFlow(ins))    // indirect call
           {
             INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)ProcessCall,
                 IARG_BRANCH_TARGET_ADDR,
@@ -704,9 +705,9 @@ namespace PinPthread
                 IARG_BOOL, false,
                 IARG_END);
           }
-          else if (INS_IsDirectBranchOrCall(ins))    // tail call or conventional call
+          else if (INS_IsDirectControlFlow(ins))    // tail call or conventional call
           {
-            ADDRINT target = INS_DirectBranchOrCallTargetAddress(ins);
+            ADDRINT target = INS_DirectControlFlowTargetAddress(ins);
             RTN src_rtn = INS_Rtn(ins);
             RTN dest_rtn = RTN_FindByAddress(target);
             if (INS_IsCall(ins) || (src_rtn != dest_rtn)) 
@@ -748,7 +749,7 @@ namespace PinPthread
                   IARG_MEMORYREAD_SIZE,
                   IARG_MEMORYWRITE_EA,
                   IARG_MEMORYWRITE_SIZE,
-                  IARG_BOOL, INS_IsBranchOrCall(ins),
+                  IARG_BOOL, INS_IsControlFlow(ins),
                   IARG_BRANCH_TAKEN,
                   IARG_UINT32,  INS_Category(ins),
                   IARG_UINT32, INS_RegR(ins, 0),
@@ -771,7 +772,7 @@ namespace PinPthread
                   IARG_MEMORYREAD_SIZE,
                   IARG_MEMORYWRITE_EA,
                   IARG_MEMORYWRITE_SIZE,
-                  IARG_BOOL, INS_IsBranchOrCall(ins),
+                  IARG_BOOL, INS_IsControlFlow(ins),
                   IARG_BRANCH_TAKEN,
                   IARG_UINT32,  INS_Category(ins),
                   IARG_UINT32, INS_RegR(ins, 0),
@@ -794,7 +795,7 @@ namespace PinPthread
                   IARG_UINT32, 0,
                   IARG_MEMORYWRITE_EA,
                   IARG_MEMORYWRITE_SIZE,
-                  IARG_BOOL, INS_IsBranchOrCall(ins),
+                  IARG_BOOL, INS_IsControlFlow(ins),
                   IARG_BRANCH_TAKEN,
                   IARG_UINT32, INS_Category(ins),
                   IARG_UINT32, INS_RegR(ins, 0),
@@ -817,7 +818,7 @@ namespace PinPthread
                   IARG_MEMORYREAD_SIZE,
                   IARG_ADDRINT, (ADDRINT)0,
                   IARG_UINT32, 0,
-                  IARG_BOOL, INS_IsBranchOrCall(ins),
+                  IARG_BOOL, INS_IsControlFlow(ins),
                   IARG_BRANCH_TAKEN,
                   IARG_UINT32, INS_Category(ins),
                   IARG_UINT32, INS_RegR(ins, 0),
@@ -840,7 +841,7 @@ namespace PinPthread
                   IARG_MEMORYREAD_SIZE,
                   IARG_ADDRINT, (ADDRINT)0,
                   IARG_UINT32, 0,
-                  IARG_BOOL, INS_IsBranchOrCall(ins),
+                  IARG_BOOL, INS_IsControlFlow(ins),
                   IARG_BRANCH_TAKEN,
                   IARG_UINT32, INS_Category(ins),
                   IARG_UINT32, INS_RegR(ins, 0),
@@ -863,7 +864,7 @@ namespace PinPthread
                   IARG_UINT32,  0,
                   IARG_ADDRINT, (ADDRINT)0,
                   IARG_UINT32,  0,
-                  IARG_BOOL, INS_IsBranchOrCall(ins),
+                  IARG_BOOL, INS_IsControlFlow(ins),
                   IARG_BRANCH_TAKEN,
                   IARG_UINT32, INS_Category(ins),
                   IARG_UINT32, INS_RegR(ins, 0),
