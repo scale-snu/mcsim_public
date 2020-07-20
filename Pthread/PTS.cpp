@@ -79,6 +79,8 @@ PthreadTimingSimulator::~PthreadTimingSimulator() {
   // Shared memory
   mmap_flag[0] = false;
   munmap(maped, sizeof(PTSMessage)+2);
+
+  delete[] num_available_slot;
 }
 
 

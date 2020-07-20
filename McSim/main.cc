@@ -101,7 +101,6 @@ int main(int argc, char * argv[]) {
   uint64_t max_total_instrs    = pts->get_param_uint64("max_total_instrs", 1000000000);
   uint64_t num_instrs_per_th   = pts->get_param_uint64("num_instrs_per_th", 0);
   int32_t  interleave_base_bit = pts->get_param_uint64("pts.mc.interleave_base_bit", 14);
-  bool     kill_with_sigint    = pts->get_param_bool("kill_with_sigint", false);
 
   std::ifstream fin(FLAGS_runfile.c_str());
   CHECK(fin.good()) << "failed to open the runfile " << FLAGS_runfile << std::endl;
@@ -305,7 +304,6 @@ int main(int argc, char * argv[]) {
 
   int  curr_pid   = 0;
   bool any_thread = true;
-  bool sig_int    = false;
   uint32_t num_th_passed_instr_count = 0;
 
   while (any_thread) {
@@ -318,24 +316,18 @@ int main(int argc, char * argv[]) {
 
     if (pts->mcsim->num_fetched_instrs >= max_total_instrs ||
         num_th_passed_instr_count >= offset) {
-      for (uint32_t i = 0; i < programs.size() && !sig_int; i++) {
-        if (kill_with_sigint == false) {
-          kill(programs[i].pid, SIGKILL/*SIGTERM*/);
-        } else {
-          kill(programs[i].pid, SIGINT/*SIGTERM*/);
-          sig_int = true;
-        }
+      for (uint32_t i = 0; i < programs.size(); i++) {
+        kill(programs[i].pid, SIGKILL/*SIGTERM*/);
       }
-      if (kill_with_sigint == false)
-        break;
+      break;
     }
     // terminate mcsim when there is no active thread
     if (pts_m->killed && pts_m->type == pts_resume_simulation) {
-      if ((--nactive) == 0 || sig_int == true) {
+      if ((--nactive) == 0) {
         for (uint32_t i = 0; i < programs.size(); i++) {
-          kill(programs[i].pid, SIGKILL/*SIGTERM*/);
+          kill(programs[i].pid, SIGINT/*SIGTERM*/);
         }
-        break;
+        // break;
       }
     }
 
@@ -357,7 +349,7 @@ int main(int argc, char * argv[]) {
           uint32_t num_instrs = pts_m->uint32_t_val;
           uint32_t num_available_slot = 0;
           assert(num_instrs > 0);
-          for (uint32_t i = 0; i < num_instrs && !sig_int; i++) {
+          for (uint32_t i = 0; i < num_instrs; i++) {
             PTSInstr * ptsinstr = &(pts_m->val.instr[i]);
             num_available_slot = pts->mcsim->add_instruction(
                 curr_p->tid_to_htid + ptsinstr->hthreadid_,
@@ -395,14 +387,13 @@ int main(int argc, char * argv[]) {
                 << " instrs at cycle " << pts_m->val.instr[0].curr_time_ << std::endl;
             }
           }
-          if (sig_int == false)
-            num_fetched_instrs[curr_p->tid_to_htid + pts_m->val.instr[0].hthreadid_] += num_instrs;
+          num_fetched_instrs[curr_p->tid_to_htid + pts_m->val.instr[0].hthreadid_] += num_instrs;
           // PTSInstr * ptsinstr = &(pts_m->val.instr[0]);
           // if (ptsinstr->curr_time_ >= 12100000)
           //   std::cout << "add  tid = " << curr_p->tid_to_htid + ptsinstr->hthreadid_ << ", pid = " << curr_pid
           //        << ", curr_time = " << ptsinstr->curr_time_ << ", num_instr = " << num_instrs
           //        << ", num_avilable_slot = " << num_available_slot << std::endl;
-          pts_m->uint32_t_val = (sig_int) ? 128 : num_available_slot;
+          pts_m->uint32_t_val = num_available_slot;
           break;
         }
       case pts_get_num_hthreads:
