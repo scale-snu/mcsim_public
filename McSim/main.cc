@@ -282,7 +282,7 @@ int main(int argc, char * argv[]) {
           jdx++;
         }
         LOG(INFO) << ss.str() << std::endl;
-        ss.flush();
+        exit(1);
       } else {
         execve(pin_ptr, argp, envp);
       }
@@ -296,8 +296,6 @@ int main(int argc, char * argv[]) {
 
   if (FLAGS_run_manually == false) {
     LOG(INFO) << ss.str() << std::endl;
-  } else {
-    exit(1);
   }
 
   std::vector<uint64_t> num_fetched_instrs(htid_to_pid.size(), 0);
