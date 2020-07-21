@@ -195,7 +195,7 @@ MemoryController::~MemoryController() {
          << ", #_refresh = " << num_refresh << ", "
          << os_page_acc_dist.size() << " pages acc, "
          << "avg_tick_in_mc= " << packet_time_in_mc_acc / (num_read + num_write) << std::endl;
-    std::cout << "               : "
+    std::cout << "  -- MC  [" << std::setw(3) << num << "] : "
          << "local pred (miss,hit)=( " << num_pred_miss << ", " << num_pred_hit << "), "
          << "global pred (miss,hit)=( " << num_global_pred_miss << ", " << num_global_pred_hit << ")" << std::endl;
   }

@@ -422,12 +422,12 @@ McSim::~McSim() {
 
   for (auto && el : hthreads) delete el;
   for (auto && el : o3cores) delete el;
+  for (auto && el : l1is) delete el;
+  for (auto && el : l1ds) delete el;
   for (auto && el : l2s) delete el;
   for (auto && el : dirs) delete el;
   for (auto && el : mcs) delete el;
   delete noc;
-  for (auto && el : l1is) delete el;
-  for (auto && el : l1ds) delete el;
 
   delete global_q;
 }

@@ -68,10 +68,10 @@ PthreadScheduler::~PthreadScheduler() {
   resume_simulation(true, true);  // send kill signal to backend
   KillThread(GetCurrentThread());
 
-  cout << "  -- total number of unsimulated (ins, rd, wr, rd_2nd): ("
+  cout << "  -- {" << setw(2) << pid << "} total number of unsimulated (ins, rd, wr, rd_2nd): ("
     << total_discarded_instrs << ", " << total_discarded_mem_rd << ", "
     << total_discarded_mem_wr << ", " << total_discarded_2nd_mem_rd << ")" << endl;
-  cout << "  -- (cond_broadcast, cond_signal, cond_wait, barrier) = ("
+  cout << "  -- {" << setw(2) << pid << "} (cond_broadcast, cond_signal, cond_wait, barrier) = ("
     << num_cond_broadcast << ", "
     << num_cond_signal << ", "
     << num_cond_wait << ", "

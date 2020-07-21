@@ -154,7 +154,7 @@ CacheL1::~CacheL1() {
     std::cout << "num_dirty_lines (pid:#) = ";
 
     for (auto m_iter = dirty_cl_per_offset.begin(); m_iter != dirty_cl_per_offset.end(); m_iter++) {
-      std::cout << m_iter->first << " : " << m_iter->second << " , ";
+      std::cout << m_iter->first << ": " << m_iter->second << " , ";
     }
     std::cout << std::endl;
   } else if ((type == ct_cachel1i || type == ct_cachel1i_t1 || type == ct_cachel1i_t2) &&

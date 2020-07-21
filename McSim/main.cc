@@ -441,9 +441,12 @@ int main(int argc, char * argv[]) {
     (curr_p->mmap_flag)[1] = false;
   }
 
-  for (uint32_t i = 0; i < htid_to_pid.size(); i++) {
-    std::cout << "  -- th[" << std::setw(3) << i << "] fetched " << num_fetched_instrs[i] << " instrs" << std::endl;
-  }
+  // {gajh}: comment out the for loop below because cores display
+  // the same information when they are deleted (as a part of delete pts;).
+  // for (uint32_t i = 0; i < htid_to_pid.size(); i++) {
+  //   std::cout << "  -- {" << std::setw(2) << htid_to_pid[i] << "} thread "
+  //     << htid_to_tid[i] << " fetched " << num_fetched_instrs[i] << " instrs" << std::endl;
+  // }
   delete pts;
 
   gettimeofday(&finish, NULL);
