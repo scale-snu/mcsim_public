@@ -59,8 +59,10 @@ PthreadTimingSimulator::PthreadTimingSimulator(uint32_t _pid, uint32_t _total_nu
   mmap_flag = reinterpret_cast<bool*>(maped + sizeof(PTSMessage));
 
   // TODO(gajh): Not sure about the meaning of the below code snippet.
-  // if (pid!=0)
-  //   sleep(1*pid);
+  // Well, this prevents pintools from a weird seg fault error (not always
+  // though.)  I resurrect this for now and visit this issue later.
+  if (pid != 0)
+    sleep(1*pid);
 
   sync_with_mcsim();
 

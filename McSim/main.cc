@@ -238,8 +238,8 @@ int main(int argc, char * argv[]) {
       int  curr_argc = 0;
       argp[curr_argc++] = pin_ptr;
       // argp[curr_argc++] = (char *)"-separate_memory";
-      // argp[curr_argc++] = (char *)"-pause_tool";
-      // argp[curr_argc++] = (char *)"30";
+      // argp[curr_argc++] = const_cast<char *>("-pause_tool");
+      // argp[curr_argc++] = const_cast<char *>("30");
       // argp[curr_argc++] = (char *)"-appdebug";
       argp[curr_argc++] = const_cast<char *>("-t");
       argp[curr_argc++] = const_cast<char *>(pintool_ptr);

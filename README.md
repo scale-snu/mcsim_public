@@ -23,9 +23,9 @@ Build requirements
 ------------------
 McSimA+ was tested under the following.
 
-+ OS: Ubuntu 16.04.3 LTS (Kernel 4.4.0)
-+ Compiler: gcc version 5.4.0
-+ Tool: Intel Pin 3.7
++ OS: Ubuntu 18.04.1 LTS (Kernel 5.3.0)
++ Compiler: gcc version 7.5.0
++ Tool: Intel Pin 3.15
 
 To build the McSimA+ simulator on Linux system first install
 the required packages with the following command:
@@ -93,8 +93,8 @@ How to compile the simulator?
 
 1. Download the Pin at [Pin - A Binary Instrumentation Tool](https://software.intel.com/en-us/articles/pin-a-binary-instrumentation-tool-downloads).
 ```bash
-$ wget https://software.intel.com/sites/landingpage/pintool/downloads/pin-3.7-97619-g0d0c92f4f-gcc-linux.tar.gz 
-$ tar -xvf pin-3.7-97619-g0d0c92f4f-gcc-linux.tar.gz 
+$ wget http://software.intel.com/sites/landingpage/pintool/downloads/pin-3.15-98253-gb56e429b1-gcc-linux.tar.gz
+$ tar -xvf pin-3.15-98253-gb56e429b1-gcc-linux.tar.gz
 ```
 
 2. Download the McSimA+ simulator at [Scalable Computer Architecture Laboratory](http://scale.snu.ac.kr/). The URL to the repository might be different from the example command below:
@@ -104,7 +104,7 @@ $ git clone https://github.com/scale-snu/mcsim_private.git --recursive
 
 3. Create a `Pin` symbolic link in the `mcsim_private` directory.
 ```bash
-$ ln -s "$(pwd)"/pin-3.7-97619-g0d0c92f4f-gcc-linux mcsim_private/pin
+$ ln -s "$(pwd)"/pin-3.15-98253-gb56e429b1-gcc-linux mcsim_private/pin
 ```
 
 4. Go to `McSim` and compile McSim. (To build the back-end, the 
@@ -177,7 +177,7 @@ arg  = "STREAM -p4 -n1048576 -r10 -s512"
 
 4. Type the following command:
 ```bash
-$ ./McSim/build/mcsim -mdfile Apps/md/asymmetric-o3-closed.toml -runfile Apps/list/run-stream.toml
+$ ./McSim/build/mcsim -mdfile Apps/md/asymmetric-o3-closed.toml -runfile Apps/list/run-stream.toml -logtostderr=true
 ```
 
 
