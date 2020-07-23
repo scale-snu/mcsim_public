@@ -65,7 +65,7 @@ class Core : public Component {
 // Hthread includes the functionality of load store unit
 class Hthread : public Component {  // hardware thread
  public:
-  Hthread(component_type type_, uint32_t num_, McSim * mcsim_);
+  explicit Hthread(component_type type_, uint32_t num_, McSim * mcsim_);
   ~Hthread();
   uint32_t process_event(uint64_t curr_time);
   void     add_req_event(uint64_t, LocalQueueElement *, Component * from);

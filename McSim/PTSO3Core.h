@@ -98,6 +98,8 @@ class O3ROB {
   uint32_t rw3;
 };
 
+class McSim;
+
 class O3Core : public Component {
  public:
   explicit O3Core(component_type type_, uint32_t num_, McSim * mcsim_);
@@ -106,6 +108,7 @@ class O3Core : public Component {
   void     add_req_event(uint64_t, LocalQueueElement *, Component * from);
   void     add_rep_event(uint64_t, LocalQueueElement *, Component * from);
 
+ private:
   uint32_t num_hthreads;
   bool     is_active;
 
@@ -176,6 +179,11 @@ class O3Core : public Component {
 
   void displayO3Queue();
   void displayO3ROB();
+
+  bool IsRegDep(uint32_t rr, const O3ROB & o3rob_);
+
+ public:
+  friend class McSim;
 };
 
 }  // namespace PinPthread

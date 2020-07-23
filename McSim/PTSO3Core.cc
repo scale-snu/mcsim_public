@@ -34,6 +34,7 @@
 #include "PTSTLB.h"
 
 #include <glog/logging.h>
+#include <algorithm>
 #include <iomanip>
 #include <sstream>
 
@@ -45,10 +46,10 @@ static const int32_t word_log = 3;
 
 std::ostream& operator<<(std::ostream & output, o3_instr_queue_state iqs) {
   switch (iqs) {
-    case o3iqs_not_in_queue:  output << "iqs_niq"; break;
-    case o3iqs_being_loaded:  output << "iqs_bld"; break;
-    case o3iqs_ready:         output << "iqs_rdy"; break;
-    default:                  output << "iqs_inv"; break;
+    case o3iqs_not_in_queue: output << "iqs_niq"; break;
+    case o3iqs_being_loaded: output << "iqs_bld"; break;
+    case o3iqs_ready:        output << "iqs_rdy"; break;
+    default:                 output << "iqs_inv"; break;
   }
   return output;
 }
@@ -56,16 +57,17 @@ std::ostream& operator<<(std::ostream & output, o3_instr_queue_state iqs) {
 
 std::ostream & operator<<(std::ostream & output, o3_instr_rob_state irs) {
   switch (irs) {
-    case o3irs_issued:     output << "irs_iss"; break;
-    case o3irs_executing:  output << "irs_exe"; break;
-    case o3irs_completed:  output << "irs_cmp"; break;
-    default:               output << "irs_inv"; break;
+    case o3irs_issued:    output << "irs_iss"; break;
+    case o3irs_executing: output << "irs_exe"; break;
+    case o3irs_completed: output << "irs_cmp"; break;
+    default:              output << "irs_inv"; break;
   }
   return output;
 }
 
 
 extern std::ostream & operator << (std::ostream & output, ins_type it);
+static inline uint64_t ceil_by_y(uint64_t x, uint64_t y) { return ((x + y - 1) / y) * y; }
 
 O3Core::O3Core(
     component_type type_,
@@ -96,29 +98,29 @@ O3Core::O3Core(
   was_nack(false),
   latest_ip(0), latest_bmp_time(0) {
   process_interval    = get_param_uint64("process_interval", 80);
-  branch_miss_penalty = ((branch_miss_penalty + process_interval - 1)/process_interval)*process_interval;
-  lock_t              = ((lock_t              + process_interval - 1)/process_interval)*process_interval;
-  unlock_t            = ((unlock_t            + process_interval - 1)/process_interval)*process_interval;
-  barrier_t           = ((barrier_t           + process_interval - 1)/process_interval)*process_interval;
+  branch_miss_penalty = ceil_by_y(branch_miss_penalty, process_interval);
+  lock_t              = ceil_by_y(lock_t,              process_interval);
+  unlock_t            = ceil_by_y(unlock_t,            process_interval);
+  barrier_t           = ceil_by_y(barrier_t,           process_interval);
 
   bp = new BranchPredictor(
       get_param_uint64("num_bp_entries", 256),
       get_param_uint64("gp_size", 0));
-  ASSERTX(mem_acc.empty());
+  CHECK(mem_acc.empty());
 
-  bypass_tlb      = get_param_bool("bypass_tlb", false);
-  display_barrier = get_param_bool("display_barrier", false);
-  mimick_inorder  = get_param_bool("mimick_inorder", false);
+  bypass_tlb       = get_param_bool("bypass_tlb", false);
+  display_barrier  = get_param_bool("display_barrier", false);
+  mimick_inorder   = get_param_bool("mimick_inorder", false);
 
   o3queue_max_size = get_param_uint64("o3queue_max_size", 64) + 4;
   o3rob_max_size   = get_param_uint64("o3rob_max_size",   16);
   max_issue_width  = get_param_uint64("max_issue_width",   4);
   max_commit_width = get_param_uint64("max_commit_width",  4);
-  max_alu          = get_param_uint64("max_alu", max_commit_width);
+  max_alu          = get_param_uint64("max_alu",  max_commit_width);
   max_ldst         = get_param_uint64("max_ldst", max_commit_width);
-  max_ld           = get_param_uint64("max_ld", max_commit_width);
-  max_st           = get_param_uint64("max_st", max_commit_width);
-  max_sse          = get_param_uint64("max_sse", max_commit_width);
+  max_ld           = get_param_uint64("max_ld",   max_commit_width);
+  max_st           = get_param_uint64("max_st",   max_commit_width);
+  max_sse          = get_param_uint64("max_sse",  max_commit_width);
   o3queue = new O3Queue[o3queue_max_size];
   o3rob   = new O3ROB[o3rob_max_size];
   o3queue_head = 0;
@@ -134,9 +136,7 @@ O3Core::O3Core(
     o3rob[i].state = o3irs_invalid;
   }
 
-  if (o3rob_max_size <= 4) {
-    LOG(FATAL) << "as of now, it is assumed that o3rob_max_size >= 4" << std::endl;
-  }
+  CHECK_GE(o3rob_max_size, 4) << "as of now, it is assumed that o3rob_max_size >= 4" << std::endl;
 }
 
 
@@ -184,45 +184,42 @@ uint32_t O3Core::process_event(uint64_t curr_time) {
 
   // process o3queue
 
-  // check queue and send a request to iTLB
+  // check o3queue and send a request to iTLB
   // -- TODO(gajh): can we send multiple requests to an iTLB simultaneously?
   uint64_t addr_to_read = 0;
   for (unsigned int i = 0; i < o3queue_size; i++) {
     unsigned int idx = (i + o3queue_head) % o3queue_max_size;
-    if (o3queue[idx].state == o3iqs_not_in_queue) {
-      if (addr_to_read == 0) {
-        addr_to_read = (o3queue[idx].ip >> cachel1i->set_lsb) << cachel1i->set_lsb;
-        o3queue[idx].state = o3iqs_being_loaded;
-        lqe = new LocalQueueElement();
-        lqe->th_id = num;
-        lqe->from.push(this);
-        lqe->address = addr_to_read;
-        if (bypass_tlb == true) {
-          lqe->type = et_read;
-          cachel1i->add_req_event(curr_time + lsu_to_l1i_t, lqe);
-        } else {
-          lqe->type    = et_tlb_rd;
-          tlbl1i->add_req_event(curr_time + lsu_to_l1i_t, lqe);
-        }
-      } else if (addr_to_read == (o3queue[idx].ip >> cachel1i->set_lsb) << cachel1i->set_lsb) {
-        o3queue[idx].state = o3iqs_being_loaded;
+
+    if (o3queue[idx].state != o3iqs_not_in_queue) continue;
+    if (addr_to_read == 0) {
+      addr_to_read = (o3queue[idx].ip >> cachel1i->set_lsb) << cachel1i->set_lsb;
+      o3queue[idx].state = o3iqs_being_loaded;
+      lqe = new LocalQueueElement(this, et_tlb_rd, addr_to_read, num);
+      if (bypass_tlb == true) {
+        lqe->type = et_read;
+        cachel1i->add_req_event(curr_time + lsu_to_l1i_t, lqe);
+      } else {
+        tlbl1i->add_req_event(curr_time + lsu_to_l1i_t, lqe);
       }
+    } else if (addr_to_read == (o3queue[idx].ip >> cachel1i->set_lsb) << cachel1i->set_lsb) {
+      o3queue[idx].state = o3iqs_being_loaded;
     }
   }
 
   // check queue and send the instructions to the reorder buffer
-  // TODO(gajh): what is this -3?
+  // "-3" is a number considering that an instruction might
+  // occupy up to three ROB entries (when it has 3 memory accesses).
   for (unsigned int i = 0; i < max_issue_width && o3queue_size > 0 && o3rob_size < o3rob_max_size - 3; i++) {
-    uint64_t dependency_distance = o3rob_size;
-    O3Queue & o3queue_entry      = o3queue[o3queue_head];
+    uint32_t dependency_distance = o3rob_size;
+    O3Queue & o3q_entry      = o3queue[o3queue_head];
 
-    if (o3queue_entry.state == o3iqs_ready && o3queue_entry.ready_time <= curr_time) {
+    if (o3q_entry.state == o3iqs_ready && o3q_entry.ready_time <= curr_time) {
       unsigned int rob_idx = (o3rob_head + o3rob_size) % o3rob_max_size;
       bool branch_miss     = false;
 
-      if (o3queue_entry.type == ins_branch_taken || o3queue_entry.type == ins_branch_not_taken) {
+      if (o3q_entry.type == ins_branch_taken || o3q_entry.type == ins_branch_not_taken) {
         num_branch++;
-        if (bp->miss(o3queue_entry.ip, o3queue_entry.type == ins_branch_taken)) {
+        if (bp->miss(o3q_entry.ip, o3q_entry.type == ins_branch_taken)) {
           num_branch_miss++;
           branch_miss = true;
         }
@@ -231,192 +228,177 @@ uint32_t O3Core::process_event(uint64_t curr_time) {
       int32_t instr_dep  = -1;
       int32_t branch_dep = -1;
       for (unsigned int j = 0; j < o3rob_size; j++) {
-        int rob_idx = (o3rob_head + o3rob_size - 1 - j) % o3rob_max_size;
-        if (o3rob[rob_idx].state == o3irs_completed && o3rob[rob_idx].ready_time <= curr_time) continue;
-        if (o3rob[rob_idx].branch_miss == true) {
-          branch_dep = rob_idx;
-          j          = o3rob_size;
-          dependency_distance = (j+1 < dependency_distance) ? (j+1) : dependency_distance;
+        int rob_idx_br = (o3rob_head + o3rob_size - 1 - j) % o3rob_max_size;
+        const O3ROB & o3rob_br = o3rob[rob_idx_br];
+        if (o3rob_br.state == o3irs_completed && o3rob_br.ready_time <= curr_time) continue;
+        if (o3rob_br.branch_miss == true) {
+          branch_dep = rob_idx_br;
+          dependency_distance = j + 1;
           break;
         }
       }
       // register dependency resolution:
-      // assume that false dependencies are resolved by register renaming
+      // We assume that false dependencies are resolved by register renaming.
       int32_t rr0 = -1;
       int32_t rr1 = -1;
       int32_t rr2 = -1;
       int32_t rr3 = -1;
       for (unsigned int j = 0; j < o3rob_size; j++) {
-        int rob_idx = (o3rob_head + o3rob_size - 1 - j) % o3rob_max_size;
-        if (o3rob[rob_idx].state == o3irs_completed && o3rob[rob_idx].ready_time <= curr_time) continue;
-        if (o3queue_entry.rr0 != 0 && rr0 == -1 &&
-            (o3queue_entry.rr0 == o3rob[rob_idx].rw0 ||
-             o3queue_entry.rr0 == o3rob[rob_idx].rw1 ||
-             o3queue_entry.rr0 == o3rob[rob_idx].rw2 ||
-             o3queue_entry.rr0 == o3rob[rob_idx].rw3)) {
-          rr0 = rob_idx;
-          dependency_distance = (j+1 < dependency_distance) ? (j+1) : dependency_distance;
+        int rob_idx_r = (o3rob_head + o3rob_size - 1 - j) % o3rob_max_size;
+        const O3ROB & o3rob_r = o3rob[rob_idx_r];
+        if (o3rob_r.state == o3irs_completed && o3rob_r.ready_time <= curr_time) continue;
+        if (rr0 == -1 && IsRegDep(o3q_entry.rr0, o3rob_r)) {
+          rr0 = rob_idx_r;
+          dependency_distance = std::min(j+1, dependency_distance);
         }
-        if (o3queue_entry.rr1 != 0 && rr1 == -1 &&
-            (o3queue_entry.rr1 == o3rob[rob_idx].rw0 ||
-             o3queue_entry.rr1 == o3rob[rob_idx].rw1 ||
-             o3queue_entry.rr1 == o3rob[rob_idx].rw2 ||
-             o3queue_entry.rr1 == o3rob[rob_idx].rw3)) {
-          rr1 = rob_idx;
-          dependency_distance = (j+1 < dependency_distance) ? (j+1) : dependency_distance;
+        if (rr1 == -1 && IsRegDep(o3q_entry.rr1, o3rob_r)) {
+          rr1 = rob_idx_r;
+          dependency_distance = std::min(j+1, dependency_distance);
         }
-        if (o3queue_entry.rr2 != 0 && rr2 == -1 &&
-            (o3queue_entry.rr2 == o3rob[rob_idx].rw0 ||
-             o3queue_entry.rr2 == o3rob[rob_idx].rw1 ||
-             o3queue_entry.rr2 == o3rob[rob_idx].rw2 ||
-             o3queue_entry.rr2 == o3rob[rob_idx].rw3)) {
-          rr2 = rob_idx;
-          dependency_distance = (j+1 < dependency_distance) ? (j+1) : dependency_distance;
+        if (rr2 == -1 && IsRegDep(o3q_entry.rr2, o3rob_r)) {
+          rr2 = rob_idx_r;
+          dependency_distance = std::min(j+1, dependency_distance);
         }
-        if (o3queue_entry.rr3 != 0 && rr3 == -1 &&
-            (o3queue_entry.rr3 == o3rob[rob_idx].rw0 ||
-             o3queue_entry.rr3 == o3rob[rob_idx].rw1 ||
-             o3queue_entry.rr3 == o3rob[rob_idx].rw2 ||
-             o3queue_entry.rr3 == o3rob[rob_idx].rw3)) {
-          rr3 = rob_idx;
-          dependency_distance = (j+1 < dependency_distance) ? (j+1) : dependency_distance;
+        if (rr3 == -1 && IsRegDep(o3q_entry.rr3, o3rob_r)) {
+          rr3 = rob_idx_r;
+          dependency_distance = std::min(j+1, dependency_distance);
         }
       }
 
       // fill ROB
       geq->add_event(curr_time + process_interval, this);
-      if (o3queue_entry.raddr != 0) {
+      if (o3q_entry.raddr != 0) {
         O3ROB & o3rob_entry    = o3rob[rob_idx];
         o3rob_entry.state      = o3irs_issued;
         o3rob_entry.ready_time = curr_time + process_interval;
-        o3rob_entry.ip         = o3queue_entry.ip;
+        o3rob_entry.ip         = o3q_entry.ip;
         int32_t mem_dep        = -1;
         for (unsigned int j = 0; j < o3rob_size; j++) {
           int rob_idx = (o3rob_head + o3rob_size - 1 - j) % o3rob_max_size;
           if ((o3rob[rob_idx].state != o3irs_completed ||
                o3rob[rob_idx].ready_time > curr_time) &&
               (o3rob[rob_idx].memaddr >> word_log) ==
-              (o3queue_entry.raddr >> word_log)) {
+              (o3q_entry.raddr >> word_log)) {
             mem_dep = rob_idx;
-            dependency_distance = (j+1 < dependency_distance) ? (j+1) : dependency_distance;
+            dependency_distance = std::min(j+1, dependency_distance);
             break;
           }
         }
-        o3rob_entry.memaddr    = o3queue_entry.raddr;
+        o3rob_entry.memaddr    = o3q_entry.raddr;
         o3rob_entry.branch_miss = branch_miss;
         o3rob_entry.isread     = true;
         o3rob_entry.mem_dep    = mem_dep;
         o3rob_entry.instr_dep  = instr_dep;
         o3rob_entry.branch_dep = branch_dep;
-        o3rob_entry.type       = o3queue_entry.type;
+        o3rob_entry.type       = o3q_entry.type;
         o3rob_entry.rr0        = (int32_t)rr0;
         o3rob_entry.rr1        = (int32_t)rr1;
         o3rob_entry.rr2        = (int32_t)rr2;
         o3rob_entry.rr3        = (int32_t)rr3;
-        o3rob_entry.rw0        = o3queue_entry.rw0;
-        o3rob_entry.rw1        = o3queue_entry.rw1;
-        o3rob_entry.rw2        = o3queue_entry.rw2;
-        o3rob_entry.rw3        = o3queue_entry.rw3;
+        o3rob_entry.rw0        = o3q_entry.rw0;
+        o3rob_entry.rw1        = o3q_entry.rw1;
+        o3rob_entry.rw2        = o3q_entry.rw2;
+        o3rob_entry.rw3        = o3q_entry.rw3;
         instr_dep              = rob_idx;
         rob_idx = (rob_idx + 1) % o3rob_max_size;
         o3rob_size++;
       }
-      if (o3queue_entry.raddr2 != 0) {
+      if (o3q_entry.raddr2 != 0) {
         O3ROB & o3rob_entry    = o3rob[rob_idx];
         o3rob_entry.state      = o3irs_issued;
         o3rob_entry.ready_time = curr_time + process_interval;
-        o3rob_entry.ip         = o3queue_entry.ip;
+        o3rob_entry.ip         = o3q_entry.ip;
         int32_t mem_dep        = -1;
         for (unsigned int j = 0; j < o3rob_size; j++) {
           int rob_idx = (o3rob_head + o3rob_size - 1 - j) % o3rob_max_size;
           if ((o3rob[rob_idx].state != o3irs_completed ||
                o3rob[rob_idx].ready_time > curr_time) &&
               (o3rob[rob_idx].memaddr >> word_log) ==
-              (o3queue_entry.raddr2 >> word_log)) {
+              (o3q_entry.raddr2 >> word_log)) {
             mem_dep = rob_idx;
-            dependency_distance = (j+1 < dependency_distance) ? (j+1) : dependency_distance;
+            dependency_distance = std::min(j+1, dependency_distance);
             break;
           }
         }
-        o3rob_entry.memaddr    = o3queue_entry.raddr2;
+        o3rob_entry.memaddr    = o3q_entry.raddr2;
         o3rob_entry.branch_miss = branch_miss;
         o3rob_entry.isread     = true;
         o3rob_entry.mem_dep    = mem_dep;
         o3rob_entry.instr_dep  = instr_dep;
         o3rob_entry.branch_dep = branch_dep;
-        o3rob_entry.type       = o3queue_entry.type;
+        o3rob_entry.type       = o3q_entry.type;
         o3rob_entry.rr0        = (int32_t)rr0;
         o3rob_entry.rr1        = (int32_t)rr1;
         o3rob_entry.rr2        = (int32_t)rr2;
         o3rob_entry.rr3        = (int32_t)rr3;
-        o3rob_entry.rw0        = o3queue_entry.rw0;
-        o3rob_entry.rw1        = o3queue_entry.rw1;
-        o3rob_entry.rw2        = o3queue_entry.rw2;
-        o3rob_entry.rw3        = o3queue_entry.rw3;
+        o3rob_entry.rw0        = o3q_entry.rw0;
+        o3rob_entry.rw1        = o3q_entry.rw1;
+        o3rob_entry.rw2        = o3q_entry.rw2;
+        o3rob_entry.rw3        = o3q_entry.rw3;
         instr_dep              = rob_idx;
         rob_idx = (rob_idx + 1) % o3rob_max_size;
         o3rob_size++;
       }
-      if (o3queue_entry.waddr != 0) {
+      if (o3q_entry.waddr != 0) {
         O3ROB & o3rob_entry    = o3rob[rob_idx];
         o3rob_entry.state      = o3irs_issued;
         o3rob_entry.ready_time = curr_time + process_interval;
-        o3rob_entry.ip         = o3queue_entry.ip;
+        o3rob_entry.ip         = o3q_entry.ip;
         int32_t mem_dep        = -1;
         for (unsigned int j = 0; j < o3rob_size; j++) {
           int rob_idx = (o3rob_head + o3rob_size - 1 - j) % o3rob_max_size;
           if ((o3rob[rob_idx].state != o3irs_completed ||
                o3rob[rob_idx].ready_time > curr_time) &&
               (o3rob[rob_idx].memaddr >> word_log) ==
-              (o3queue_entry.waddr >> word_log)) {
+              (o3q_entry.waddr >> word_log)) {
             mem_dep = rob_idx;
-            dependency_distance = (j+1 < dependency_distance) ? (j+1) : dependency_distance;
+            dependency_distance = std::min(j+1, dependency_distance);
             break;
           }
         }
-        o3rob_entry.memaddr    = o3queue_entry.waddr;
+        o3rob_entry.memaddr    = o3q_entry.waddr;
         o3rob_entry.branch_miss = branch_miss;
         o3rob_entry.isread     = false;
         o3rob_entry.mem_dep    = mem_dep;
         o3rob_entry.instr_dep  = instr_dep;
         o3rob_entry.branch_dep = branch_dep;
-        o3rob_entry.type       = o3queue_entry.type;
+        o3rob_entry.type       = o3q_entry.type;
         o3rob_entry.rr0        = (int32_t)rr0;
         o3rob_entry.rr1        = (int32_t)rr1;
         o3rob_entry.rr2        = (int32_t)rr2;
         o3rob_entry.rr3        = (int32_t)rr3;
-        o3rob_entry.rw0        = o3queue_entry.rw0;
-        o3rob_entry.rw1        = o3queue_entry.rw1;
-        o3rob_entry.rw2        = o3queue_entry.rw2;
-        o3rob_entry.rw3        = o3queue_entry.rw3;
+        o3rob_entry.rw0        = o3q_entry.rw0;
+        o3rob_entry.rw1        = o3q_entry.rw1;
+        o3rob_entry.rw2        = o3q_entry.rw2;
+        o3rob_entry.rw3        = o3q_entry.rw3;
         rob_idx = (rob_idx + 1) % o3rob_max_size;
         o3rob_size++;
       }
-      if (o3queue_entry.raddr == 0 && o3queue_entry.raddr2 == 0 && o3queue_entry.waddr == 0) {
+      if (o3q_entry.raddr == 0 && o3q_entry.raddr2 == 0 && o3q_entry.waddr == 0) {
         O3ROB & o3rob_entry    = o3rob[rob_idx];
         o3rob_entry.state      = o3irs_issued;
         o3rob_entry.ready_time = curr_time + process_interval;
-        o3rob_entry.ip         = o3queue_entry.ip;
-        o3rob_entry.memaddr    = o3queue_entry.waddr;
+        o3rob_entry.ip         = o3q_entry.ip;
+        o3rob_entry.memaddr    = o3q_entry.waddr;
         o3rob_entry.branch_miss = branch_miss;
         o3rob_entry.isread     = false;
         o3rob_entry.mem_dep    = -1;
         o3rob_entry.instr_dep  = instr_dep;
         o3rob_entry.branch_dep = branch_dep;
-        o3rob_entry.type       = o3queue_entry.type;
+        o3rob_entry.type       = o3q_entry.type;
         o3rob_entry.rr0        = (int32_t)rr0;
         o3rob_entry.rr1        = (int32_t)rr1;
         o3rob_entry.rr2        = (int32_t)rr2;
         o3rob_entry.rr3        = (int32_t)rr3;
-        o3rob_entry.rw0        = o3queue_entry.rw0;
-        o3rob_entry.rw1        = o3queue_entry.rw1;
-        o3rob_entry.rw2        = o3queue_entry.rw2;
-        o3rob_entry.rw3        = o3queue_entry.rw3;
+        o3rob_entry.rw0        = o3q_entry.rw0;
+        o3rob_entry.rw1        = o3q_entry.rw1;
+        o3rob_entry.rw2        = o3q_entry.rw2;
+        o3rob_entry.rw3        = o3q_entry.rw3;
         rob_idx = (rob_idx + 1) % o3rob_max_size;
         o3rob_size++;
       }
       o3queue_size--;
-      o3queue_entry.state = o3iqs_invalid;
+      o3q_entry.state = o3iqs_invalid;
       o3queue_head = (o3queue_head + 1) % o3queue_max_size;
       total_dependency_distance += dependency_distance;
     }
@@ -474,24 +456,16 @@ uint32_t O3Core::process_event(uint64_t curr_time) {
                    ((o3rob_entry.isread == true && num_ld < max_ld) ||
                     (o3rob_entry.isread == false && num_st < max_st))) {
           o3rob_entry.state = o3irs_executing;
-          lqe = new LocalQueueElement();
-          lqe->th_id = num;
-          lqe->from.push(this);
-          lqe->address = o3rob_entry.memaddr;
+          lqe = new LocalQueueElement(this, et_tlb_rd, o3rob_entry.memaddr, num);
           lqe->rob_entry = rob_idx;
           if (bypass_tlb == true) {
             lqe->type = (o3rob_entry.isread == true) ? et_read : et_write;
             cachel1d->add_req_event(curr_time + lsu_to_l1d_t, lqe);
           } else {
-            lqe->type = et_tlb_rd;
             tlbl1d->add_req_event(curr_time + lsu_to_l1d_t, lqe);
           }
           num_ldst++;
-          if (o3rob_entry.isread == true) {
-            num_ld++;
-          } else {
-            num_st++;
-          }
+          (o3rob_entry.isread == true) ? num_ld++ : num_st++;
         }
       } else {
         if (mimick_inorder == true) {
@@ -684,13 +658,13 @@ bool O3Core::is_private(ADDRINT addr) {
 void O3Core::displayO3Queue() {
   std::cout << "  OOO[" << std::setw(3) << num << "]Q: head=" << o3queue_head << ", size=" << o3queue_size << std::endl;
   for (unsigned int i = 0; i < o3queue_max_size; i++) {
-    O3Queue & o3queue_entry = o3queue[i];
-    std::cout << "  - " << std::setw(3) << i << ": " << o3queue_entry.state << ", "
-         << std::dec << o3queue_entry.ready_time << ", "
-         << std::hex << o3queue_entry.waddr << ", " << o3queue_entry.wlen << ", " << o3queue_entry.raddr << ", " << o3queue_entry.raddr2 << ", " << o3queue_entry.rlen << ", "
-         << o3queue_entry.ip << ", " << o3queue_entry.type << ": " << std::dec
-         << o3queue_entry.rr0 << ", " << o3queue_entry.rr1 << ", " << o3queue_entry.rr2 << ", " << o3queue_entry.rr3 << ", "
-         << o3queue_entry.rw0 << ", " << o3queue_entry.rw1 << ", " << o3queue_entry.rw2 << ", " << o3queue_entry.rw3 << std::dec << std::endl;
+    O3Queue & o3q_entry = o3queue[i];
+    std::cout << "  - " << std::setw(3) << i << ": " << o3q_entry.state << ", "
+         << std::dec << o3q_entry.ready_time << ", "
+         << std::hex << o3q_entry.waddr << ", " << o3q_entry.wlen << ", " << o3q_entry.raddr << ", " << o3q_entry.raddr2 << ", " << o3q_entry.rlen << ", "
+         << o3q_entry.ip << ", " << o3q_entry.type << ": " << std::dec
+         << o3q_entry.rr0 << ", " << o3q_entry.rr1 << ", " << o3q_entry.rr2 << ", " << o3q_entry.rr3 << ", "
+         << o3q_entry.rw0 << ", " << o3q_entry.rw1 << ", " << o3q_entry.rw2 << ", " << o3q_entry.rw3 << std::dec << std::endl;
   }
 }
 
@@ -707,6 +681,11 @@ void O3Core::displayO3ROB() {
          << o3rob_entry.rr0 << ", " << o3rob_entry.rr1 << ", " << o3rob_entry.rr2 << ", " << o3rob_entry.rr3 << ", "
          << o3rob_entry.rw0 << ", " << o3rob_entry.rw1 << ", " << o3rob_entry.rw2 << ", " << o3rob_entry.rw3 << std::dec << std::endl;
   }
+}
+
+
+bool O3Core::IsRegDep(uint32_t rr, const O3ROB & o3rob_) {
+  return (rr != 0) && (rr == o3rob_.rw0 || rr == o3rob_.rw1 || rr == o3rob_.rw2 || rr == o3rob_.rw3);
 }
 
 }  // namespace PinPthread

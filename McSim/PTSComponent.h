@@ -112,8 +112,8 @@ struct LocalQueueElement {
   int32_t    rob_entry;
 
   LocalQueueElement() : from(), th_id(0), dummy(false), rob_entry(-1) { }
-  LocalQueueElement(Component * comp, event_type type_, uint64_t address_)
-    : from(), type(type_), address(address_), th_id(0), dummy(false), rob_entry(-1) { from.push(comp); }
+  LocalQueueElement(Component * comp, event_type type_, uint64_t address_, uint32_t th_id_ = 0):
+    from(), type(type_), address(address_), th_id(th_id_), dummy(false), rob_entry(-1) { from.push(comp); }
 
   void display();
 };
