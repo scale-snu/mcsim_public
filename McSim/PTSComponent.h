@@ -49,17 +49,9 @@ enum component_type {
   ct_core,
   ct_lsu,
   ct_o3core,
-  ct_o3core_t1,
-  ct_o3core_t2,
   ct_cachel1d,
-  ct_cachel1d_t1,
-  ct_cachel1d_t2,
   ct_cachel1i,
-  ct_cachel1i_t1,
-  ct_cachel1i_t2,
   ct_cachel2,
-  ct_cachel2_t1,
-  ct_cachel2_t2,
   ct_directory,
   ct_crossbar,
   ct_memory_controller,
@@ -174,7 +166,6 @@ class GlobalEventQueue {
   uint32_t interleave_base_bit;
   uint32_t interleave_xor_base_bit;
   uint32_t page_sz_base_bit;
-  bool     is_asymmetric;
   uint32_t which_mc(uint64_t);  // which mc does an address belong to?
 };
 }  // namespace PinPthread

@@ -395,8 +395,6 @@ void Mesh2D::add_rep_event(
   if (local_event->type == et_evict ||
       local_event->type == et_invalidate ||
       from->type == ct_cachel2 ||
-      from->type == ct_cachel2_t1 ||
-      from->type == ct_cachel2_t2 ||
       local_event->type == et_invalidate_nd ||
       local_event->type == et_nop ||
       local_event->type == et_e_to_i ||
@@ -508,8 +506,6 @@ void Mesh2D::process_qs(
       if (curr_q.first->type == et_evict ||
           curr_q.first->type == et_invalidate ||
           curr_q.second->type == ct_cachel2 ||
-          curr_q.second->type == ct_cachel2_t1 ||
-          curr_q.second->type == ct_cachel2_t2 ||
           curr_q.first->type == et_invalidate_nd ||
           curr_q.first->type == et_nop ||
           curr_q.first->type == et_e_to_m ||
@@ -770,8 +766,6 @@ void Ring::add_rep_event(
       local_event->type == et_invalidate ||
       local_event->type == et_invalidate_nd ||
       from->type == ct_cachel2 ||
-      from->type == ct_cachel2_t1 ||
-      from->type == ct_cachel2_t2 ||
       local_event->type == et_nop ||
       local_event->type == et_e_to_m ||
       local_event->type == et_e_to_i) {
@@ -880,8 +874,6 @@ void Ring::process_qs(
       if (curr_q.first->type == et_evict ||
           curr_q.first->type == et_invalidate ||
           curr_q.second->type == ct_cachel2 ||
-          curr_q.second->type == ct_cachel2_t1 ||
-          curr_q.second->type == ct_cachel2_t2 ||
           curr_q.first->type == et_invalidate_nd ||
           curr_q.first->type == et_nop ||
           curr_q.first->type == et_e_to_m ||

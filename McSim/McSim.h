@@ -131,7 +131,6 @@ class McSim {
   uint32_t num_hthreads;
   uint64_t print_interval;
   bool     use_o3core;
-  bool     is_asymmetric;
 
   std::vector<Core *>             cores;
   std::vector<Hthread *>          hthreads;

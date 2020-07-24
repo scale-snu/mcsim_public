@@ -114,18 +114,18 @@ CacheL1::CacheL1(
 
 CacheL1::~CacheL1() {
   if (num_rd_access > 0) {
-    std::cout << "  -- L1$" << ((type == ct_cachel1d || type == ct_cachel1d_t1 || type == ct_cachel1d_t2) ? "D[" : "I[") << std::setw(3) << num << "] : RD (miss, access)=( "
+    std::cout << "  -- L1$" << ((type == ct_cachel1d) ? "D[" : "I[") << std::setw(3) << num << "] : RD (miss, access)=( "
          << std::setw(8) << num_rd_miss << ", " << std::setw(8) << num_rd_access << ")= "
          << std::setw(6) << std::setiosflags(std::ios::fixed) << std::setprecision(2) << 100.00*num_rd_miss/num_rd_access << "%, PRE (hit, reqs)=( "
          << num_prefetch_hits << ", " << num_prefetch_requests << " )" << std::endl;
   }
   if (num_wr_access > 0) {
-    std::cout << "  -- L1$" << ((type == ct_cachel1d || type == ct_cachel1d_t1 || type == ct_cachel1d_t2) ? "D[" : "I[") << std::setw(3) << num << "] : WR (miss, access)=( "
+    std::cout << "  -- L1$" << ((type == ct_cachel1d) ? "D[" : "I[") << std::setw(3) << num << "] : WR (miss, access)=( "
          << std::setw(8) << num_wr_miss << ", " << std::setw(8) << num_wr_access << ")= "
          << std::setw(6) << std::setiosflags(std::ios::fixed) << std::setprecision(2) << 100.00*num_wr_miss/num_wr_access << "%" << std::endl;
   }
 
-  if ((type == ct_cachel1d || type == ct_cachel1d_t1 || type == ct_cachel1d_t2) && (num_ev_coherency > 0 || num_ev_capacity > 0 || num_coherency_access > 0)) {
+  if ((type == ct_cachel1d) && (num_ev_coherency > 0 || num_ev_capacity > 0 || num_coherency_access > 0)) {
     std::cout << "  -- L1$D[" << std::setw(3) << num
          << "] : (ev_coherency, ev_capacity, coherency_access, up_req, bypass, nack)=( "
          << std::setw(10) << num_ev_coherency << ", " << std::setw(10) << num_ev_capacity << ", "
@@ -156,7 +156,7 @@ CacheL1::~CacheL1() {
       std::cout << m.first << ": " << m.second << " , ";
     }
     std::cout << std::endl;
-  } else if ((type == ct_cachel1i || type == ct_cachel1i_t1 || type == ct_cachel1i_t2) &&
+  } else if ((type == ct_cachel1i) &&
            (num_ev_coherency > 0 || num_coherency_access > 0)) {
     std::cout << "  -- L1$I[" << std::setw(3) << num << "] : (ev_coherency, coherency_access, bypass)=( "
          << std::setw(10) << num_ev_coherency << ", " << std::setw(10) << num_coherency_access << ", "
@@ -209,7 +209,7 @@ void CacheL1::show_state(uint64_t address) {
   uint64_t tag = (address >> set_lsb) / num_sets;
   for (uint32_t i = 0; i < num_ways; i++) {
     if (tags[set][i]->second != cs_invalid && tags[set][i]->first == tag) {
-      LOG(WARNING) << "  -- L1" << ((type == ct_cachel1d || type == ct_cachel1d_t1 || type == ct_cachel1d_t2) ? "D[" : "I[") << num << "] : " << tags[set][i]->second << std::endl;
+      LOG(WARNING) << "  -- L1" << ((type == ct_cachel1d) ? "D[" : "I[") << num << "] : " << tags[set][i]->second << std::endl;
       break;
     }
   }
@@ -582,7 +582,7 @@ uint32_t CacheL1::process_event(uint64_t curr_time) {
 
 
 void CacheL1::add_event_to_lsu(uint64_t curr_time, LocalQueueElement * lqe) {
-  if (type == ct_cachel1d || type == ct_cachel1d_t1 || type == ct_cachel1d_t2) {
+  if (type == ct_cachel1d) {
     (lqe->from.top())->add_rep_event(curr_time + l1_to_lsu_t, lqe);
   } else {
     (lqe->from.top())->add_req_event(curr_time + l1_to_lsu_t, lqe);
@@ -1415,7 +1415,7 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
           }
 
           req_lqe->from.push(this);
-          if (geq->is_asymmetric == false && geq->which_mc(address) == directory->num) {
+          if (geq->which_mc(address) == directory->num) {
             directory->add_req_event(curr_time + l2_to_dir_t, req_lqe);
           } else {
             crossbar->add_req_event(curr_time + l2_to_xbar_t, req_lqe, this);
@@ -1451,8 +1451,8 @@ void CacheL2::add_event_to_LL(
     LocalQueueElement * lqe,
     bool check_top,
     bool is_data) {
-  if (geq->is_asymmetric == false && ((check_top == true  && lqe->from.top() == directory) ||
-        (check_top == false && geq->which_mc(lqe->address) == directory->num))) {
+  if ((check_top == true  && lqe->from.top() == directory) ||
+       (check_top == false && geq->which_mc(lqe->address) == directory->num)) {
     directory->add_rep_event(curr_time + l2_to_dir_t, lqe);
   } else {
     if (is_data) {
@@ -1475,8 +1475,7 @@ void CacheL2::test_tags(uint32_t set) {
         for (uint32_t kk = 0; kk < num_ways; kk++) {
           ss << tags[set][kk]->type << tags[set][kk]->tag << ", ";
         }
-        LOG(ERROR) << ss.str() << std::endl;
-        ASSERTX(0);
+        LOG(FATAL) << ss.str() << std::endl;
       }
       tag_set.insert(iter->tag);
     }

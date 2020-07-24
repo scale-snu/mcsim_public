@@ -81,17 +81,9 @@ const char * Component::prefix_str() const {
   switch (type) {
     case ct_lsu:       return "pts.lsu.";
     case ct_o3core:    return "pts.o3core.";
-    case ct_o3core_t1:    return "o3.t1.";
-    case ct_o3core_t2:    return "o3.t2.";
     case ct_cachel1d:  return "pts.l1d$.";
-    case ct_cachel1d_t1:  return "l1d$.t1.";
-    case ct_cachel1d_t2:  return "l1d$.t2.";
     case ct_cachel1i:  return "pts.l1i$.";
-    case ct_cachel1i_t1:  return "l1i$.t1.";
-    case ct_cachel1i_t2:  return "l1i$.t2.";
     case ct_cachel2:   return "pts.l2$.";
-    case ct_cachel2_t1:return "l2$.t1.";
-    case ct_cachel2_t2:return "l2$.t2.";
     case ct_directory: return "pts.dir.";
     case ct_crossbar:  return "pts.xbar.";
     case ct_memory_controller: return "pts.mc.";
@@ -145,7 +137,6 @@ GlobalEventQueue::GlobalEventQueue(McSim * mcsim_):
   interleave_base_bit = mcsim->pts->get_param_uint64("pts.mc.interleave_base_bit", 12);
   interleave_xor_base_bit = mcsim->pts->get_param_uint64("pts.mc.interleave_xor_base_bit", 20);
   page_sz_base_bit = mcsim->pts->get_param_uint64("pts.mc.page_sz_base_bit", 12);
-  is_asymmetric = mcsim->pts->get_param_bool("is_asymmetric", false);
 }
 
 
@@ -178,8 +169,6 @@ uint32_t GlobalEventQueue::process_event() {
       switch ((*comp_iter)->type) {
         case ct_core:
         case ct_o3core:
-        case ct_o3core_t1:
-        case ct_o3core_t2:
           p_comp = *comp_iter;
 
           event_queue_iter->second.erase(comp_iter);
@@ -193,14 +182,8 @@ uint32_t GlobalEventQueue::process_event() {
           }
           break;
         case ct_cachel1d:
-        case ct_cachel1d_t1:
-        case ct_cachel1d_t2:
         case ct_cachel1i:
-        case ct_cachel1i_t1:
-        case ct_cachel1i_t2:
         case ct_cachel2:
-        case ct_cachel2_t1:
-        case ct_cachel2_t2:
         case ct_directory:
         case ct_memory_controller:
         case ct_crossbar:

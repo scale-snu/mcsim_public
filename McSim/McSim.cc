@@ -57,17 +57,9 @@ std::ostream& operator<<(std::ostream & output, component_type ct) {
     case ct_core:      output << "ct_core"; break;
     case ct_lsu:       output << "ct_lsu"; break;
     case ct_o3core:    output << "ct_o3core"; break;
-    case ct_o3core_t1:    output << "ct_o3core_t1"; break;
-    case ct_o3core_t2:    output << "ct_o3core_t2"; break;
     case ct_cachel1d:  output << "ct_l1d$"; break;
-    case ct_cachel1d_t1:  output << "ct_l1d$_t1"; break;
-    case ct_cachel1d_t2:  output << "ct_l1d$_t2"; break;
     case ct_cachel1i:  output << "ct_l1i$"; break;
-    case ct_cachel1i_t1:  output << "ct_l1i$_t1"; break;
-    case ct_cachel1i_t2:  output << "ct_l1i$_t2"; break;
     case ct_cachel2:   output << "ct_l2$"; break;
-    case ct_cachel2_t1:output << "ct_l2$_t1"; break;
-    case ct_cachel2_t2:output << "ct_l2$_t2"; break;
     case ct_directory: output << "ct_dir"; break;
     case ct_crossbar:  output << "ct_xbar"; break;
     case ct_memory_controller: output << "ct_mc"; break;
@@ -176,7 +168,6 @@ McSim::McSim(PthreadTimingSimulator * pts_)
   global_q      = new GlobalEventQueue(this);
   num_hthreads  = pts->get_param_uint64("pts.num_hthreads", max_hthreads);
   use_o3core    = pts->get_param_bool("pts.use_o3core", false);
-  is_asymmetric = pts->get_param_bool("is_asymmetric", false);
 
   uint32_t num_threads_per_l1_cache   = pts->get_param_uint64("pts.num_hthreads_per_l1$", 4);
   assert(use_o3core == false || num_threads_per_l1_cache == 1);
@@ -206,213 +197,117 @@ McSim::McSim(PthreadTimingSimulator * pts_)
     LOG(FATAL) << "the # of memory controllers must not be larger than the # of L2 caches\n";
   }
 
-  if (is_asymmetric == false) {
-    for (uint32_t i = 0; i < num_hthreads; i++) {
-      if (use_o3core == true) {
-        o3cores.push_back(new O3Core(ct_o3core, i, this));
-        is_migrate_ready.push_back(false);
-      } else {
-        hthreads.push_back(new Hthread(ct_lsu, i, this));
-      }
-    }
-
-    // instantiate L1 caches
-    for (uint32_t i = 0; i < num_hthreads / num_threads_per_l1_cache; i++) {
-      if (use_o3core == false) {
-        cores.push_back(new Core(ct_core, i, this));
-      }
-      l1is.push_back(new CacheL1(ct_cachel1i, i, this));
-      l1ds.push_back(new CacheL1(ct_cachel1d, i, this));
-      tlbl1ds.push_back(new TLBL1(ct_tlbl1d, i, this));
-      tlbl1is.push_back(new TLBL1(ct_tlbl1i, i, this));
-    }
-    if (num_hthreads % num_threads_per_l1_cache != 0) {
-      if (use_o3core == false) {
-        cores.push_back(cores[0]);
-      }
-      l1is.push_back(l1is[0]);
-      l1ds.push_back(l1ds[0]);
-      tlbl1ds.push_back(tlbl1ds[0]);
-      tlbl1is.push_back(tlbl1is[0]);
-    }
-
-    // connect hthreads and l1s
-    for (uint32_t i = 0; i < num_hthreads; i++) {
-      if (use_o3core == true) {
-        o3cores[i]->cachel1i = (l1is[i]);
-        l1is[i]->lsus.push_back(o3cores[i]);
-        o3cores[i]->cachel1d = (l1ds[i]);
-        l1ds[i]->lsus.push_back(o3cores[i]);
-        o3cores[i]->tlbl1d   = (tlbl1ds[i]);
-        tlbl1ds[i]->lsus.push_back(o3cores[i]);
-        o3cores[i]->tlbl1i   = (tlbl1is[i]);
-        tlbl1is[i]->lsus.push_back(o3cores[i]);
-      } else {
-        hthreads[i]->core     = (cores[i/num_threads_per_l1_cache]);
-        cores[i/num_threads_per_l1_cache]->hthreads.push_back(hthreads[i]);
-        cores[i/num_threads_per_l1_cache]->is_active.push_back(false);
-        hthreads[i]->cachel1i = (l1is[i/num_threads_per_l1_cache]);
-        l1is[i/num_threads_per_l1_cache]->lsus.push_back(hthreads[i]);
-        hthreads[i]->cachel1d = (l1ds[i/num_threads_per_l1_cache]);
-        l1ds[i/num_threads_per_l1_cache]->lsus.push_back(hthreads[i]);
-        hthreads[i]->tlbl1d   = (tlbl1ds[i/num_threads_per_l1_cache]);
-        tlbl1ds[i/num_threads_per_l1_cache]->lsus.push_back(hthreads[i]);
-        hthreads[i]->tlbl1i   = (tlbl1is[i/num_threads_per_l1_cache]);
-        tlbl1is[i/num_threads_per_l1_cache]->lsus.push_back(hthreads[i]);
-      }
-    }
-
-    // instantiate L2 caches
-    for (uint32_t i = 0; i < num_hthreads / num_threads_per_l1_cache / num_l1_caches_per_l2_cache; i++) {
-      l2s.push_back(new CacheL2(ct_cachel2, i, this));
-    }
-
-    // connect l1s and l2s
-    for (uint32_t i = 0; i < num_hthreads / num_threads_per_l1_cache; i++) {
-      l1is[i]->cachel2 = l2s[i/num_l1_caches_per_l2_cache];
-      l1ds[i]->cachel2 = l2s[i/num_l1_caches_per_l2_cache];
-      l2s[i/num_l1_caches_per_l2_cache]->cachel1i.push_back(l1is[i]);
-      l2s[i/num_l1_caches_per_l2_cache]->cachel1d.push_back(l1ds[i]);
-    }
-
-    if (noc_type == "mesh" || noc_type == "ring") {
-      if (noc_type == "mesh") {
-        noc = new Mesh2D(ct_mesh, 0, this);
-      } else {
-        noc = new Ring(ct_ring, 0, this);
-      }
-      Directory * dummy_dir = new Directory(ct_directory, num_mcs, this);
-
-      for (uint32_t i = 0; i < num_hthreads / num_threads_per_l1_cache / num_l1_caches_per_l2_cache; i++) {
-        l2s[i]->directory = dummy_dir;
-        l2s[i]->crossbar  = noc;
-        noc->cachel2.push_back(l2s[i]);
-      }
-
-      for (uint32_t i = 0; i < num_mcs; i++) {
-        mcs.push_back(new MemoryController(ct_memory_controller, i, this));
-        dirs.push_back(new Directory(ct_directory, i, this));
-        dirs[i]->memorycontroller = (mcs[i]);
-        mcs[i]->directory = (dirs[i]);
-        noc->directory.push_back(dirs[i]);
-        dirs[i]->cachel2  = NULL;
-        dirs[i]->crossbar = noc;
-      }
+  for (uint32_t i = 0; i < num_hthreads; i++) {
+    if (use_o3core == true) {
+      o3cores.push_back(new O3Core(ct_o3core, i, this));
+      is_migrate_ready.push_back(false);
     } else {
-      noc = new Crossbar(ct_crossbar, 0, this, num_hthreads / num_threads_per_l1_cache / num_l1_caches_per_l2_cache);
+      hthreads.push_back(new Hthread(ct_lsu, i, this));
+    }
+  }
 
-      // instantiate directories
-      // currently it is assumed that (# of MCs) == (# of L2$s) == (# of directories)
-      for (uint32_t i = 0; i < num_hthreads / num_threads_per_l1_cache / num_l1_caches_per_l2_cache; i++) {
-        mcs.push_back(new MemoryController(ct_memory_controller, i, this));
-        dirs.push_back(new Directory(ct_directory, i, this));
-        dirs[i]->memorycontroller = (mcs[i]);
-        mcs[i]->directory = (dirs[i]);
+  // instantiate L1 caches
+  for (uint32_t i = 0; i < num_hthreads / num_threads_per_l1_cache; i++) {
+    if (use_o3core == false) {
+      cores.push_back(new Core(ct_core, i, this));
+    }
+    l1is.push_back(new CacheL1(ct_cachel1i, i, this));
+    l1ds.push_back(new CacheL1(ct_cachel1d, i, this));
+    tlbl1ds.push_back(new TLBL1(ct_tlbl1d, i, this));
+    tlbl1is.push_back(new TLBL1(ct_tlbl1i, i, this));
+  }
+  if (num_hthreads % num_threads_per_l1_cache != 0) {
+    if (use_o3core == false) {
+      cores.push_back(cores[0]);
+    }
+    l1is.push_back(l1is[0]);
+    l1ds.push_back(l1ds[0]);
+    tlbl1ds.push_back(tlbl1ds[0]);
+    tlbl1is.push_back(tlbl1is[0]);
+  }
 
-        l2s[i]->directory = (dirs[i]);
-        l2s[i]->crossbar  = noc;
-        noc->directory.push_back(dirs[i]);
-        noc->cachel2.push_back(l2s[i]);
-        dirs[i]->cachel2  = (l2s[i]);
-        dirs[i]->crossbar = noc;
-      }
+  // connect hthreads and l1s
+  for (uint32_t i = 0; i < num_hthreads; i++) {
+    if (use_o3core == true) {
+      o3cores[i]->cachel1i = (l1is[i]);
+      l1is[i]->lsus.push_back(o3cores[i]);
+      o3cores[i]->cachel1d = (l1ds[i]);
+      l1ds[i]->lsus.push_back(o3cores[i]);
+      o3cores[i]->tlbl1d   = (tlbl1ds[i]);
+      tlbl1ds[i]->lsus.push_back(o3cores[i]);
+      o3cores[i]->tlbl1i   = (tlbl1is[i]);
+      tlbl1is[i]->lsus.push_back(o3cores[i]);
+    } else {
+      hthreads[i]->core     = (cores[i/num_threads_per_l1_cache]);
+      cores[i/num_threads_per_l1_cache]->hthreads.push_back(hthreads[i]);
+      cores[i/num_threads_per_l1_cache]->is_active.push_back(false);
+      hthreads[i]->cachel1i = (l1is[i/num_threads_per_l1_cache]);
+      l1is[i/num_threads_per_l1_cache]->lsus.push_back(hthreads[i]);
+      hthreads[i]->cachel1d = (l1ds[i/num_threads_per_l1_cache]);
+      l1ds[i/num_threads_per_l1_cache]->lsus.push_back(hthreads[i]);
+      hthreads[i]->tlbl1d   = (tlbl1ds[i/num_threads_per_l1_cache]);
+      tlbl1ds[i/num_threads_per_l1_cache]->lsus.push_back(hthreads[i]);
+      hthreads[i]->tlbl1i   = (tlbl1is[i/num_threads_per_l1_cache]);
+      tlbl1is[i/num_threads_per_l1_cache]->lsus.push_back(hthreads[i]);
+    }
+  }
+
+  // instantiate L2 caches
+  for (uint32_t i = 0; i < num_hthreads / num_threads_per_l1_cache / num_l1_caches_per_l2_cache; i++) {
+    l2s.push_back(new CacheL2(ct_cachel2, i, this));
+  }
+
+  // connect l1s and l2s
+  for (uint32_t i = 0; i < num_hthreads / num_threads_per_l1_cache; i++) {
+    l1is[i]->cachel2 = l2s[i/num_l1_caches_per_l2_cache];
+    l1ds[i]->cachel2 = l2s[i/num_l1_caches_per_l2_cache];
+    l2s[i/num_l1_caches_per_l2_cache]->cachel1i.push_back(l1is[i]);
+    l2s[i/num_l1_caches_per_l2_cache]->cachel1d.push_back(l1ds[i]);
+  }
+
+  if (noc_type == "mesh" || noc_type == "ring") {
+    if (noc_type == "mesh") {
+      noc = new Mesh2D(ct_mesh, 0, this);
+    } else {
+      noc = new Ring(ct_ring, 0, this);
+    }
+    Directory * dummy_dir = new Directory(ct_directory, num_mcs, this);
+
+    for (uint32_t i = 0; i < num_hthreads / num_threads_per_l1_cache / num_l1_caches_per_l2_cache; i++) {
+      l2s[i]->directory = dummy_dir;
+      l2s[i]->crossbar  = noc;
+      noc->cachel2.push_back(l2s[i]);
+    }
+
+    for (uint32_t i = 0; i < num_mcs; i++) {
+      mcs.push_back(new MemoryController(ct_memory_controller, i, this));
+      dirs.push_back(new Directory(ct_directory, i, this));
+      dirs[i]->memorycontroller = (mcs[i]);
+      mcs[i]->directory = (dirs[i]);
+      noc->directory.push_back(dirs[i]);
+      dirs[i]->cachel2  = NULL;
+      dirs[i]->crossbar = noc;
     }
   } else {
-    Component ** noc_nodes;
+    noc = new Crossbar(ct_crossbar, 0, this, num_hthreads / num_threads_per_l1_cache / num_l1_caches_per_l2_cache);
 
-    uint32_t num_noc_nodes = pts->get_param_uint64("noc.num_node", 1);
-    noc_nodes              = new Component * [num_noc_nodes];
-    uint32_t num_l2_caches = 0;
-    uint32_t num_l1_caches = 0;
-    uint32_t num_dirs      = 0;
-    uint32_t num_cores     = 0;
+    // instantiate directories
+    // currently it is assumed that (# of MCs) == (# of L2$s) == (# of directories)
+    for (uint32_t i = 0; i < num_hthreads / num_threads_per_l1_cache / num_l1_caches_per_l2_cache; i++) {
+      mcs.push_back(new MemoryController(ct_memory_controller, i, this));
+      dirs.push_back(new Directory(ct_directory, i, this));
+      dirs[i]->memorycontroller = (mcs[i]);
+      mcs[i]->directory = (dirs[i]);
 
-    noc = new Crossbar(ct_crossbar, 0, this, num_noc_nodes);
-
-    for (uint32_t i = 0; i < num_noc_nodes; i++) {
-      std::stringstream num_to_str;
-      num_to_str << i;
-      std::string node_type = pts->get_param_str(std::string("noc.node.")+num_to_str.str());
-
-      if (node_type == "l2$.t1" || node_type == "l2$.t2") {
-        component_type l2_type = ct_cachel2_t1;
-
-        if (node_type == "l2$.t2") {
-          l2_type = ct_cachel2_t2;
-        }
-        CacheL2 * l2  = new CacheL2(l2_type, num_l2_caches++, this);
-        l2s.push_back(l2);
-        noc_nodes[i]  = l2;
-        noc->cachel2.push_back(l2);
-        l2->directory = NULL;
-        l2->crossbar  = noc;
-
-        uint32_t num_l1_per_l2 = pts->get_param_uint64(node_type+std::string(".num_l1$"), 1);
-
-        for (uint32_t j = 0; j < num_l1_per_l2; j++) {
-          std::stringstream num_to_str;
-          num_to_str << j;
-          std::string l1_type = pts->get_param_str(node_type+std::string(".l1$.")+num_to_str.str());
-
-          component_type l1i_type = ct_cachel1i_t1;
-          component_type l1d_type = ct_cachel1d_t1;
-          if (l1_type == "t2") {
-            l1i_type = ct_cachel1i_t2;
-            l1d_type = ct_cachel1d_t2;
-          }
-          CacheL1 * l1i = new CacheL1(l1i_type, num_l1_caches, this);
-          CacheL1 * l1d = new CacheL1(l1d_type, num_l1_caches, this);
-          TLBL1   * l1itlb = new TLBL1(ct_tlbl1i, num_l1_caches, this);
-          TLBL1   * l1dtlb = new TLBL1(ct_tlbl1d, num_l1_caches++, this);
-          l1is.push_back(l1i);
-          l1ds.push_back(l1d);
-          tlbl1is.push_back(l1itlb);
-          tlbl1ds.push_back(l1dtlb);
-
-          l2->cachel1i.push_back(l1i);
-          l2->cachel1d.push_back(l1d);
-          l1i->cachel2 = l2;
-          l1d->cachel2 = l2;
-
-          std::string o3_type = pts->get_param_str(std::string("l1i$.")+l1_type+std::string(".core.0"));
-          O3Core * o3core;
-
-          if (o3_type == "o3.t1") {
-            o3core = new O3Core(ct_o3core_t1, num_cores++, this);
-          } else {
-            o3core = new O3Core(ct_o3core_t2, num_cores++, this);
-          }
-          o3cores.push_back(o3core);
-          is_migrate_ready.push_back(false);
-
-          o3core->cachel1i = l1i;
-          o3core->cachel1d = l1d;
-          o3core->tlbl1i   = l1itlb;
-          o3core->tlbl1d   = l1dtlb;
-          l1i->lsus.push_back(o3core);
-          l1d->lsus.push_back(o3core);
-          l1itlb->lsus.push_back(o3core);
-          l1dtlb->lsus.push_back(o3core);
-        }
-      } else {
-        MemoryController * mc = new MemoryController(ct_memory_controller, num_dirs, this);
-        Directory * dir = new Directory(ct_directory, num_dirs++, this);
-        mcs.push_back(mc);
-        dirs.push_back(dir);
-
-        mc->directory = dir;
-        dir->memorycontroller = mc;
-        dir->cachel2  = NULL;
-        dir->crossbar = noc;
-
-        noc_nodes[i]  = dir;
-        noc->directory.push_back(dir);
-      }
+      l2s[i]->directory = (dirs[i]);
+      l2s[i]->crossbar  = noc;
+      noc->directory.push_back(dirs[i]);
+      noc->cachel2.push_back(l2s[i]);
+      dirs[i]->cachel2  = (l2s[i]);
+      dirs[i]->crossbar = noc;
     }
-
-    assert(num_mcs == num_dirs);
   }
-}
+  }
 
 
 McSim::~McSim() {
@@ -516,11 +411,11 @@ std::pair<uint32_t, uint64_t> McSim::resume_simulation(bool must_switch) {
     uint64_t num_l1_miss = 0;
     for (unsigned int i = 0; i < l1ds.size(); i++) {
       num_l1_acc += l1ds[i]->num_rd_access + l1ds[i]->num_wr_access
-                  + l1is[i]->num_rd_access + l1is[i]->num_wr_access
-                  - l1ds[i]->num_nack - l1is[i]->num_nack;
+        + l1is[i]->num_rd_access + l1is[i]->num_wr_access
+        - l1ds[i]->num_nack - l1is[i]->num_nack;
       num_l1_miss += l1ds[i]->num_rd_miss + l1ds[i]->num_wr_miss
-                   + l1is[i]->num_rd_miss + l1is[i]->num_wr_miss
-                   - l1ds[i]->num_nack - l1is[i]->num_nack;
+        + l1is[i]->num_rd_miss + l1is[i]->num_wr_miss
+        - l1ds[i]->num_nack - l1is[i]->num_nack;
     }
 
     uint64_t num_l2_acc  = 0;
