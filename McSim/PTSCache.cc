@@ -64,8 +64,8 @@ Cache::Cache(
 
 
 void Cache::display_event(uint64_t curr_time, LocalQueueElement * lqe, const std::string & postfix) {
-  if (lqe->address >= ((search_addr >> set_lsb) << set_lsb) &&
-      lqe->address <  (((search_addr >> set_lsb) + 1) << set_lsb)) {
+  if (lqe->address >> set_lsb >= search_addr >> set_lsb &&
+      lqe->address >> set_lsb < (search_addr >> set_lsb + 1)) {
     LOG(WARNING) << "  -- [" << std::setw(7) << curr_time << "] " << type << postfix << " [" << num << "] ";
     lqe->display();
     show_state(lqe->address);
