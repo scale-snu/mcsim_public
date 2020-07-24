@@ -267,26 +267,51 @@ uint32_t O3Core::process_event(uint64_t curr_time) {
 
       // fill ROB
       geq->add_event(curr_time + process_interval, this);
-      if (o3q_entry.raddr != 0) {
+      for (unsigned int k = 0; k < 4; ++k) {  // 0: raddr, 1: raddr2, 2: waddr, 3: no-mem
         O3ROB & o3rob_entry    = o3rob[rob_idx];
         o3rob_entry.state      = o3irs_issued;
         o3rob_entry.ready_time = curr_time + process_interval;
         o3rob_entry.ip         = o3q_entry.ip;
         int32_t mem_dep        = -1;
-        for (unsigned int j = 0; j < o3rob_size; j++) {
-          int rob_idx = (o3rob_head + o3rob_size - 1 - j) % o3rob_max_size;
-          if ((o3rob[rob_idx].state != o3irs_completed ||
-               o3rob[rob_idx].ready_time > curr_time) &&
-              (o3rob[rob_idx].memaddr >> word_log) ==
-              (o3q_entry.raddr >> word_log)) {
-            mem_dep = rob_idx;
-            dependency_distance = std::min(j+1, dependency_distance);
-            break;
+        uint64_t memaddr       = 0;
+
+        if (k == 0) {
+          if (o3q_entry.raddr == 0) {
+            continue;
+          } else {
+            memaddr = o3q_entry.raddr;
+          }
+        } else if (k == 1) {
+          if (o3q_entry.raddr2 == 0) {
+            continue;
+          } else {
+            memaddr = o3q_entry.raddr2;
+          }
+        } else if (k == 2) {
+          if (o3q_entry.waddr == 0) {
+            continue;
+          } else {
+            memaddr = o3q_entry.waddr;
+          }
+        } else if (o3q_entry.raddr != 0 || o3q_entry.raddr2 != 0 || o3q_entry.waddr != 0) {
+          break;
+        }
+
+        if (k < 3) {
+          for (unsigned int j = 0; j < o3rob_size; j++) {
+            int rob_idx_dep = (o3rob_head + o3rob_size - 1 - j) % o3rob_max_size;
+            const O3ROB & o3rob_dep = o3rob[rob_idx_dep];
+            if ((o3rob_dep.state != o3irs_completed || o3rob_dep.ready_time > curr_time) &&
+                (o3rob_dep.memaddr >> word_log) == (memaddr >> word_log)) {
+              mem_dep = rob_idx_dep;
+              dependency_distance = std::min(j+1, dependency_distance);
+              break;
+            }
           }
         }
-        o3rob_entry.memaddr    = o3q_entry.raddr;
+        o3rob_entry.memaddr    = memaddr;
         o3rob_entry.branch_miss = branch_miss;
-        o3rob_entry.isread     = true;
+        o3rob_entry.isread     = (k < 2);
         o3rob_entry.mem_dep    = mem_dep;
         o3rob_entry.instr_dep  = instr_dep;
         o3rob_entry.branch_dep = branch_dep;
@@ -303,103 +328,10 @@ uint32_t O3Core::process_event(uint64_t curr_time) {
         rob_idx = (rob_idx + 1) % o3rob_max_size;
         o3rob_size++;
       }
-      if (o3q_entry.raddr2 != 0) {
-        O3ROB & o3rob_entry    = o3rob[rob_idx];
-        o3rob_entry.state      = o3irs_issued;
-        o3rob_entry.ready_time = curr_time + process_interval;
-        o3rob_entry.ip         = o3q_entry.ip;
-        int32_t mem_dep        = -1;
-        for (unsigned int j = 0; j < o3rob_size; j++) {
-          int rob_idx = (o3rob_head + o3rob_size - 1 - j) % o3rob_max_size;
-          if ((o3rob[rob_idx].state != o3irs_completed ||
-               o3rob[rob_idx].ready_time > curr_time) &&
-              (o3rob[rob_idx].memaddr >> word_log) ==
-              (o3q_entry.raddr2 >> word_log)) {
-            mem_dep = rob_idx;
-            dependency_distance = std::min(j+1, dependency_distance);
-            break;
-          }
-        }
-        o3rob_entry.memaddr    = o3q_entry.raddr2;
-        o3rob_entry.branch_miss = branch_miss;
-        o3rob_entry.isread     = true;
-        o3rob_entry.mem_dep    = mem_dep;
-        o3rob_entry.instr_dep  = instr_dep;
-        o3rob_entry.branch_dep = branch_dep;
-        o3rob_entry.type       = o3q_entry.type;
-        o3rob_entry.rr0        = (int32_t)rr0;
-        o3rob_entry.rr1        = (int32_t)rr1;
-        o3rob_entry.rr2        = (int32_t)rr2;
-        o3rob_entry.rr3        = (int32_t)rr3;
-        o3rob_entry.rw0        = o3q_entry.rw0;
-        o3rob_entry.rw1        = o3q_entry.rw1;
-        o3rob_entry.rw2        = o3q_entry.rw2;
-        o3rob_entry.rw3        = o3q_entry.rw3;
-        instr_dep              = rob_idx;
-        rob_idx = (rob_idx + 1) % o3rob_max_size;
-        o3rob_size++;
-      }
-      if (o3q_entry.waddr != 0) {
-        O3ROB & o3rob_entry    = o3rob[rob_idx];
-        o3rob_entry.state      = o3irs_issued;
-        o3rob_entry.ready_time = curr_time + process_interval;
-        o3rob_entry.ip         = o3q_entry.ip;
-        int32_t mem_dep        = -1;
-        for (unsigned int j = 0; j < o3rob_size; j++) {
-          int rob_idx = (o3rob_head + o3rob_size - 1 - j) % o3rob_max_size;
-          if ((o3rob[rob_idx].state != o3irs_completed ||
-               o3rob[rob_idx].ready_time > curr_time) &&
-              (o3rob[rob_idx].memaddr >> word_log) ==
-              (o3q_entry.waddr >> word_log)) {
-            mem_dep = rob_idx;
-            dependency_distance = std::min(j+1, dependency_distance);
-            break;
-          }
-        }
-        o3rob_entry.memaddr    = o3q_entry.waddr;
-        o3rob_entry.branch_miss = branch_miss;
-        o3rob_entry.isread     = false;
-        o3rob_entry.mem_dep    = mem_dep;
-        o3rob_entry.instr_dep  = instr_dep;
-        o3rob_entry.branch_dep = branch_dep;
-        o3rob_entry.type       = o3q_entry.type;
-        o3rob_entry.rr0        = (int32_t)rr0;
-        o3rob_entry.rr1        = (int32_t)rr1;
-        o3rob_entry.rr2        = (int32_t)rr2;
-        o3rob_entry.rr3        = (int32_t)rr3;
-        o3rob_entry.rw0        = o3q_entry.rw0;
-        o3rob_entry.rw1        = o3q_entry.rw1;
-        o3rob_entry.rw2        = o3q_entry.rw2;
-        o3rob_entry.rw3        = o3q_entry.rw3;
-        rob_idx = (rob_idx + 1) % o3rob_max_size;
-        o3rob_size++;
-      }
-      if (o3q_entry.raddr == 0 && o3q_entry.raddr2 == 0 && o3q_entry.waddr == 0) {
-        O3ROB & o3rob_entry    = o3rob[rob_idx];
-        o3rob_entry.state      = o3irs_issued;
-        o3rob_entry.ready_time = curr_time + process_interval;
-        o3rob_entry.ip         = o3q_entry.ip;
-        o3rob_entry.memaddr    = o3q_entry.waddr;
-        o3rob_entry.branch_miss = branch_miss;
-        o3rob_entry.isread     = false;
-        o3rob_entry.mem_dep    = -1;
-        o3rob_entry.instr_dep  = instr_dep;
-        o3rob_entry.branch_dep = branch_dep;
-        o3rob_entry.type       = o3q_entry.type;
-        o3rob_entry.rr0        = (int32_t)rr0;
-        o3rob_entry.rr1        = (int32_t)rr1;
-        o3rob_entry.rr2        = (int32_t)rr2;
-        o3rob_entry.rr3        = (int32_t)rr3;
-        o3rob_entry.rw0        = o3q_entry.rw0;
-        o3rob_entry.rw1        = o3q_entry.rw1;
-        o3rob_entry.rw2        = o3q_entry.rw2;
-        o3rob_entry.rw3        = o3q_entry.rw3;
-        rob_idx = (rob_idx + 1) % o3rob_max_size;
-        o3rob_size++;
-      }
+            
       o3queue_size--;
       o3q_entry.state = o3iqs_invalid;
-      o3queue_head = (o3queue_head + 1) % o3queue_max_size;
+      o3queue_head    = (o3queue_head + 1) % o3queue_max_size;
       total_dependency_distance += dependency_distance;
     }
   }
@@ -562,9 +494,9 @@ void O3Core::add_req_event(
     if (num_consecutive_nacks > consecutive_nack_threshold) {
       displayO3Queue();
       displayO3ROB();
-      LOG(ERROR) << " " << num << ", latest_ip = 0x" << std::hex << latest_ip << std::dec << std::endl;
       local_event->display();
-      geq->display();  ASSERTX(0);
+      geq->display();
+      LOG(FATAL) << " " << num << ", latest_ip = 0x" << std::hex << latest_ip << std::dec << std::endl;
     }
   } else {
     uint64_t aligned_event_time = event_time;
@@ -647,11 +579,7 @@ void O3Core::add_rep_event(
 
 bool O3Core::is_private(ADDRINT addr) {
   // currently only memory accesses in a stack are treated as a private access
-  if (addr < stack || addr >= stack + stacksize) {
-    return false;
-  } else {
-    return true;
-  }
+  return (addr >= stack && addr < stack + stacksize);
 }
 
 

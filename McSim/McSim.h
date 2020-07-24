@@ -136,7 +136,7 @@ class McSim {
   std::vector<Core *>             cores;
   std::vector<Hthread *>          hthreads;
   std::vector<O3Core *>           o3cores;
-  std::vector<bool>               is_migrate_ready;
+  std::vector<bool>               is_migrate_ready;  // TODO(gajh): what is this?
   std::vector<CacheL1 *>          l1ds;
   std::vector<CacheL1 *>          l1is;
   std::vector<CacheL2 *>          l2s;
