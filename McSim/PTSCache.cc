@@ -64,8 +64,7 @@ Cache::Cache(
 
 
 void Cache::display_event(uint64_t curr_time, LocalQueueElement * lqe, const std::string & postfix) {
-  if (lqe->address >> set_lsb >= search_addr >> set_lsb &&
-      lqe->address >> set_lsb < (search_addr >> set_lsb + 1)) {
+  if (lqe->address >> set_lsb == search_addr >> set_lsb) {
     LOG(WARNING) << "  -- [" << std::setw(7) << curr_time << "] " << type << postfix << " [" << num << "] ";
     lqe->display();
     show_state(lqe->address);
@@ -116,13 +115,13 @@ CacheL1::CacheL1(
 CacheL1::~CacheL1() {
   if (num_rd_access > 0) {
     std::cout << "  -- L1$" << ((type == ct_cachel1d || type == ct_cachel1d_t1 || type == ct_cachel1d_t2) ? "D[" : "I[") << std::setw(3) << num << "] : RD (miss, access)=( "
-         << std::setw(10) << num_rd_miss << ", " << std::setw(10) << num_rd_access << ")= "
+         << std::setw(8) << num_rd_miss << ", " << std::setw(8) << num_rd_access << ")= "
          << std::setw(6) << std::setiosflags(std::ios::fixed) << std::setprecision(2) << 100.00*num_rd_miss/num_rd_access << "%, PRE (hit, reqs)=( "
          << num_prefetch_hits << ", " << num_prefetch_requests << " )" << std::endl;
   }
   if (num_wr_access > 0) {
     std::cout << "  -- L1$" << ((type == ct_cachel1d || type == ct_cachel1d_t1 || type == ct_cachel1d_t2) ? "D[" : "I[") << std::setw(3) << num << "] : WR (miss, access)=( "
-         << std::setw(10) << num_wr_miss << ", " << std::setw(10) << num_wr_access << ")= "
+         << std::setw(8) << num_wr_miss << ", " << std::setw(8) << num_wr_access << ")= "
          << std::setw(6) << std::setiosflags(std::ios::fixed) << std::setprecision(2) << 100.00*num_wr_miss/num_wr_access << "%" << std::endl;
   }
 
@@ -153,8 +152,8 @@ CacheL1::~CacheL1() {
 
     std::cout << "num_dirty_lines (pid:#) = ";
 
-    for (auto m_iter = dirty_cl_per_offset.begin(); m_iter != dirty_cl_per_offset.end(); m_iter++) {
-      std::cout << m_iter->first << ": " << m_iter->second << " , ";
+    for (auto m :  dirty_cl_per_offset) {
+      std::cout << m.first << ": " << m.second << " , ";
     }
     std::cout << std::endl;
   } else if ((type == ct_cachel1i || type == ct_cachel1i_t1 || type == ct_cachel1i_t2) &&
@@ -163,6 +162,19 @@ CacheL1::~CacheL1() {
          << std::setw(10) << num_ev_coherency << ", " << std::setw(10) << num_coherency_access << ", "
          << std::setw(10) << num_bypass << ")" << std::endl;
   }
+
+  for (uint32_t i = 0; i < num_sets; i++) {
+    for (uint32_t j = 0; j < num_ways; j++) {
+      delete tags[i][j];
+    }
+    delete[] tags[i];
+  }
+  delete[] tags;
+
+  for (uint32_t i = 0; i < num_pre_entries; i++) {
+    delete pres[i];
+  }
+  delete[] pres;
 }
 
 

@@ -47,6 +47,7 @@
 #include <fstream>
 #include <iostream>
 #include <iomanip>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <typeinfo>
@@ -92,7 +93,7 @@ int main(int argc, char * argv[]) {
   struct timeval start, finish;
   gettimeofday(&start, NULL);
 
-  auto pts = new PinPthread::PthreadTimingSimulator(FLAGS_mdfile);
+  auto pts{ std::make_unique<PinPthread::PthreadTimingSimulator>(FLAGS_mdfile) };
   std::string ld_library_path_full{ "LD_LIBRARY_PATH=" };
   std::vector<Programs>  programs;
   std::vector<uint32_t>  htid_to_tid;
@@ -286,6 +287,7 @@ int main(int argc, char * argv[]) {
       } else {
         execve(pin_ptr, argp, envp);
       }
+      delete[] argp;
     } else {
       if (FLAGS_run_manually == false) {
         ss << pID << " ";
@@ -381,7 +383,7 @@ int main(int argc, char * argv[]) {
             if (num_fetched_instrs[curr_p->tid_to_htid + pts_m->val.instr[0].hthreadid_] < num_instrs_per_th &&
                 num_fetched_instrs[curr_p->tid_to_htid + pts_m->val.instr[0].hthreadid_] + num_instrs >= num_instrs_per_th) {
               num_th_passed_instr_count++;
-              std::cout << "  -- hthread " << curr_p->tid_to_htid + pts_m->val.instr[0].hthreadid_ << " executed " << num_instrs_per_th
+              LOG(INFO) << "  -- hthread " << curr_p->tid_to_htid + pts_m->val.instr[0].hthreadid_ << " executed " << num_instrs_per_th
                 << " instrs at cycle " << pts_m->val.instr[0].curr_time_ << std::endl;
             }
           }
@@ -447,11 +449,10 @@ int main(int argc, char * argv[]) {
   //   std::cout << "  -- {" << std::setw(2) << htid_to_pid[i] << "} thread "
   //     << htid_to_tid[i] << " fetched " << num_fetched_instrs[i] << " instrs" << std::endl;
   // }
-  delete pts;
 
   gettimeofday(&finish, NULL);
   double msec = (finish.tv_sec*1000 + finish.tv_usec/1000) - (start.tv_sec*1000 + start.tv_usec/1000);
-  std::cout << "simulation time(sec) = " << msec/1000 << std::endl;
+  LOG(INFO) << "simulation time(sec) = " << msec/1000 << std::endl;
 
   for (auto && program : programs) {
     munmap(program.pmmap, sizeof(PTSMessage)+2);
