@@ -241,7 +241,7 @@ uint32_t CacheL1::process_event(uint64_t curr_time) {
   rep_event.erase(curr_time);
 
   while (req_event_iter != req_event.end() && req_event_iter->first == curr_time) {
-    uint32_t bank = (req_event_iter->second->address >> set_lsb) % 1;  // num_banks;
+    uint32_t bank = (req_event_iter->second->address >> set_lsb) % num_banks;
     req_qs[bank].push(req_event_iter->second);
     ++req_event_iter;
   }
@@ -388,13 +388,13 @@ uint32_t CacheL1::process_event(uint64_t curr_time) {
     // bool any_request = false;
 
     for (uint32_t i = 0; i < num_banks; i++) {
-      if (req_qs[/*i*/ 0].empty() == true) {
+      if (req_qs[i].empty() == true) {
         continue;
       }
       // any_request = true;
 
-      req_lqe = req_qs[/*i*/0].front();
-      req_qs[/*i*/0].pop();
+      req_lqe = req_qs[i].front();
+      req_qs[i].pop();
       // process the first request event
       uint64_t address = req_lqe->address;
       uint32_t set = (address >> set_lsb) % num_sets;
