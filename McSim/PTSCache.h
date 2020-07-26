@@ -83,7 +83,7 @@ class Cache : public Component {
 
 class CacheL1 : public Cache {
  public:
-  CacheL1(component_type type_, uint32_t num_, McSim * mcsim_);
+  explicit CacheL1(component_type type_, uint32_t num_, McSim * mcsim_);
   virtual ~CacheL1();
 
   void add_req_event(uint64_t, LocalQueueElement *, Component * from = NULL);
@@ -112,7 +112,6 @@ class CacheL1 : public Cache {
 
  private:
   std::pair< uint64_t, coherence_state_type > *** tags;  // address + coherence state of a set-associative cache
-  // vector< list< pair< uint64_t, coherence_state_type > > > tags;  // address + coherence state of a set-associative cache
 
   const uint32_t l1_to_lsu_t;
   const uint32_t l1_to_l2_t;

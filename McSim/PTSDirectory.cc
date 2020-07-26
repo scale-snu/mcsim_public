@@ -83,7 +83,7 @@ Directory::~Directory() {
          << num_i_to_tr << ", " << num_e_to_tr << ", " << num_s_to_tr << ", " << num_m_to_tr << ", "
          << num_m_to_i << ", "
          << num_tr_to_i << ", " << num_tr_to_e << ", " << num_tr_to_s << ", " << num_tr_to_m << ")" << std::endl;
-    std::cout << "  -- Dir [" << std::setw(3) << num << "] : (nack, bypass, evict, invalidate, from_mc, dir_acc, dir_$_miss, dir_$_retry, dir_$_evict) = ("
+    std::cout << "  -- Dir [" << std::setw(3) << num << "] : (nack, bypass, ev, inv, from_mc, dir_acc, dir$_miss, dir$_retry, dir$_ev) = ("
          << num_nack << ", " << num_bypass << ", " << num_evict << ", "
          << num_invalidate << ", " << num_from_mc << ", "
          << num_dir_cache_access << ", " << num_dir_cache_miss << ", "

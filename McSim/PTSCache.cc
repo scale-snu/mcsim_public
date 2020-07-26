@@ -72,6 +72,9 @@ void Cache::display_event(uint64_t curr_time, LocalQueueElement * lqe, const std
 }
 
 
+// set numbers are specified like:
+// [ MSB <----------> LSB ]
+// [ ... SETS  CACHE_LINE ]
 CacheL1::CacheL1(
     component_type type_,
     uint32_t num_,
@@ -80,17 +83,14 @@ CacheL1::CacheL1(
   l1_to_lsu_t(get_param_uint64("to_lsu_t", 0)),
   l1_to_l2_t(get_param_uint64("to_l2_t", 45)) {
   num_sets   = get_param_uint64("num_sets", 64);
-  num_ways   = get_param_uint64("num_ways", 4);
-  set_lsb    = get_param_uint64("set_lsb",  6);
+  num_ways   = get_param_uint64("num_ways",  4);
+  set_lsb    = get_param_uint64("set_lsb",   6);
   always_hit = get_param_bool("always_hit", false);
   process_interval = get_param_uint64("process_interval", 10);
   l2_set_lsb = get_param_uint64("set_lsb", "pts.l2$.", set_lsb);
 
   num_sets_per_subarray = get_param_uint64("num_sets_per_subarray", 1);
 
-  // tags = vector< list< pair< uint64_t, coherence_state_type > > >(num_sets,
-  //                list< pair< uint64_t, coherence_state_type > >(num_ways,
-  //                      pair< uint64_t, coherence_state_type >(0, cs_invalid)));
   tags = new std::pair<uint64_t, coherence_state_type> ** [num_sets];
   for (uint32_t i = 0; i < num_sets; i++) {
     tags[i] = new std::pair<uint64_t, coherence_state_type> * [num_ways];
@@ -114,23 +114,26 @@ CacheL1::CacheL1(
 
 CacheL1::~CacheL1() {
   if (num_rd_access > 0) {
-    std::cout << "  -- L1$" << ((type == ct_cachel1d) ? "D[" : "I[") << std::setw(3) << num << "] : RD (miss, access)=( "
-         << std::setw(8) << num_rd_miss << ", " << std::setw(8) << num_rd_access << ")= "
-         << std::setw(6) << std::setiosflags(std::ios::fixed) << std::setprecision(2) << 100.00*num_rd_miss/num_rd_access << "%, PRE (hit, reqs)=( "
-         << num_prefetch_hits << ", " << num_prefetch_requests << " )" << std::endl;
+    std::cout << "  -- L1$" << ((type == ct_cachel1d) ? "D[" : "I[")
+      << std::setw(3) << num << "] : RD (miss, access)=( "
+      << std::setw(8) << num_rd_miss << ", " << std::setw(8) << num_rd_access << ")= "
+      << std::setw(6) << std::setiosflags(std::ios::fixed) << std::setprecision(2) << 100.00*num_rd_miss/num_rd_access << "%, PRE (hit, reqs)=( "
+      << num_prefetch_hits << ", " << num_prefetch_requests << " )" << std::endl;
   }
   if (num_wr_access > 0) {
-    std::cout << "  -- L1$" << ((type == ct_cachel1d) ? "D[" : "I[") << std::setw(3) << num << "] : WR (miss, access)=( "
-         << std::setw(8) << num_wr_miss << ", " << std::setw(8) << num_wr_access << ")= "
-         << std::setw(6) << std::setiosflags(std::ios::fixed) << std::setprecision(2) << 100.00*num_wr_miss/num_wr_access << "%" << std::endl;
+    std::cout << "  -- L1$" << ((type == ct_cachel1d) ? "D[" : "I[")
+      << std::setw(3) << num << "] : WR (miss, access)=( "
+      << std::setw(8) << num_wr_miss << ", " << std::setw(8) << num_wr_access << ")= "
+      << std::setw(6) << std::setiosflags(std::ios::fixed) << std::setprecision(2)
+      << 100.00*num_wr_miss/num_wr_access << "%" << std::endl;
   }
 
   if ((type == ct_cachel1d) && (num_ev_coherency > 0 || num_ev_capacity > 0 || num_coherency_access > 0)) {
     std::cout << "  -- L1$D[" << std::setw(3) << num
-         << "] : (ev_coherency, ev_capacity, coherency_access, up_req, bypass, nack)=( "
-         << std::setw(10) << num_ev_coherency << ", " << std::setw(10) << num_ev_capacity << ", "
-         << std::setw(10) << num_coherency_access << ", " << std::setw(10) << num_upgrade_req << ", "
-         << std::setw(10) << num_bypass << ", " << std::setw(10) << num_nack << "), ";
+      << "] : (ev_coherency, ev_capacity, coherency_access, up_req, bypass, nack)=( "
+      << std::setw(8) << num_ev_coherency << ", " << std::setw(8) << num_ev_capacity << ", "
+      << std::setw(8) << num_coherency_access << ", " << std::setw(8) << num_upgrade_req << ", "
+      << std::setw(8) << num_bypass << ", " << std::setw(8) << num_nack << "), ";
 
     std::map<uint64_t, uint64_t> dirty_cl_per_offset;
     int32_t  addr_offset_lsb = get_param_uint64("addr_offset_lsb", "", 48);
@@ -150,17 +153,17 @@ CacheL1::~CacheL1() {
       }
     }
 
-    std::cout << "num_dirty_lines (pid:#) = ";
+    std::cout << "#_dirty_lines (pid:#) = ";
 
     for (auto m :  dirty_cl_per_offset) {
       std::cout << m.first << ": " << m.second << " , ";
     }
     std::cout << std::endl;
   } else if ((type == ct_cachel1i) &&
-           (num_ev_coherency > 0 || num_coherency_access > 0)) {
+      (num_ev_coherency > 0 || num_coherency_access > 0)) {
     std::cout << "  -- L1$I[" << std::setw(3) << num << "] : (ev_coherency, coherency_access, bypass)=( "
-         << std::setw(10) << num_ev_coherency << ", " << std::setw(10) << num_coherency_access << ", "
-         << std::setw(10) << num_bypass << ")" << std::endl;
+      << std::setw(10) << num_ev_coherency << ", " << std::setw(10) << num_coherency_access << ", "
+      << std::setw(10) << num_bypass << ")" << std::endl;
   }
 
   for (uint32_t i = 0; i < num_sets; i++) {
@@ -182,8 +185,7 @@ void CacheL1::add_req_event(
     uint64_t event_time,
     LocalQueueElement * local_event,
     Component * from) {
-  /* if (rep_q.empty() == false || req_q.empty() == false)
-  {
+  /* if (rep_q.empty() == false || req_q.empty() == false) {
     event_time += process_interval - event_time%process_interval;
   } */
   geq->add_event(event_time, this);
@@ -195,8 +197,7 @@ void CacheL1::add_rep_event(
     uint64_t event_time,
     LocalQueueElement * local_event,
     Component * from) {
-  /* if (rep_q.empty() == false || req_q.empty() == false)
-  {
+  /* if (rep_q.empty() == false || req_q.empty() == false) {
     event_time += process_interval - event_time%process_interval;
   } */
   geq->add_event(event_time, this);
@@ -209,31 +210,21 @@ void CacheL1::show_state(uint64_t address) {
   uint64_t tag = (address >> set_lsb) / num_sets;
   for (uint32_t i = 0; i < num_ways; i++) {
     if (tags[set][i]->second != cs_invalid && tags[set][i]->first == tag) {
-      LOG(WARNING) << "  -- L1" << ((type == ct_cachel1d) ? "D[" : "I[") << num << "] : " << tags[set][i]->second << std::endl;
+      LOG(WARNING) << "  -- L1" << ((type == ct_cachel1d) ? "D[" : "I[") << num
+        << "] : " << tags[set][i]->second << std::endl;
       break;
     }
   }
-  /* list< pair< uint64_t, coherence_state_type > >::iterator set_iter;
-
-  for (set_iter = tags[set].begin(); set_iter != tags[set].end(); ++set_iter)
-  {
-    if (set_iter->second != cs_invalid && set_iter->first == tag)
-    {
-      cout << "  -- L1" << ((type == ct_cachel1d) ? "D[" : "I[") << num << "] : " << set_iter->second << endl;
-      break;
-    }
-  } */
 }
 
 
 uint32_t CacheL1::process_event(uint64_t curr_time) {
   std::multimap<uint64_t, LocalQueueElement *>::iterator req_event_iter = req_event.begin();
   std::multimap<uint64_t, LocalQueueElement *>::iterator rep_event_iter = rep_event.begin();
-  // list< pair< uint64_t, coherence_state_type > >::iterator set_iter;
-  std::pair< uint64_t, coherence_state_type > * set_iter = NULL;
+  std::pair< uint64_t, coherence_state_type > * set_iter = nullptr;
 
-  LocalQueueElement * rep_lqe = NULL;
-  LocalQueueElement * req_lqe = NULL;
+  LocalQueueElement * rep_lqe = nullptr;
+  LocalQueueElement * req_lqe = nullptr;
   // event -> queue
   if (rep_q.empty() == false) {
     rep_lqe = rep_q.front();
@@ -272,14 +263,6 @@ uint32_t CacheL1::process_event(uint64_t curr_time) {
 
       // display_event(curr_time, rep_lqe, "P");
 
-      // search if there is a cache line that already has the tag
-      /* for (set_iter = tags[set].begin(); set_iter != tags[set].end(); ++set_iter)
-      {
-        if (set_iter->second != cs_invalid && set_iter->first == tag)
-        {
-          break;
-        }
-      } */
       uint32_t idx = 0;
       for ( ; idx < num_ways; idx++) {
         if (tags[set][idx]->second != cs_invalid && tags[set][idx]->first == tag) {
@@ -303,8 +286,7 @@ uint32_t CacheL1::process_event(uint64_t curr_time) {
 
         case et_evict:
           num_coherency_access++;
-          if (set_iter != NULL) {
-          // if (set_iter != tags[set].end())
+          if (set_iter != nullptr) {
             num_ev_coherency++;
 
             if (set_iter->second == cs_modified) {
@@ -325,8 +307,7 @@ uint32_t CacheL1::process_event(uint64_t curr_time) {
         case et_m_to_s:
         case et_m_to_m:
           num_coherency_access++;
-          if (set_iter == NULL || set_iter->second != cs_modified) {
-          // if (set_iter == tags[set].end() || set_iter->second != cs_modified)
+          if (set_iter == nullptr || set_iter->second != cs_modified) {
             if (sent_to_l2 == true) break;
             sent_to_l2 = true;
             rep_lqe->from.pop();
@@ -349,8 +330,7 @@ uint32_t CacheL1::process_event(uint64_t curr_time) {
 
         case et_dir_rd:
           num_coherency_access++;
-          // if (set_iter == tags[set].end())
-          if (set_iter == NULL) {
+          if (set_iter == nullptr) {
             // oops -- the cache line is already evicted. do nothing.
             // delete rep_lqe;
           } else {
@@ -373,8 +353,6 @@ uint32_t CacheL1::process_event(uint64_t curr_time) {
           if (index != 0) break;
           rep_lqe->from.pop();
           if (set_iter == NULL) {
-          // if (set_iter == tags[set].end())
-            // set_iter = tags[set].begin();
             idx = 0;
             set_iter = tags[set][idx];
             if (set_iter->second != cs_invalid) {
@@ -396,8 +374,6 @@ uint32_t CacheL1::process_event(uint64_t curr_time) {
             tags[set][i] = tags[set][i+1];
           }
           tags[set][num_ways-1] = set_iter;
-          // tags[set].push_back(*set_iter);
-          // tags[set].erase(set_iter);
           add_event_to_lsu(curr_time, rep_lqe);
           break;
 
@@ -437,7 +413,6 @@ uint32_t CacheL1::process_event(uint64_t curr_time) {
         case et_write:
           num_wr_access++;
 
-          // for (set_iter = curr_set.begin(); set_iter != curr_set.end() && hit == false; ++set_iter)
           for (uint32_t idx = 0; idx < num_ways && hit == false; idx++) {
             set_iter = tags[set][idx];
             if (set_iter->second == cs_invalid) {
@@ -450,8 +425,6 @@ uint32_t CacheL1::process_event(uint64_t curr_time) {
                   tags[set][i] = tags[set][i+1];
                 }
                 tags[set][num_ways-1] = set_iter;
-                // curr_set.push_back(*set_iter);
-                // curr_set.erase(set_iter);
                 break;
               } else if (etype == et_write && (set_iter->second == cs_shared || set_iter->second == cs_exclusive)) {
                 // on a write miss, invalidate the entry so that the following
@@ -560,8 +533,7 @@ uint32_t CacheL1::process_event(uint64_t curr_time) {
       }
     }
 
-    /* if (any_request == false)
-    {
+    /* if (any_request == false) {
       geq->display();  ASSERTX(0);
     } */
   }
@@ -1427,7 +1399,9 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
     }
 
     if (any_request == false) {
-      req_event_iter->second->display();  geq->display();  ASSERTX(0);
+      req_event_iter->second->display();
+      geq->display();
+      CHECK(false);
     }
   }
 
@@ -1452,7 +1426,7 @@ void CacheL2::add_event_to_LL(
     bool check_top,
     bool is_data) {
   if ((check_top == true  && lqe->from.top() == directory) ||
-       (check_top == false && geq->which_mc(lqe->address) == directory->num)) {
+      (check_top == false && geq->which_mc(lqe->address) == directory->num)) {
     directory->add_rep_event(curr_time + l2_to_dir_t, lqe);
   } else {
     if (is_data) {
