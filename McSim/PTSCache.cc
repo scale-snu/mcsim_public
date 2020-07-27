@@ -404,7 +404,7 @@ uint32_t CacheL1::process_event(uint64_t curr_time) {
       bool is_coherence_miss = false;
 
       // display_event(curr_time, req_lqe, "Q");
-      DLOG_IF(FATAL, etype != et_read && etype != et_write) << "req_lqe->type should be either et_read or et_write.\n";
+      DLOG_IF(FATAL, etype != et_read && etype != et_write) << "req_lqe->type should be either et_read or et_write, not " << etype << ".\n";
       if (etype == et_read) {
         num_rd_access++;
         for (uint32_t idx = 0; idx < num_ways && hit == false; idx++) {
@@ -754,22 +754,19 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
     rep_q.pop();
   } else if (rep_event_iter != rep_event.end() && rep_event_iter->first == curr_time) {
     rep_lqe = rep_event_iter->second;
-    ++rep_event_iter;
+    rep_event_iter = rep_event.erase(rep_event_iter);;
   }
 
   while (rep_event_iter != rep_event.end() && rep_event_iter->first == curr_time) {
     rep_q.push(rep_event_iter->second);
-    ++rep_event_iter;
+    rep_event_iter = rep_event.erase(rep_event_iter);;
   }
-  rep_event.erase(curr_time);
 
   while (req_event_iter != req_event.end() && req_event_iter->first == curr_time) {
     uint32_t bank = (req_event_iter->second->address >> set_lsb) % num_banks;
     req_qs[bank].push(req_event_iter->second);
-    ++req_event_iter;
+    req_event_iter = req_event.erase(req_event_iter);;
   }
-  req_event.erase(curr_time);
-
 
   if (rep_lqe != NULL) {
     // display_event(curr_time, rep_lqe, "P");
@@ -1176,34 +1173,32 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
   } else {
     bool any_request = false;
 
-    for (uint32_t i = 0; i < num_banks; i++) {
-      if (req_qs[i].empty() == true) {
+    for (auto && req_q : req_qs) {
+      if (req_q.empty() == true) {
         continue;
       }
       any_request = true;
 
-      req_lqe = req_qs[i].front();
-      req_qs[i].pop();
-
-      // display_event(curr_time, req_lqe, "Q");
+      req_lqe = req_q.front();
+      req_q.pop();
       // process the first request event
-      uint64_t address = req_lqe->address;
+      const uint64_t & address = req_lqe->address;
       uint32_t set = (address >> set_lsb) % num_sets;
       uint64_t tag = (address >> set_lsb) / num_sets;
+      auto tags_set    = tags[set];
       event_type etype = req_lqe->type;
       bool is_coherence_miss = false;
-      // test_tags(set);
 
       bool hit = always_hit;
       bool enter_intermediate_state = false;
 
+      DLOG_IF(FATAL, etype != et_read && etype != et_write) << "req_lqe->type should be either et_read or et_write, not " << etype << ".\n";
       if (etype == et_read) {
         // see if cache hits
         num_rd_access++;
 
-        // for (set_iter = tags[set].begin(); set_iter != tags[set].end(); ++set_iter)
-        for (idx = 0; idx < num_ways; idx++) {
-          set_iter = tags[set][idx];
+        for (uint32_t idx = 0; idx < num_ways; idx++) {
+          auto set_iter = tags_set[idx];
           if (set_iter->type == cs_invalid || set_iter->type == cs_tr_to_e) {
             continue;
           }
@@ -1241,7 +1236,8 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
                   req_lqe->type = et_m_to_s;
                   (*(set_iter->sharedl1.begin()))->add_rep_event(curr_time + l2_to_l1_t, req_lqe);
                   set_iter->type_l1l2 = cs_tr_to_s;
-                  set_iter->sharedl1.erase(set_iter->sharedl1.begin());
+                  // set_iter->sharedl1.erase(set_iter->sharedl1.begin());
+                  set_iter->sharedl1.clear();
                 }
               } else {
                 set_iter->type_l1l2 = cs_shared;
@@ -1259,20 +1255,17 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
             set_iter->last_access_time = curr_time;
             hit = true;
             for (uint32_t i = idx; i < num_ways-1; i++) {
-              tags[set][i] = tags[set][i+1];
+              tags_set[i] = tags_set[i+1];
             }
-            tags[set][num_ways-1] = set_iter;
-            // tags[set].push_back(*set_iter);
-            // tags[set].erase(set_iter);
+            tags_set[num_ways-1] = set_iter;
             break;
           }
         }
-      } else if (etype == et_write) {
+      } else {
         num_wr_access++;
 
-        // for (set_iter = tags[set].begin(); set_iter != tags[set].end(); ++set_iter)
         for (idx = 0; idx < num_ways; idx++) {
-          set_iter = tags[set][idx];
+          set_iter = tags_set[idx];
           if (set_iter->type == cs_exclusive || set_iter->type == cs_shared) {
             if (set_iter->tag == tag) {
               if (set_iter->type == cs_exclusive && set_iter->sharedl1.size() == 1 &&
@@ -1318,11 +1311,9 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
                 set_iter->last_access_time = curr_time;
                 hit = true;
                 for (uint32_t i = idx; i < num_ways-1; i++) {
-                  tags[set][i] = tags[set][i+1];
+                  tags_set[i] = tags_set[i+1];
                 }
-                tags[set][num_ways-1] = set_iter;
-                // tags[set].push_back(*set_iter);
-                // tags[set].erase(set_iter);
+                tags_set[num_ways-1] = set_iter;
                 break;
               }
             } else if (set_iter->type == cs_modified && set_iter->type_l1l2 == cs_exclusive) {
@@ -1358,11 +1349,9 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
               req_lqe->type = et_nack;
               hit = true;
               for (uint32_t i = idx; i < num_ways-1; i++) {
-                tags[set][i] = tags[set][i+1];
+                tags_set[i] = tags_set[i+1];
               }
-              tags[set][num_ways-1] = set_iter;
-              // tags[set].push_back(*set_iter);
-              // tags[set].erase(set_iter);
+              tags_set[num_ways-1] = set_iter;
               break;
             } else {
               LOG(ERROR) << "type = " << set_iter->type << ", type_l1l2 = " << set_iter->type_l1l2 << std::endl;
@@ -1374,17 +1363,12 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
             set_iter->sharedl1.insert(req_lqe->from.top());
             hit = true;
             for (uint32_t i = idx; i < num_ways-1; i++) {
-              tags[set][i] = tags[set][i+1];
+              tags_set[i] = tags_set[i+1];
             }
-            tags[set][num_ways-1] = set_iter;
-            // tags[set].push_back(*set_iter);
-            // tags[set].erase(set_iter);
+            tags_set[num_ways-1] = set_iter;
             break;
           }
         }
-      } else {
-        LOG(ERROR) << "etype = " << etype << std::endl;
-        req_lqe->display();  geq->display();  ASSERTX(0);
       }
 
       if (enter_intermediate_state == false) {
@@ -1415,8 +1399,8 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
   if (rep_q.empty() == false) {
     geq->add_event(curr_time + process_interval, this);
   } else {
-    for (uint32_t i = 0; i < num_banks; i++) {
-      if (req_qs[i].empty() == false) {
+    for (auto && req_q : req_qs) {
+      if (req_q.empty() == false) {
         geq->add_event(curr_time + process_interval, this);
         break;
       }
