@@ -116,9 +116,10 @@ class CacheL1 : public Cache {
   const uint32_t l1_to_lsu_t;
   const uint32_t l1_to_l2_t;
   bool           always_hit;
-  uint32_t       l2_set_lsb;  // gajh: as of now, we only support the case when L1$ line size <= L2$ line size
+  uint32_t       l2_set_lsb;  // TODO(gajh): as of now, we only support the case when L1$ line size <= L2$ line size
 
   void add_event_to_lsu(uint64_t curr_time, LocalQueueElement *);
+  void do_prefetch(uint64_t curr_time, const LocalQueueElement &);
 };
 
 

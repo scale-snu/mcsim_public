@@ -142,6 +142,7 @@ class Component {  // meta-class
   std::string   get_param_str(const std::string & param) const;
   bool     get_param_bool(const std::string & param, bool def_value) const;
   uint32_t log2(uint64_t num);
+  inline uint64_t ceil_by_y(uint64_t x, uint64_t y) { return ((x + y - 1) / y) * y; }
 };
 
 

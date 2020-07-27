@@ -67,7 +67,6 @@ std::ostream & operator<<(std::ostream & output, o3_instr_rob_state irs) {
 
 
 extern std::ostream & operator << (std::ostream & output, ins_type it);
-static inline uint64_t ceil_by_y(uint64_t x, uint64_t y) { return ((x + y - 1) / y) * y; }
 
 O3Core::O3Core(
     component_type type_,
