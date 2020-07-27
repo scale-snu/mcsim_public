@@ -900,7 +900,7 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
       }
 
       if (idx == num_ways) {
-        display();  rep_lqe->display();  geq->display();  ASSERTX(0);
+        LOG(FATAL) << *this << *rep_lqe << *geq;
       } else if (bypass == false) {
         set_it->type      = (etype == et_e_rd) ? cs_exclusive : (etype == et_s_rd) ? cs_shared : cs_modified;
         if (rep_lqe->from.size() > 1) {
@@ -992,7 +992,7 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
       } else {
         show_state(rep_lqe->address);
         rep_lqe->from.top()->show_state(rep_lqe->address);
-        rep_lqe->display();  geq->display();  ASSERTX(0);
+        LOG(FATAL) << *this << *rep_lqe << *geq;
       }
     } else if (etype == et_evict || etype == et_evict_nd) {
       num_ev_from_l1++;
@@ -1039,7 +1039,7 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
           LOG(ERROR) << "type = " << set_it->type << ", type_l1l2 = " << set_it->type_l1l2 << std::endl;
           show_state(rep_lqe->address);
           rep_lqe->from.top()->show_state(rep_lqe->address);
-          rep_lqe->display();  geq->display();  ASSERTX(0);
+          LOG(FATAL) << *this << *rep_lqe << *geq;
         } else if (set_it->type_l1l2 == cs_invalid ||
             set_it->type_l1l2 == cs_exclusive ||
             set_it->type_l1l2 == cs_shared) {
@@ -1049,7 +1049,7 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
         } else if (set_it->type_l1l2 == cs_modified) {
           if (set_it->sharedl1.size() != 1) {
             LOG(ERROR) << "sharedl1.size() = " << set_it->sharedl1.size() << std::endl;
-            display();  rep_lqe->display();  geq->display();  ASSERTX(0);
+            LOG(FATAL) << *this << *rep_lqe << *geq;
           }
           // special case: data is in L1
           set_it->last_access_time = curr_time;
@@ -1064,14 +1064,14 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
         } else if (set_it->type_l1l2 == cs_tr_to_m || set_it->type_l1l2 == cs_tr_to_s) {
           if (set_it->pending != NULL) {
             set_it->pending->display();
-            display();  rep_lqe->display();  geq->display();  ASSERTX(0);
+            LOG(FATAL) << *this << *rep_lqe << *geq;
           }
           set_it->last_access_time = curr_time;
           set_it->pending          = rep_lqe;
         } else {
           // DIR->L2->L1->L2->DIR traffic -- not implemented yet
           LOG(ERROR) << "type_l1l2 = " << set_it->type_l1l2 << std::endl;
-          display();  rep_lqe->display();  geq->display();  ASSERTX(0);
+          LOG(FATAL) << *this << *rep_lqe << *geq;
         }
       }
     } else if (etype == et_nack) {
@@ -1091,7 +1091,7 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
           LOG(ERROR) << "address = 0x" << std::hex << address << std::dec << std::endl;
           LOG(ERROR) << "[" << curr_time << "]  sharedl1.size() = " << set_it->sharedl1.size()
             << " " << set_it->type << std::endl;
-          display();  rep_lqe->display();  geq->display();  ASSERTX(0);
+          LOG(FATAL) << *this << *rep_lqe << *geq;
         }
         set_it->last_access_time = curr_time;
         set_it->type = cs_shared;
@@ -1112,12 +1112,12 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
             set_it->type == cs_tr_to_e || set_it->type == cs_tr_to_i) {
           show_state(rep_lqe->address);
           LOG(ERROR) << "etype = " << etype << std::endl;
-          display();  rep_lqe->display();  geq->display();  ASSERTX(0);
+          LOG(FATAL) << *this << *rep_lqe << *geq;
         } else if (set_it->type == cs_modified && set_it->type_l1l2 == cs_modified) {
           enter_intermediate_state = true;
           if (set_it->sharedl1.size() != 1) {
             LOG(ERROR) << "sharedl1.size() = " << set_it->sharedl1.size() << std::endl;
-            display();  rep_lqe->display();  geq->display();  ASSERTX(0);
+            LOG(FATAL) << *this << *rep_lqe << *geq;
           }
           // special case: data is in L1
           set_it->last_access_time = curr_time;
@@ -1134,7 +1134,7 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
           enter_intermediate_state = true;
           if (set_it->pending != NULL) {
             set_it->pending->display();
-            display();  rep_lqe->display();  geq->display();  ASSERTX(0);
+            LOG(FATAL) << *this << *rep_lqe << *geq;
           }
           set_it->last_access_time = curr_time;
           set_it->type      = cs_tr_to_i;
@@ -1168,7 +1168,7 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
       delete rep_lqe;
     } else {
       LOG(ERROR) << "etype = " << etype << std::endl;
-      display();  rep_lqe->display();  geq->display();  ASSERTX(0);
+      LOG(FATAL) << *this << *rep_lqe << *geq;
     }
   } else {
     bool any_request = false;
