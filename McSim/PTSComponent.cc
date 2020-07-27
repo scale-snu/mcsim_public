@@ -44,22 +44,26 @@ extern std::ostream & operator << (std::ostream & output, event_type et);
 
 
 void LocalQueueElement::display() {
-  std::stringstream ss;
-  ss << "  -- LQE : type = " << type << ", addr = 0x" << std::hex << address << std::dec;
-  std::stack<Component *> temp;
-
-  while (from.empty() == false) {
-    temp.push(from.top());
-    from.pop();
-    ss << " (" << temp.top()->type << ", " << temp.top()->num << "), ";
-  }
-  while (temp.empty() == false) {
-    from.push(temp.top());
-    temp.pop();
-  }
-  LOG(WARNING) << ss.str() << std::endl;
+  LOG(WARNING) << *this;
 }
 
+
+std::ostream & operator<<(std::ostream & out, LocalQueueElement & l) {
+  out << "  -- LQE : type = " << l.type << ", addr = 0x" << std::hex << l.address << std::dec;
+  std::stack<Component *> temp;
+
+  while (l.from.empty() == false) {
+    temp.push(l.from.top());
+    l.from.pop();
+    out << *(temp.top()) << ", ";
+  }
+  while (temp.empty() == false) {
+    l.from.push(temp.top());
+    temp.pop();
+  }
+  out << std::endl;
+  return out;
+}
 
 
 Component::Component(
@@ -71,9 +75,14 @@ Component::Component(
 }
 
 
-
 void Component::display() {
-  std::cout << "(" << type << ", " << num << ")";
+  std::cout << *this;
+}
+
+
+std::ostream & Component::print(std::ostream & out) const {
+  out << "(" << type << ", " << num << ")";
+  return out;
 }
 
 
@@ -244,23 +253,25 @@ uint32_t GlobalEventQueue::process_event() {
 
 
 void GlobalEventQueue::display() {
-  auto event_queue_iter = event_queue.begin();
+  LOG(WARNING) << *this;
+}
 
-  LOG(WARNING) << "  -- global event queue : at cycle = " << curr_time << std::endl;
 
-  while (event_queue_iter != event_queue.end()) {
-    std::stringstream ss;
-    ss << event_queue_iter->first << ", ";
+std::ostream & operator<<(std::ostream & out, GlobalEventQueue & g) {
+  auto event_queue_iter = g.event_queue.begin();
 
-    auto comp_iter = event_queue_iter->second.begin();
-    while (comp_iter != event_queue_iter->second.end()) {
-      ss << "(" << (*comp_iter)->type << ", "
-        << (*comp_iter)->num << "), ";
-      ++comp_iter;
+  out << "  -- global event queue : at cycle = " << g.curr_time << std::endl;
+
+  while (event_queue_iter != g.event_queue.end()) {
+    out << event_queue_iter->first << ", ";
+
+    for (auto && it : event_queue_iter->second) {
+      out << *it << ", ";
     }
-    LOG(WARNING) << ss.str() << std::endl;
+    out << std::endl;
     ++event_queue_iter;
   }
+  return out;
 }
 
 

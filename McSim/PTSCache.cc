@@ -225,7 +225,7 @@ void CacheL1::show_state(uint64_t address) {
 uint32_t CacheL1::process_event(uint64_t curr_time) {
   std::multimap<uint64_t, LocalQueueElement *>::iterator req_event_iter = req_event.begin();
   std::multimap<uint64_t, LocalQueueElement *>::iterator rep_event_iter = rep_event.begin();
-  std::pair< uint64_t, coherence_state_type > * set_iter = nullptr;
+  std::pair< uint64_t, coherence_state_type > * set_it = nullptr;
 
   LocalQueueElement * rep_lqe = nullptr;
   LocalQueueElement * req_lqe = nullptr;
@@ -268,7 +268,7 @@ uint32_t CacheL1::process_event(uint64_t curr_time) {
       uint32_t idx = 0;
       for ( ; idx < num_ways; idx++) {
         if (tags_set[idx]->second != cs_invalid && tags_set[idx]->first == tag) {
-          set_iter = tags_set[idx];
+          set_it = tags_set[idx];
           break;
         }
       }
@@ -286,11 +286,11 @@ uint32_t CacheL1::process_event(uint64_t curr_time) {
 
         case et_evict:
           num_coherency_access++;
-          if (set_iter != nullptr) {
+          if (set_it != nullptr) {
             num_ev_coherency++;
 
-            if (set_iter->second == cs_modified) {
-              set_iter->second = cs_invalid;
+            if (set_it->second == cs_modified) {
+              set_it->second = cs_invalid;
               if (sent_to_l2 == false) {
                 sent_to_l2 = true;
                 rep_lqe->from.pop();
@@ -299,7 +299,7 @@ uint32_t CacheL1::process_event(uint64_t curr_time) {
               }
               break;
             }
-            set_iter->second = cs_invalid;
+            set_it->second = cs_invalid;
           }
           if (index == (1 << (l2_set_lsb - set_lsb)) - 1 && sent_to_l2 == false) delete rep_lqe;
           break;
@@ -307,12 +307,12 @@ uint32_t CacheL1::process_event(uint64_t curr_time) {
         case et_m_to_s:
         case et_m_to_m:
           num_coherency_access++;
-          if (set_iter != nullptr && set_iter->second == cs_modified) {
+          if (set_it != nullptr && set_it->second == cs_modified) {
             if (etype == et_m_to_m) {
               num_ev_coherency++;
-              set_iter->second = cs_invalid;
+              set_it->second = cs_invalid;
             } else {
-              set_iter->second = cs_shared;
+              set_it->second = cs_shared;
             }
           }
           if (sent_to_l2 == true) break;
@@ -324,20 +324,20 @@ uint32_t CacheL1::process_event(uint64_t curr_time) {
 
         case et_dir_rd:
           num_coherency_access++;
-          if (set_iter == nullptr) {
+          if (set_it == nullptr) {
             // oops -- the cache line is already evicted. do nothing.
             // delete rep_lqe;
           } else {
             if (sent_to_l2 == true) break;
             sent_to_l2 = true;
-            if (set_iter->second != cs_modified) {
+            if (set_it->second != cs_modified) {
               show_state(address);
               rep_lqe->display();
               geq->display();
               CHECK(false);
             }
             num_ev_coherency++;
-            set_iter->second = cs_exclusive;
+            set_it->second = cs_exclusive;
             rep_lqe->type    = et_evict;
             rep_lqe->from.push(this);
             cachel2->add_rep_event(curr_time + l1_to_l2_t, rep_lqe);
@@ -350,15 +350,15 @@ uint32_t CacheL1::process_event(uint64_t curr_time) {
           // TODO(gajh): Why check *index* only for et_read and et_write?
           if (index != 0) break;
           rep_lqe->from.pop();
-          if (set_iter == nullptr) {
+          if (set_it == nullptr) {
             idx = 0;
-            set_iter = tags_set[idx];
-            if (set_iter->second != cs_invalid) {
+            set_it = tags_set[idx];
+            if (set_it->second != cs_invalid) {
               // evicted due to lack of $ capacity
               num_ev_capacity++;
               LocalQueueElement * lqe = new LocalQueueElement(this,
-                  (set_iter->second == cs_modified) ? et_evict : et_evict_nd,
-                  ((set_iter->first*num_sets + set) << set_lsb));
+                  (set_it->second == cs_modified) ? et_evict : et_evict_nd,
+                  ((set_it->first*num_sets + set) << set_lsb));
               lqe->th_id = rep_lqe->th_id;
               cachel2->add_rep_event(curr_time + l1_to_l2_t, lqe);
             }
@@ -366,13 +366,13 @@ uint32_t CacheL1::process_event(uint64_t curr_time) {
             addr_in_cache = true;
           }
 
-          set_iter->first  = tag;
-          set_iter->second = (etype == et_read && (addr_in_cache == false || set_iter->second != cs_modified)) ? cs_exclusive : cs_modified;
+          set_it->first  = tag;
+          set_it->second = (etype == et_read && (addr_in_cache == false || set_it->second != cs_modified)) ? cs_exclusive : cs_modified;
           // update LRU
           for (uint32_t i = idx; i < num_ways-1; i++) {
             tags_set[i] = tags_set[i+1];
           }
-          tags_set[num_ways-1] = set_iter;
+          tags_set[num_ways-1] = set_it;
           add_event_to_lsu(curr_time, rep_lqe);
           break;
 
@@ -408,17 +408,17 @@ uint32_t CacheL1::process_event(uint64_t curr_time) {
       if (etype == et_read) {
         num_rd_access++;
         for (uint32_t idx = 0; idx < num_ways && hit == false; idx++) {
-          auto set_iter = tags_set[idx];
-          if (set_iter->second == cs_invalid) {
+          auto set_it = tags_set[idx];
+          if (set_it->second == cs_invalid) {
             continue;
-          } else if (set_iter->first == tag) {
-            if (set_iter->second == cs_modified || set_iter->second == cs_shared || set_iter->second == cs_exclusive) {
+          } else if (set_it->first == tag) {
+            if (set_it->second == cs_modified || set_it->second == cs_shared || set_it->second == cs_exclusive) {
               hit = true;
               // LRU update
               for (uint32_t i = idx; i < num_ways-1; i++) {
                 tags_set[i] = tags_set[i+1];
               }
-              tags_set[num_ways-1] = set_iter;
+              tags_set[num_ways-1] = set_it;
             }
             break;
           }
@@ -426,24 +426,24 @@ uint32_t CacheL1::process_event(uint64_t curr_time) {
       } else {
         num_wr_access++;
         for (uint32_t idx = 0; idx < num_ways && hit == false; idx++) {
-          auto set_iter = tags_set[idx];
-          if (set_iter->second == cs_invalid) {
+          auto set_it = tags_set[idx];
+          if (set_it->second == cs_invalid) {
             continue;
-          } else if (set_iter->first == tag) {
-            if (set_iter->second == cs_modified) {
+          } else if (set_it->first == tag) {
+            if (set_it->second == cs_modified) {
               hit = true;
               // LRU update
               for (uint32_t i = idx; i < num_ways-1; i++) {
                 tags_set[i] = tags_set[i+1];
               }
-              tags_set[num_ways-1] = set_iter;
-            } else if (set_iter->second == cs_shared || set_iter->second == cs_exclusive) {
+              tags_set[num_ways-1] = set_it;
+            } else if (set_it->second == cs_shared || set_it->second == cs_exclusive) {
               // on a write miss, invalidate the entry so that the following
               // cache accesses to the address experience misses as well
               // TODO(gajh): does it mean that there is no MSHR in L1$?
               num_upgrade_req++;
               is_coherence_miss = true;
-              set_iter->second = cs_invalid;
+              set_it->second = cs_invalid;
             }
             break;
           }
@@ -513,10 +513,10 @@ void CacheL1::do_prefetch(uint64_t curr_time, const LocalQueueElement & req_lqe)
     uint32_t set = (prev_addr >> set_lsb) % num_sets;
     uint64_t tag = (prev_addr >> set_lsb) / num_sets;
     for (uint32_t idx = 0; idx < num_ways; idx++) {
-      auto set_iter = tags[set][idx];
-      if (set_iter->second == cs_invalid) {
+      auto set_it = tags[set][idx];
+      if (set_it->second == cs_invalid) {
         continue;
-      } else if (set_iter->first == tag) {
+      } else if (set_it->first == tag) {
         prev_addr_exist = true;
         break;
       }
@@ -548,10 +548,10 @@ void CacheL1::do_prefetch(uint64_t curr_time, const LocalQueueElement & req_lqe)
     uint32_t set = (next_addr >> set_lsb) % num_sets;
     uint64_t tag = (next_addr >> set_lsb) / num_sets;
     for (uint32_t idx = 0; idx < num_ways; idx++) {
-      auto set_iter = tags[set][idx];
-      if (set_iter->second == cs_invalid) {
+      auto set_it = tags[set][idx];
+      if (set_it->second == cs_invalid) {
         continue;
-      } else if (set_iter->first == tag) {
+      } else if (set_it->first == tag) {
         next_addr_exist = true;
         break;
       }
@@ -723,13 +723,13 @@ void CacheL2::show_state(uint64_t address) {
   uint64_t tag = (address >> set_lsb) / num_sets;
 
   for (uint32_t k = 0; k < num_ways; k++) {
-    L2Entry * set_iter = tags[set][k];
-    if (set_iter->type != cs_invalid && set_iter->tag == tag) {
+    L2Entry * set_it = tags[set][k];
+    if (set_it->type != cs_invalid && set_it->tag == tag) {
       std::stringstream ss;
-      ss << "  -- L2 [" << num << "] : " << set_iter->type
-        << ", " << set_iter->type_l1l2;
-      for (std::set<Component *>::iterator iter = set_iter->sharedl1.begin();
-          iter != set_iter->sharedl1.end(); ++iter) {
+      ss << "  -- L2 [" << num << "] : " << set_it->type
+        << ", " << set_it->type_l1l2;
+      for (std::set<Component *>::iterator iter = set_it->sharedl1.begin();
+          iter != set_it->sharedl1.end(); ++iter) {
         ss << ", (" << (*iter)->type << ", " << (*iter)->num << ") ";
       }
       LOG(WARNING) << ss.str() << std::endl;
@@ -742,9 +742,9 @@ void CacheL2::show_state(uint64_t address) {
 uint32_t CacheL2::process_event(uint64_t curr_time) {
   std::multimap<uint64_t, LocalQueueElement *>::iterator req_event_iter = req_event.begin();
   std::multimap<uint64_t, LocalQueueElement *>::iterator rep_event_iter = rep_event.begin();
-  // list< L2Entry >::iterator set_iter;
+  // list< L2Entry >::iterator set_it;
   uint32_t idx = 0;
-  L2Entry * set_iter = NULL;
+  L2Entry * set_it = NULL;
 
   LocalQueueElement * rep_lqe = NULL;
   LocalQueueElement * req_lqe = NULL;
@@ -778,45 +778,45 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
     // test_tags(set);
 
     // look for an entry which already has tag
-    // for (set_iter = tags[set].begin(); set_iter != tags[set].end(); ++set_iter)
+    // for (set_it = tags[set].begin(); set_it != tags[set].end(); ++set_it)
     for (idx = 0; idx < num_ways; idx++) {
-      set_iter = tags[set][idx];
-      if (set_iter->type == cs_invalid) {
+      set_it = tags[set][idx];
+      if (set_it->type == cs_invalid) {
         continue;
-      } else if (set_iter->tag == tag) {
+      } else if (set_it->tag == tag) {
         break;
       }
     }
 
     if (etype == et_write_nd) {
       rep_lqe->from.pop();
-      if (idx == num_ways || set_iter->type != cs_tr_to_m) {
+      if (idx == num_ways || set_it->type != cs_tr_to_m) {
         rep_lqe->type = et_nack;
         (rep_lqe->from.top())->add_rep_event(curr_time + l2_to_l1_t, rep_lqe);
         LocalQueueElement * lqe = new LocalQueueElement(this, et_e_to_i, address);
         lqe->th_id = rep_lqe->th_id;
         add_event_to_LL(curr_time, lqe, false);
       } else {
-        while (set_iter->sharedl1.empty() == false) {
-          if ((*(set_iter->sharedl1.begin())) != rep_lqe->from.top()) {
+        while (set_it->sharedl1.empty() == false) {
+          if ((*(set_it->sharedl1.begin())) != rep_lqe->from.top()) {
             LocalQueueElement * lqe = new LocalQueueElement(this, et_evict,
-                ((set_iter->tag*num_sets + set) << set_lsb));
+                ((set_it->tag*num_sets + set) << set_lsb));
             lqe->th_id = rep_lqe->th_id;
-            (*(set_iter->sharedl1.begin()))->add_rep_event(curr_time + l2_to_l1_t, lqe);
+            (*(set_it->sharedl1.begin()))->add_rep_event(curr_time + l2_to_l1_t, lqe);
           }
-          set_iter->sharedl1.erase(set_iter->sharedl1.begin());
+          set_it->sharedl1.erase(set_it->sharedl1.begin());
         }
-        set_iter->type      = cs_modified;
-        set_iter->type_l1l2 = cs_modified;
-        set_iter->tag       = tag;
-        set_iter->sharedl1.insert(rep_lqe->from.top());
-        set_iter->last_access_time = curr_time;
+        set_it->type      = cs_modified;
+        set_it->type_l1l2 = cs_modified;
+        set_it->tag       = tag;
+        set_it->sharedl1.insert(rep_lqe->from.top());
+        set_it->last_access_time = curr_time;
         for (uint32_t i = idx; i < num_ways-1; i++) {
           tags[set][i] = tags[set][i+1];
         }
-        tags[set][num_ways-1] = set_iter;
-        // tags[set].push_back(*set_iter);
-        // tags[set].erase(set_iter);
+        tags[set][num_ways-1] = set_it;
+        // tags[set].push_back(*set_it);
+        // tags[set].erase(set_it);
 
         rep_lqe->type = et_write;
         (rep_lqe->from.top())->add_rep_event(curr_time + l2_to_l1_t, rep_lqe);
@@ -831,12 +831,12 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
       rep_lqe->from.pop();
       // read miss return traffic
       if (idx == num_ways) {
-        set_iter = tags[set][0];  // set_iter = tags[set].begin();
+        set_it = tags[set][0];  // set_it = tags[set].begin();
         idx      = 0;
-        uint64_t set_addr = ((set_iter->tag*num_sets + set) << set_lsb);
+        uint64_t set_addr = ((set_it->tag*num_sets + set) << set_lsb);
 
-        if (set_iter->type == cs_tr_to_s || set_iter->type == cs_tr_to_m ||
-            set_iter->type == cs_tr_to_e || set_iter->type == cs_tr_to_i) {
+        if (set_it->type == cs_tr_to_s || set_it->type == cs_tr_to_m ||
+            set_it->type == cs_tr_to_e || set_it->type == cs_tr_to_i) {
           bypass = true;
           if (rep_lqe->from.size() > 1) {
             rep_lqe->type = et_nack;
@@ -848,44 +848,44 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
           if (rep_lqe->from.size() == 1) {
             delete rep_lqe;
           }
-        } else if (set_iter->type != cs_invalid) {
+        } else if (set_it->type != cs_invalid) {
           num_ev_capacity++;
           num_destroyed_cache_lines++;
-          cache_line_life_time += (curr_time - set_iter->first_access_time);
-          time_between_last_access_and_cache_destroy += (curr_time - set_iter->last_access_time);
-          set_iter->first_access_time = curr_time;
-          set_iter->last_access_time  = curr_time;
+          cache_line_life_time += (curr_time - set_it->first_access_time);
+          time_between_last_access_and_cache_destroy += (curr_time - set_it->last_access_time);
+          set_it->first_access_time = curr_time;
+          set_it->last_access_time  = curr_time;
           // capacity miss
-          while (set_iter->sharedl1.empty() == false) {
+          while (set_it->sharedl1.empty() == false) {
             LocalQueueElement * lqe = new LocalQueueElement(this, et_evict, set_addr);
             lqe->th_id = rep_lqe->th_id;
-            (*(set_iter->sharedl1.begin()))->add_rep_event(curr_time + l2_to_l1_t, lqe);
-            set_iter->sharedl1.erase(set_iter->sharedl1.begin());
+            (*(set_it->sharedl1.begin()))->add_rep_event(curr_time + l2_to_l1_t, lqe);
+            set_it->sharedl1.erase(set_it->sharedl1.begin());
           }
           // then send eviction event to Directory or Crossbar
-          if (set_iter->type_l1l2 != cs_modified) {
+          if (set_it->type_l1l2 != cs_modified) {
             LocalQueueElement * lqe = new LocalQueueElement(this, et_evict, set_addr);
             lqe->th_id = rep_lqe->th_id;
-            add_event_to_LL(curr_time, lqe, false, set_iter->type == cs_modified);
+            add_event_to_LL(curr_time, lqe, false, set_it->type == cs_modified);
           }
         } else {
-          set_iter->first_access_time = curr_time;
-          set_iter->last_access_time  = curr_time;
+          set_it->first_access_time = curr_time;
+          set_it->last_access_time  = curr_time;
         }
       } else {
-        uint64_t set_addr = ((set_iter->tag*num_sets + set) << set_lsb);
+        uint64_t set_addr = ((set_it->tag*num_sets + set) << set_lsb);
 
         if (etype == et_write) {
-          while (set_iter->sharedl1.empty() == false) {
-            if ((*(set_iter->sharedl1.begin())) != rep_lqe->from.top()) {
+          while (set_it->sharedl1.empty() == false) {
+            if ((*(set_it->sharedl1.begin())) != rep_lqe->from.top()) {
               LocalQueueElement * lqe = new LocalQueueElement(this, et_evict, set_addr);
               lqe->th_id = rep_lqe->th_id;
-              (*(set_iter->sharedl1.begin()))->add_rep_event(curr_time + l2_to_l1_t, lqe);
+              (*(set_it->sharedl1.begin()))->add_rep_event(curr_time + l2_to_l1_t, lqe);
             }
-            set_iter->sharedl1.erase(set_iter->sharedl1.begin());
+            set_it->sharedl1.erase(set_it->sharedl1.begin());
           }
         } else if (etype == et_e_rd || etype == et_s_rd) {
-          if (set_iter->type == cs_modified || set_iter->type == cs_tr_to_e) {
+          if (set_it->type == cs_modified || set_it->type == cs_tr_to_e) {
             bypass = true;  // this event happened earlier, don't change the state of cache
             if (rep_lqe->from.size() > 1) {
               rep_lqe->type = et_rd_bypass;
@@ -902,22 +902,22 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
       if (idx == num_ways) {
         display();  rep_lqe->display();  geq->display();  ASSERTX(0);
       } else if (bypass == false) {
-        set_iter->type      = (etype == et_e_rd) ? cs_exclusive : (etype == et_s_rd) ? cs_shared : cs_modified;
+        set_it->type      = (etype == et_e_rd) ? cs_exclusive : (etype == et_s_rd) ? cs_shared : cs_modified;
         if (rep_lqe->from.size() > 1) {
-          set_iter->type_l1l2 = (etype == et_write) ? cs_modified : (shared == true) ? cs_shared : cs_exclusive;
-          set_iter->tag       = tag;
-          set_iter->sharedl1.insert(rep_lqe->from.top());
+          set_it->type_l1l2 = (etype == et_write) ? cs_modified : (shared == true) ? cs_shared : cs_exclusive;
+          set_it->tag       = tag;
+          set_it->sharedl1.insert(rep_lqe->from.top());
         } else {
-          set_iter->type_l1l2 = cs_invalid;
-          set_iter->tag       = tag;
+          set_it->type_l1l2 = cs_invalid;
+          set_it->tag       = tag;
         }
-        set_iter->last_access_time = curr_time;
+        set_it->last_access_time = curr_time;
         for (uint32_t i = idx; i < num_ways-1; i++) {
           tags[set][i] = tags[set][i+1];
         }
-        tags[set][num_ways-1] = set_iter;
-        // tags[set].push_back(*set_iter);
-        // tags[set].erase(set_iter);
+        tags[set][num_ways-1] = set_it;
+        // tags[set].push_back(*set_it);
+        // tags[set].erase(set_it);
 
         rep_lqe->type = (etype == et_write) ? et_write : et_read;
         if (rep_lqe->from.size() > 1) {
@@ -932,9 +932,9 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
       rep_lqe->from.pop();
       num_coherency_access++;
 
-      if (idx != num_ways && set_iter->type == cs_tr_to_i && set_iter->pending != NULL) {
+      if (idx != num_ways && set_it->type == cs_tr_to_i && set_it->pending != NULL) {
         num_ev_coherency++;
-        switch (set_iter->type_l1l2) {
+        switch (set_it->type_l1l2) {
           case cs_tr_to_i:
             delete rep_lqe;
             break;
@@ -942,53 +942,53 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
             rep_lqe->type = et_nack;
             rep_lqe->from.top()->add_rep_event(curr_time + l2_to_l1_t, rep_lqe);
             break;
-          default:  // set_iter->type_l1l2 == cs_tr_to_s
+          default:  // set_it->type_l1l2 == cs_tr_to_s
             rep_lqe->type = et_nack;
             rep_lqe->from.top()->add_rep_event(curr_time + l2_to_l1_t, rep_lqe);
-            set_iter->sharedl1.insert(rep_lqe->from.top());
-            while (set_iter->sharedl1.empty() == false) {
+            set_it->sharedl1.insert(rep_lqe->from.top());
+            while (set_it->sharedl1.empty() == false) {
               LocalQueueElement * lqe = new LocalQueueElement(this, et_evict,
-                  ((set_iter->tag*num_sets + set) << set_lsb));
+                  ((set_it->tag*num_sets + set) << set_lsb));
               lqe->th_id = rep_lqe->th_id;
-              (*(set_iter->sharedl1.begin()))->add_rep_event(curr_time + l2_to_l1_t, lqe);
-              set_iter->sharedl1.erase(set_iter->sharedl1.begin());
+              (*(set_it->sharedl1.begin()))->add_rep_event(curr_time + l2_to_l1_t, lqe);
+              set_it->sharedl1.erase(set_it->sharedl1.begin());
             }
             break;
         }
 
-        add_event_to_LL(curr_time, set_iter->pending, true, true);
+        add_event_to_LL(curr_time, set_it->pending, true, true);
         num_destroyed_cache_lines++;
-        cache_line_life_time += (curr_time - set_iter->first_access_time);
-        time_between_last_access_and_cache_destroy += (curr_time - set_iter->last_access_time);
-        set_iter->pending = NULL;
-        set_iter->type_l1l2 = cs_invalid;
-        set_iter->type      = cs_invalid;
+        cache_line_life_time += (curr_time - set_it->first_access_time);
+        time_between_last_access_and_cache_destroy += (curr_time - set_it->last_access_time);
+        set_it->pending = NULL;
+        set_it->type_l1l2 = cs_invalid;
+        set_it->type      = cs_invalid;
         for (uint32_t i = idx; i < num_ways-1; i++) {
           tags[set][i] = tags[set][i+1];
         }
-        tags[set][num_ways-1] = set_iter;
-        // tags[set].push_back(*set_iter);
-        // tags[set].erase(set_iter);
-      } else if (idx != num_ways && (set_iter->type_l1l2 == cs_tr_to_m || set_iter->type_l1l2 == cs_tr_to_s)) {
+        tags[set][num_ways-1] = set_it;
+        // tags[set].push_back(*set_it);
+        // tags[set].erase(set_it);
+      } else if (idx != num_ways && (set_it->type_l1l2 == cs_tr_to_m || set_it->type_l1l2 == cs_tr_to_s)) {
         num_ev_coherency++;
-        set_iter->last_access_time = curr_time;
-        set_iter->type_l1l2 = (set_iter->type_l1l2 == cs_tr_to_s) ? cs_shared :
-          (set_iter->pending == NULL) ? cs_modified : cs_invalid;
-        set_iter->sharedl1.insert(rep_lqe->from.top());
+        set_it->last_access_time = curr_time;
+        set_it->type_l1l2 = (set_it->type_l1l2 == cs_tr_to_s) ? cs_shared :
+          (set_it->pending == NULL) ? cs_modified : cs_invalid;
+        set_it->sharedl1.insert(rep_lqe->from.top());
         rep_lqe->type = (etype == et_m_to_s) ? et_read :
-          (set_iter->pending == NULL) ? et_write : et_nack;
+          (set_it->pending == NULL) ? et_write : et_nack;
         rep_lqe->from.top()->add_rep_event(curr_time + l2_to_l1_t, rep_lqe);
-        if (set_iter->pending != NULL) {
-          add_event_to_LL(curr_time, set_iter->pending, true, true);
-          set_iter->pending = NULL;
-          set_iter->type    = cs_shared;
+        if (set_it->pending != NULL) {
+          add_event_to_LL(curr_time, set_it->pending, true, true);
+          set_it->pending = NULL;
+          set_it->type    = cs_shared;
         }
         for (uint32_t i = idx; i < num_ways-1; i++) {
           tags[set][i] = tags[set][i+1];
         }
-        tags[set][num_ways-1] = set_iter;
-        // tags[set].push_back(*set_iter);
-        // tags[set].erase(set_iter);
+        tags[set][num_ways-1] = set_it;
+        // tags[set].push_back(*set_it);
+        // tags[set].erase(set_it);
       } else {
         show_state(rep_lqe->address);
         rep_lqe->from.top()->show_state(rep_lqe->address);
@@ -997,26 +997,26 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
     } else if (etype == et_evict || etype == et_evict_nd) {
       num_ev_from_l1++;
       if (idx != num_ways) {
-        set_iter->last_access_time = curr_time;
-        if (set_iter->type == cs_tr_to_s) {
+        set_it->last_access_time = curr_time;
+        if (set_it->type == cs_tr_to_s) {
           num_coherency_access++;
-          set_iter->type = cs_shared;
-          add_event_to_LL(curr_time, set_iter->pending, true, true);
-          set_iter->pending = NULL;
-          set_iter->sharedl1.insert(rep_lqe->from.top());
+          set_it->type = cs_shared;
+          add_event_to_LL(curr_time, set_it->pending, true, true);
+          set_it->pending = NULL;
+          set_it->sharedl1.insert(rep_lqe->from.top());
         } else {
           // cache line is evicted from L1
-          set_iter->sharedl1.erase(rep_lqe->from.top());
-          if (set_iter->sharedl1.empty() == true && set_iter->type_l1l2 != cs_tr_to_s &&
-              set_iter->type_l1l2 != cs_tr_to_m && set_iter->type_l1l2 != cs_tr_to_i) {
-            set_iter->type_l1l2 = cs_invalid;
+          set_it->sharedl1.erase(rep_lqe->from.top());
+          if (set_it->sharedl1.empty() == true && set_it->type_l1l2 != cs_tr_to_s &&
+              set_it->type_l1l2 != cs_tr_to_m && set_it->type_l1l2 != cs_tr_to_i) {
+            set_it->type_l1l2 = cs_invalid;
           }
           for (uint32_t i = idx; i < num_ways-1; i++) {
             tags[set][i] = tags[set][i+1];
           }
-          tags[set][num_ways-1] = set_iter;
-          // tags[set].push_back(*set_iter);
-          // tags[set].erase(set_iter);
+          tags[set][num_ways-1] = set_it;
+          // tags[set].push_back(*set_it);
+          // tags[set].erase(set_it);
         }
         delete rep_lqe;
       } else {
@@ -1035,42 +1035,42 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
         // cache line is already evicted -- return now
         add_event_to_LL(curr_time, rep_lqe, false);
       } else {
-        if (set_iter->type != cs_modified) {
-          LOG(ERROR) << "type = " << set_iter->type << ", type_l1l2 = " << set_iter->type_l1l2 << std::endl;
+        if (set_it->type != cs_modified) {
+          LOG(ERROR) << "type = " << set_it->type << ", type_l1l2 = " << set_it->type_l1l2 << std::endl;
           show_state(rep_lqe->address);
           rep_lqe->from.top()->show_state(rep_lqe->address);
           rep_lqe->display();  geq->display();  ASSERTX(0);
-        } else if (set_iter->type_l1l2 == cs_invalid ||
-            set_iter->type_l1l2 == cs_exclusive ||
-            set_iter->type_l1l2 == cs_shared) {
-          set_iter->type      = cs_shared;
-          set_iter->last_access_time = curr_time;
+        } else if (set_it->type_l1l2 == cs_invalid ||
+            set_it->type_l1l2 == cs_exclusive ||
+            set_it->type_l1l2 == cs_shared) {
+          set_it->type      = cs_shared;
+          set_it->last_access_time = curr_time;
           add_event_to_LL(curr_time, rep_lqe, true, true);
-        } else if (set_iter->type_l1l2 == cs_modified) {
-          if (set_iter->sharedl1.size() != 1) {
-            LOG(ERROR) << "sharedl1.size() = " << set_iter->sharedl1.size() << std::endl;
+        } else if (set_it->type_l1l2 == cs_modified) {
+          if (set_it->sharedl1.size() != 1) {
+            LOG(ERROR) << "sharedl1.size() = " << set_it->sharedl1.size() << std::endl;
             display();  rep_lqe->display();  geq->display();  ASSERTX(0);
           }
           // special case: data is in L1
-          set_iter->last_access_time = curr_time;
-          set_iter->type_l1l2 = cs_exclusive;
-          set_iter->type      = cs_tr_to_s;
-          set_iter->pending   = rep_lqe;
+          set_it->last_access_time = curr_time;
+          set_it->type_l1l2 = cs_exclusive;
+          set_it->type      = cs_tr_to_s;
+          set_it->pending   = rep_lqe;
           LocalQueueElement * lqe = new LocalQueueElement(this, et_dir_rd,
-              ((set_iter->tag*num_sets + set) << set_lsb));
+              ((set_it->tag*num_sets + set) << set_lsb));
           lqe->th_id = rep_lqe->th_id;
-          (*(set_iter->sharedl1.begin()))->add_rep_event(curr_time + l2_to_l1_t, lqe);
-          set_iter->sharedl1.erase(set_iter->sharedl1.begin());
-        } else if (set_iter->type_l1l2 == cs_tr_to_m || set_iter->type_l1l2 == cs_tr_to_s) {
-          if (set_iter->pending != NULL) {
-            set_iter->pending->display();
+          (*(set_it->sharedl1.begin()))->add_rep_event(curr_time + l2_to_l1_t, lqe);
+          set_it->sharedl1.erase(set_it->sharedl1.begin());
+        } else if (set_it->type_l1l2 == cs_tr_to_m || set_it->type_l1l2 == cs_tr_to_s) {
+          if (set_it->pending != NULL) {
+            set_it->pending->display();
             display();  rep_lqe->display();  geq->display();  ASSERTX(0);
           }
-          set_iter->last_access_time = curr_time;
-          set_iter->pending          = rep_lqe;
+          set_it->last_access_time = curr_time;
+          set_it->pending          = rep_lqe;
         } else {
           // DIR->L2->L1->L2->DIR traffic -- not implemented yet
-          LOG(ERROR) << "type_l1l2 = " << set_iter->type_l1l2 << std::endl;
+          LOG(ERROR) << "type_l1l2 = " << set_it->type_l1l2 << std::endl;
           display();  rep_lqe->display();  geq->display();  ASSERTX(0);
         }
       }
@@ -1087,14 +1087,14 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
       num_coherency_access++;
 
       if (idx != num_ways) {
-        if (set_iter->type != cs_exclusive && set_iter->type != cs_shared && set_iter->type != cs_tr_to_m) {
+        if (set_it->type != cs_exclusive && set_it->type != cs_shared && set_it->type != cs_tr_to_m) {
           LOG(ERROR) << "address = 0x" << std::hex << address << std::dec << std::endl;
-          LOG(ERROR) << "[" << curr_time << "]  sharedl1.size() = " << set_iter->sharedl1.size()
-            << " " << set_iter->type << std::endl;
+          LOG(ERROR) << "[" << curr_time << "]  sharedl1.size() = " << set_it->sharedl1.size()
+            << " " << set_it->type << std::endl;
           display();  rep_lqe->display();  geq->display();  ASSERTX(0);
         }
-        set_iter->last_access_time = curr_time;
-        set_iter->type = cs_shared;
+        set_it->last_access_time = curr_time;
+        set_it->type = cs_shared;
         // return to directory
         add_event_to_LL(curr_time, rep_lqe, true, true);
       } else {
@@ -1108,53 +1108,53 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
 
       num_coherency_access++;
       if (idx != num_ways) {
-        if (set_iter->type == cs_tr_to_s ||  // set_iter->type == cs_tr_to_m ||
-            set_iter->type == cs_tr_to_e || set_iter->type == cs_tr_to_i) {
+        if (set_it->type == cs_tr_to_s ||  // set_it->type == cs_tr_to_m ||
+            set_it->type == cs_tr_to_e || set_it->type == cs_tr_to_i) {
           show_state(rep_lqe->address);
           LOG(ERROR) << "etype = " << etype << std::endl;
           display();  rep_lqe->display();  geq->display();  ASSERTX(0);
-        } else if (set_iter->type == cs_modified && set_iter->type_l1l2 == cs_modified) {
+        } else if (set_it->type == cs_modified && set_it->type_l1l2 == cs_modified) {
           enter_intermediate_state = true;
-          if (set_iter->sharedl1.size() != 1) {
-            LOG(ERROR) << "sharedl1.size() = " << set_iter->sharedl1.size() << std::endl;
+          if (set_it->sharedl1.size() != 1) {
+            LOG(ERROR) << "sharedl1.size() = " << set_it->sharedl1.size() << std::endl;
             display();  rep_lqe->display();  geq->display();  ASSERTX(0);
           }
           // special case: data is in L1
-          set_iter->last_access_time = curr_time;
-          set_iter->type_l1l2 = cs_tr_to_i;
-          set_iter->type      = cs_tr_to_i;
-          set_iter->pending   = rep_lqe;
+          set_it->last_access_time = curr_time;
+          set_it->type_l1l2 = cs_tr_to_i;
+          set_it->type      = cs_tr_to_i;
+          set_it->pending   = rep_lqe;
           LocalQueueElement * lqe = new LocalQueueElement(this, et_m_to_m,
-              ((set_iter->tag*num_sets + set) << set_lsb));
+              ((set_it->tag*num_sets + set) << set_lsb));
           lqe->th_id = rep_lqe->th_id;
-          (*(set_iter->sharedl1.begin()))->add_rep_event(curr_time + l2_to_l1_t, lqe);
-          set_iter->sharedl1.erase(set_iter->sharedl1.begin());
-        } else if (set_iter->type == cs_modified &&
-            (set_iter->type_l1l2 == cs_tr_to_m || set_iter->type_l1l2 == cs_tr_to_s)) {
+          (*(set_it->sharedl1.begin()))->add_rep_event(curr_time + l2_to_l1_t, lqe);
+          set_it->sharedl1.erase(set_it->sharedl1.begin());
+        } else if (set_it->type == cs_modified &&
+            (set_it->type_l1l2 == cs_tr_to_m || set_it->type_l1l2 == cs_tr_to_s)) {
           enter_intermediate_state = true;
-          if (set_iter->pending != NULL) {
-            set_iter->pending->display();
+          if (set_it->pending != NULL) {
+            set_it->pending->display();
             display();  rep_lqe->display();  geq->display();  ASSERTX(0);
           }
-          set_iter->last_access_time = curr_time;
-          set_iter->type      = cs_tr_to_i;
-          set_iter->pending   = rep_lqe;
+          set_it->last_access_time = curr_time;
+          set_it->type      = cs_tr_to_i;
+          set_it->pending   = rep_lqe;
         } else {
           // evict the corresponding cache lines in L1 and L2 and return
-          while (set_iter->sharedl1.empty() == false) {
+          while (set_it->sharedl1.empty() == false) {
             LocalQueueElement * lqe = new LocalQueueElement(this, et_evict,
-                ((set_iter->tag*num_sets + set) << set_lsb));
+                ((set_it->tag*num_sets + set) << set_lsb));
             lqe->th_id = rep_lqe->th_id;
-            (*(set_iter->sharedl1.begin()))->add_rep_event(curr_time + l2_to_l1_t, lqe);
-            set_iter->sharedl1.erase(set_iter->sharedl1.begin());
+            (*(set_it->sharedl1.begin()))->add_rep_event(curr_time + l2_to_l1_t, lqe);
+            set_it->sharedl1.erase(set_it->sharedl1.begin());
           }
 
           num_ev_coherency++;
           num_destroyed_cache_lines++;
-          cache_line_life_time += (curr_time - set_iter->first_access_time);
-          time_between_last_access_and_cache_destroy += (curr_time - set_iter->last_access_time);
-          set_iter->type      = cs_invalid;
-          set_iter->type_l1l2 = cs_invalid;
+          cache_line_life_time += (curr_time - set_it->first_access_time);
+          time_between_last_access_and_cache_destroy += (curr_time - set_it->last_access_time);
+          set_it->type      = cs_invalid;
+          set_it->type_l1l2 = cs_invalid;
         }
       } else {
         rep_lqe->type = et_invalidate_nd;
@@ -1192,72 +1192,75 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
       bool hit = always_hit;
       bool enter_intermediate_state = false;
 
-      DLOG_IF(FATAL, etype != et_read && etype != et_write) << "req_lqe->type should be either et_read or et_write, not " << etype << ".\n";
+      DLOG_IF(FATAL, etype != et_read && etype != et_write)
+        << "req_lqe->type should be et_read or et_write, not " << etype << ".\n";
       if (etype == et_read) {
         // see if cache hits
         num_rd_access++;
 
         for (uint32_t idx = 0; idx < num_ways; idx++) {
-          auto set_iter = tags_set[idx];
-          if (set_iter->type == cs_invalid || set_iter->type == cs_tr_to_e) {
+          auto set_it = tags_set[idx];
+          if (set_it->type == cs_invalid || set_it->type == cs_tr_to_e) {
             continue;
           }
-          if (set_iter->tag == tag && req_lqe->from.size() == 1) {
+          if (set_it->tag == tag && req_lqe->from.size() == 1) {
             hit = true;
-          } else if (set_iter->tag == tag) {
-            if (set_iter->type_l1l2 == cs_invalid &&
-                (set_iter->type == cs_exclusive || set_iter->type == cs_shared || set_iter->type == cs_modified)) {
+          } else if (set_it->tag == tag) {
+            if (set_it->type_l1l2 == cs_invalid &&
+                (set_it->type == cs_exclusive || set_it->type == cs_shared || set_it->type == cs_modified)) {
               // cache hit, and type_l1l2 will be cs_exclusive
-              set_iter->type_l1l2 = cs_exclusive;
-              set_iter->sharedl1.insert(req_lqe->from.top());
-            } else if (set_iter->type_l1l2 == cs_exclusive &&
-                (set_iter->type == cs_exclusive || set_iter->type == cs_shared || set_iter->type == cs_modified)) {
+              set_it->type_l1l2 = cs_exclusive;
+              set_it->sharedl1.insert(req_lqe->from.top());
+            } else if (set_it->type_l1l2 == cs_exclusive &&
+                (set_it->type == cs_exclusive || set_it->type == cs_shared || set_it->type == cs_modified)) {
               // cache hit, and type_l1l2 will be cs_exclusive or cs_shared
-              set_iter->sharedl1.insert(req_lqe->from.top());
-              if (set_iter->sharedl1.size() > 1) {
-                set_iter->type_l1l2 = cs_shared;
+              set_it->sharedl1.insert(req_lqe->from.top());
+              if (set_it->sharedl1.size() > 1) {
+                set_it->type_l1l2 = cs_shared;
               }
-            } else if (set_iter->type_l1l2 == cs_shared &&
-                (set_iter->type == cs_exclusive || set_iter->type == cs_shared || set_iter->type == cs_modified)) {
+            } else if (set_it->type_l1l2 == cs_shared &&
+                (set_it->type == cs_exclusive || set_it->type == cs_shared || set_it->type == cs_modified)) {
               // cache hit, and type_l1l2 will be cs_shared
-              set_iter->sharedl1.insert(req_lqe->from.top());
-            } else if (set_iter->type_l1l2 == cs_modified && set_iter->type == cs_modified) {
+              set_it->sharedl1.insert(req_lqe->from.top());
+            } else if (set_it->type_l1l2 == cs_modified && set_it->type == cs_modified) {
               // cache hit, and type_l1l2 will be cs_shared, m_to_s event request will be delivered to L1
-              if (set_iter->sharedl1.size() > 1) {
-                LOG(ERROR) << "[" << curr_time << "]  sharedl1.size() = " << set_iter->sharedl1.size() << std::endl;
-                LOG(ERROR) << "type = " << set_iter->type << ", type_l1l2 = " << set_iter->type_l1l2 << std::endl;
-                display();  req_lqe->display();  geq->display();  ASSERTX(0);
+              if (set_it->sharedl1.size() > 1) {
+                LOG(ERROR) << "[" << curr_time << "]  sharedl1.size() = " 
+                  << set_it->sharedl1.size() << std::endl;
+                LOG(FATAL) << *this << *req_lqe << *geq;
               }
 
-              if (set_iter->sharedl1.size() == 1) {
-                if (*(set_iter->sharedl1.begin()) != req_lqe->from.top()) {
+              if (set_it->sharedl1.size() == 1) {
+                if (*(set_it->sharedl1.begin()) != req_lqe->from.top()) {
                   enter_intermediate_state = true;
                   req_lqe->from.push(this);
                   req_lqe->type = et_m_to_s;
-                  (*(set_iter->sharedl1.begin()))->add_rep_event(curr_time + l2_to_l1_t, req_lqe);
-                  set_iter->type_l1l2 = cs_tr_to_s;
-                  // set_iter->sharedl1.erase(set_iter->sharedl1.begin());
-                  set_iter->sharedl1.clear();
+                  (*(set_it->sharedl1.begin()))->add_rep_event(curr_time + l2_to_l1_t, req_lqe);
+                  set_it->type_l1l2 = cs_tr_to_s;
+                  // set_it->sharedl1.erase(set_it->sharedl1.begin());
+                  set_it->sharedl1.clear();
                 }
               } else {
-                set_iter->type_l1l2 = cs_shared;
-                set_iter->sharedl1.insert(req_lqe->from.top());
+                set_it->type_l1l2 = cs_shared;
+                set_it->sharedl1.insert(req_lqe->from.top());
               }
-            } else if ((set_iter->type_l1l2 == cs_exclusive && set_iter->type == cs_tr_to_s) ||
-                set_iter->type_l1l2 == cs_tr_to_s || set_iter->type_l1l2 == cs_tr_to_m ||
-                set_iter->type_l1l2 == cs_tr_to_i || set_iter->type == cs_tr_to_m) {
+            } else if ((set_it->type_l1l2 == cs_exclusive && set_it->type == cs_tr_to_s) ||
+                set_it->type_l1l2 == cs_tr_to_s || set_it->type_l1l2 == cs_tr_to_m ||
+                set_it->type_l1l2 == cs_tr_to_i || set_it->type == cs_tr_to_m) {
               req_lqe->type = et_nack;
             } else {
-              LOG(ERROR) << "type = " << set_iter->type << ", type_l1l2 = " << set_iter->type_l1l2 << std::endl;
-              display();  req_lqe->display();  geq->display();  ASSERTX(0);
+              LOG(ERROR) << "[" << curr_time << "]  sharedl1.size() = " 
+                << "type = " << set_it->type << ", type_l1l2 = "
+                << set_it->type_l1l2 << std::endl;
+              LOG(FATAL) << *this << *req_lqe << *geq;
             }
 
-            set_iter->last_access_time = curr_time;
+            set_it->last_access_time = curr_time;
             hit = true;
             for (uint32_t i = idx; i < num_ways-1; i++) {
               tags_set[i] = tags_set[i+1];
             }
-            tags_set[num_ways-1] = set_iter;
+            tags_set[num_ways-1] = set_it;
             break;
           }
         }
@@ -1265,107 +1268,108 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
         num_wr_access++;
 
         for (idx = 0; idx < num_ways; idx++) {
-          set_iter = tags_set[idx];
-          if (set_iter->type == cs_exclusive || set_iter->type == cs_shared) {
-            if (set_iter->tag == tag) {
-              if (set_iter->type == cs_exclusive && set_iter->sharedl1.size() == 1 &&
-                  (*(set_iter->sharedl1.begin()) == req_lqe->from.top())) {
-                set_iter->last_access_time = curr_time;
-                set_iter->type = cs_tr_to_m;
+          set_it = tags_set[idx];
+          if (set_it->type == cs_exclusive || set_it->type == cs_shared) {
+            if (set_it->tag == tag) {
+              if (set_it->type == cs_exclusive && set_it->sharedl1.size() == 1 &&
+                  (*(set_it->sharedl1.begin()) == req_lqe->from.top())) {
+                set_it->last_access_time = curr_time;
+                set_it->type = cs_tr_to_m;
               } else {
-                while (set_iter->sharedl1.empty() == false) {
-                  if ((*(set_iter->sharedl1.begin())) != req_lqe->from.top()) {
-                    LocalQueueElement * lqe = new LocalQueueElement(this, et_evict,
-                        ((set_iter->tag*num_sets + set) << set_lsb));
+                for (auto && it : set_it->sharedl1) {
+                  if (it != req_lqe->from.top()) {
+                    auto lqe = new LocalQueueElement(this, et_evict,
+                        ((set_it->tag*num_sets + set) << set_lsb));
                     lqe->th_id = req_lqe->th_id;
-                    (*(set_iter->sharedl1.begin()))->add_rep_event(curr_time + l2_to_l1_t, lqe);
+                    it->add_rep_event(curr_time + l2_to_l1_t, lqe);
                   }
-                  set_iter->sharedl1.erase(set_iter->sharedl1.begin());
-                  set_iter->last_access_time = curr_time;
-                  set_iter->type = cs_invalid;
+                  set_it->last_access_time = curr_time;
+                  set_it->type = cs_invalid;
                 }
+                set_it->sharedl1.clear();
               }
               num_upgrade_req++;
               is_coherence_miss = true;
               break;
             }
-          } else if (set_iter->type == cs_invalid || set_iter->type == cs_tr_to_e) {
+          } else if (set_it->type == cs_invalid || set_it->type == cs_tr_to_e) {
             continue;
-          } else if (set_iter->tag == tag) {
-            if (set_iter->type == cs_modified && set_iter->type_l1l2 == cs_invalid) {
+          } else if (set_it->tag == tag) {
+            if (set_it->type == cs_modified && set_it->type_l1l2 == cs_invalid) {
               // cache hit, and type_l1l2 will be cs_modified
-            } else if (set_iter->type == cs_modified && set_iter->type_l1l2 == cs_modified) {
+            } else if (set_it->type == cs_modified && set_it->type_l1l2 == cs_modified) {
               // cache hit, and type_l1l2 will be cs_modified
-              if (set_iter->sharedl1.size() != 1) {
-                LOG(ERROR) << "[" << curr_time << "]  sharedl1.size() = " << set_iter->sharedl1.size() << std::endl;
-                LOG(ERROR) << "type = " << set_iter->type << ", type_l1l2 = " << set_iter->type_l1l2 << std::endl;
-                display();  req_lqe->display();  geq->display();  ASSERTX(0);
+              if (set_it->sharedl1.size() != 1) {
+                LOG(ERROR) << "[" << curr_time << "]  sharedl1.size() = " 
+                  << set_it->sharedl1.size() << std::endl;
+                LOG(FATAL) << *this << *req_lqe << *geq;
               }
-              if (*(set_iter->sharedl1.begin()) != req_lqe->from.top()) {
+              if (*(set_it->sharedl1.begin()) != req_lqe->from.top()) {
                 enter_intermediate_state = true;
                 req_lqe->from.push(this);
                 req_lqe->type = et_m_to_m;
-                (*(set_iter->sharedl1.begin()))->add_rep_event(curr_time + l2_to_l1_t, req_lqe);
-                set_iter->type_l1l2 = cs_tr_to_m;
-                set_iter->sharedl1.erase(set_iter->sharedl1.begin());
-                set_iter->last_access_time = curr_time;
+                (*(set_it->sharedl1.begin()))->add_rep_event(curr_time + l2_to_l1_t, req_lqe);
+                set_it->type_l1l2 = cs_tr_to_m;
+                set_it->sharedl1.clear();
+                set_it->last_access_time = curr_time;
                 hit = true;
                 for (uint32_t i = idx; i < num_ways-1; i++) {
                   tags_set[i] = tags_set[i+1];
                 }
-                tags_set[num_ways-1] = set_iter;
+                tags_set[num_ways-1] = set_it;
                 break;
               }
-            } else if (set_iter->type == cs_modified && set_iter->type_l1l2 == cs_exclusive) {
+            } else if (set_it->type == cs_modified && set_it->type_l1l2 == cs_exclusive) {
               // cache hit, and type_l1l2 will be cs_modified
-              if (set_iter->sharedl1.size() > 1) {
-                LOG(ERROR) << "[" << curr_time << "]  sharedl1.size() = " << set_iter->sharedl1.size() << std::endl;
-                LOG(ERROR) << "type = " << set_iter->type << ", type_l1l2 = " << set_iter->type_l1l2 << std::endl;
-                display();  req_lqe->display();  geq->display();  ASSERTX(0);
+              if (set_it->sharedl1.size() > 1) {
+                LOG(ERROR) << "[" << curr_time << "]  sharedl1.size() = "
+                  << set_it->sharedl1.size() << std::endl;
+                LOG(FATAL) << *this << *req_lqe << *geq;
               }
 
-              if (set_iter->sharedl1.empty() == false && (*(set_iter->sharedl1.begin())) != req_lqe->from.top()) {
-                LocalQueueElement * lqe = new LocalQueueElement(this, et_evict,
-                    ((set_iter->tag*num_sets + set) << set_lsb));
+              if (set_it->sharedl1.empty() == false && (*(set_it->sharedl1.begin())) != req_lqe->from.top()) {
+               auto lqe = new LocalQueueElement(this, et_evict,
+                    ((set_it->tag*num_sets + set) << set_lsb));
                 lqe->th_id = req_lqe->th_id;
-                (*(set_iter->sharedl1.begin()))->add_rep_event(curr_time + l2_to_l1_t, lqe);
-                set_iter->sharedl1.erase(set_iter->sharedl1.begin());
+                (*(set_it->sharedl1.begin()))->add_rep_event(curr_time + l2_to_l1_t, lqe);
+                set_it->sharedl1.erase(set_it->sharedl1.begin());
               }
-            } else if (set_iter->type == cs_modified && set_iter->type_l1l2 == cs_shared) {
+            } else if (set_it->type == cs_modified && set_it->type_l1l2 == cs_shared) {
               // cache hit, and type_l1l2 will be cs_modified
-              while (set_iter->sharedl1.empty() == false) {
-                if ((*(set_iter->sharedl1.begin())) != req_lqe->from.top()) {
-                  LocalQueueElement * lqe = new LocalQueueElement(this, et_evict,
-                      ((set_iter->tag*num_sets + set) << set_lsb));
+              for (auto && it : set_it->sharedl1) {
+                if (it != req_lqe->from.top()) {
+                  auto lqe = new LocalQueueElement(this, et_evict,
+                      ((set_it->tag*num_sets + set) << set_lsb));
                   lqe->th_id = req_lqe->th_id;
-                  (*(set_iter->sharedl1.begin()))->add_rep_event(curr_time + l2_to_l1_t, lqe);
+                  it->add_rep_event(curr_time + l2_to_l1_t, lqe);
                 }
-                set_iter->sharedl1.erase(set_iter->sharedl1.begin());
               }
-            } else if ((set_iter->type_l1l2 == cs_exclusive && set_iter->type == cs_tr_to_s) ||
-                set_iter->type_l1l2 == cs_tr_to_s || set_iter->type_l1l2 == cs_tr_to_m ||
-                set_iter->type_l1l2 == cs_tr_to_i || set_iter->type == cs_tr_to_m) {
-              set_iter->last_access_time = curr_time;
+              set_it->sharedl1.clear();
+            } else if ((set_it->type_l1l2 == cs_exclusive && set_it->type == cs_tr_to_s) ||
+                set_it->type_l1l2 == cs_tr_to_s || set_it->type_l1l2 == cs_tr_to_m ||
+                set_it->type_l1l2 == cs_tr_to_i || set_it->type == cs_tr_to_m) {
+              set_it->last_access_time = curr_time;
               req_lqe->type = et_nack;
               hit = true;
               for (uint32_t i = idx; i < num_ways-1; i++) {
                 tags_set[i] = tags_set[i+1];
               }
-              tags_set[num_ways-1] = set_iter;
+              tags_set[num_ways-1] = set_it;
               break;
             } else {
-              LOG(ERROR) << "type = " << set_iter->type << ", type_l1l2 = " << set_iter->type_l1l2 << std::endl;
-              display();  req_lqe->display();  geq->display();  ASSERTX(0);
+              LOG(ERROR) << "type = " << set_it->type << ", type_l1l2 = "
+                << set_it->type_l1l2 << std::endl;
+              LOG(FATAL) << *this << *req_lqe << *geq;
             }
 
-            set_iter->last_access_time = curr_time;
-            set_iter->type_l1l2 = cs_modified;
-            set_iter->sharedl1.insert(req_lqe->from.top());
+            set_it->last_access_time = curr_time;
+            set_it->type_l1l2 = cs_modified;
+            set_it->sharedl1.insert(req_lqe->from.top());
             hit = true;
             for (uint32_t i = idx; i < num_ways-1; i++) {
               tags_set[i] = tags_set[i+1];
             }
-            tags_set[num_ways-1] = set_iter;
+            tags_set[num_ways-1] = set_it;
             break;
           }
         }
@@ -1390,9 +1394,7 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
     }
 
     if (any_request == false) {
-      req_event_iter->second->display();
-      geq->display();
-      CHECK(false);
+      LOG(FATAL) << *(req_event_iter->second) << *geq;
     }
   }
 

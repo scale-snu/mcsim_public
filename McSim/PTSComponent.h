@@ -108,6 +108,8 @@ struct LocalQueueElement {
     from(), type(type_), address(address_), th_id(th_id_), dummy(false), rob_entry(-1) { from.push(comp); }
 
   void display();
+
+  friend std::ostream& operator<<(std::ostream &out, LocalQueueElement &l);
 };
 
 
@@ -129,6 +131,7 @@ class Component {  // meta-class
   virtual uint32_t process_event(uint64_t curr_time) = 0;
   virtual void show_state(uint64_t address) { }
   virtual void display();
+  virtual std::ostream & print(std::ostream & out) const;
 
   std::multimap<uint64_t, LocalQueueElement *> req_event;
   std::multimap<uint64_t, LocalQueueElement *> rep_event;
@@ -143,6 +146,9 @@ class Component {  // meta-class
   bool     get_param_bool(const std::string & param, bool def_value) const;
   uint32_t log2(uint64_t num);
   inline uint64_t ceil_by_y(uint64_t x, uint64_t y) { return ((x + y - 1) / y) * y; }
+
+ public:
+  friend std::ostream& operator<<(std::ostream &out, const Component &c) { return c.print(out); }
 };
 
 
@@ -168,7 +174,10 @@ class GlobalEventQueue {
   uint32_t interleave_xor_base_bit;
   uint32_t page_sz_base_bit;
   uint32_t which_mc(uint64_t);  // which mc does an address belong to?
+
+  friend std::ostream& operator<<(std::ostream &out, GlobalEventQueue &g);
 };
+
 }  // namespace PinPthread
 
 #endif  // PTSCOMPONENT_H_

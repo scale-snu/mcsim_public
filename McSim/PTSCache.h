@@ -136,14 +136,14 @@ class CacheL2 : public Cache {
     uint64_t last_access_time;
 
     L2Entry() : tag(0), type(cs_invalid), type_l1l2(cs_invalid),  sharedl1(),
-    pending(NULL), first_access_time(0), last_access_time(0) { }
+      pending(nullptr), first_access_time(0), last_access_time(0) { }
   };
 
   CacheL2(component_type type_, uint32_t num_, McSim * mcsim_);
   virtual ~CacheL2();
 
-  void add_req_event(uint64_t, LocalQueueElement *, Component * from = NULL);
-  void add_rep_event(uint64_t, LocalQueueElement *, Component * from = NULL);
+  void add_req_event(uint64_t, LocalQueueElement *, Component * from = nullptr);
+  void add_rep_event(uint64_t, LocalQueueElement *, Component * from = nullptr);
   uint32_t process_event(uint64_t curr_time);
   void show_state(uint64_t);
 
