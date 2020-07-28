@@ -81,6 +81,8 @@ class Cache : public Component {
 };
 
 
+using l1_tag_pair = std::pair<uint64_t, coherence_state_type>;
+
 class CacheL1 : public Cache {
  public:
   explicit CacheL1(component_type type_, uint32_t num_, McSim * mcsim_);
@@ -120,6 +122,7 @@ class CacheL1 : public Cache {
 
   void add_event_to_lsu(uint64_t curr_time, LocalQueueElement *);
   void do_prefetch(uint64_t curr_time, const LocalQueueElement &);
+  inline void update_LRU(uint32_t idx, l1_tag_pair ** tags_set, l1_tag_pair * const set_it);
 };
 
 
@@ -149,9 +152,8 @@ class CacheL2 : public Cache {
 
   Directory * directory;  // downlink
   NoC  * crossbar;        // downlink
-  std::vector<CacheL1  *> cachel1d;   // uplink
-  std::vector<CacheL1  *> cachel1i;   // uplink
-  // std::vector< std::list< L2Entry > > tags;  // address + coherence state of a set-associative cache
+  std::vector<CacheL1 *> cachel1d;   // uplink
+  std::vector<CacheL1 *> cachel1i;   // uplink
   L2Entry *** tags;  // address + coherence state of a set-associative cache
 
   // private:
@@ -171,6 +173,7 @@ class CacheL2 : public Cache {
 
   void add_event_to_LL(uint64_t curr_time, LocalQueueElement *, bool check_top, bool is_data = false);
   void test_tags(uint32_t set);
+  inline void update_LRU(uint32_t idx, L2Entry ** tags_set, L2Entry * const set_it);
 };
 
 }  // namespace PinPthread
