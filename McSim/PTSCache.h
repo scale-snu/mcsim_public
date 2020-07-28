@@ -140,6 +140,8 @@ class CacheL2 : public Cache {
 
     L2Entry() : tag(0), type(cs_invalid), type_l1l2(cs_invalid),  sharedl1(),
       pending(nullptr), first_access_time(0), last_access_time(0) { }
+
+    friend std::ostream & operator<<(std::ostream & out, L2Entry & l2);
   };
 
   CacheL2(component_type type_, uint32_t num_, McSim * mcsim_);
@@ -174,6 +176,7 @@ class CacheL2 : public Cache {
   void add_event_to_LL(uint64_t curr_time, LocalQueueElement *, bool check_top, bool is_data = false);
   void test_tags(uint32_t set);
   inline void update_LRU(uint32_t idx, L2Entry ** tags_set, L2Entry * const set_it);
+  inline void req_L1_evict(uint64_t curr_time, L2Entry * const set_it, uint64_t addr, LocalQueueElement * lqe, bool always);
 };
 
 }  // namespace PinPthread
