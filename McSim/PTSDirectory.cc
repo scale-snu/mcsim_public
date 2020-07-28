@@ -124,9 +124,7 @@ void Directory::add_req_event(
     uint64_t event_time,
     LocalQueueElement * local_event,
     Component * from) {
-  if (event_time % process_interval != 0) {
-    event_time = event_time + process_interval - event_time%process_interval;
-  }
+  event_time = ceil_by_y(event_time, process_interval);
   geq->add_event(event_time, this);
   req_event.insert(std::pair<uint64_t, LocalQueueElement *>(event_time, local_event));
 }
@@ -136,9 +134,7 @@ void Directory::add_rep_event(
     uint64_t event_time,
     LocalQueueElement * local_event,
     Component * from) {
-  if (event_time % process_interval != 0) {
-    event_time = event_time + process_interval - event_time%process_interval;
-  }
+  event_time = ceil_by_y(event_time, process_interval);
   geq->add_event(event_time, this);
 
   if (local_event->type == et_rd_dir_info_req) {

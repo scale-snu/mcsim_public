@@ -29,6 +29,7 @@
  */
 
 #include <glog/logging.h>
+#include <algorithm>
 #include <iomanip>
 #include <sstream>
 
@@ -103,31 +104,6 @@ MemoryController::MemoryController(
   process_interval = get_param_uint64("process_interval", 10);
   refresh_interval = get_param_uint64("refresh_interval",  0);
 
-  if (get_param_bool("mc_asymmetric_mode", false)) {
-    std::stringstream num_to_str_;
-    num_to_str_ << num << ".";
-    std::string num_to_str = num_to_str_.str();
-
-    process_interval = get_param_uint64(num_to_str+"process_interval", process_interval);
-    refresh_interval = get_param_uint64(num_to_str+"refresh_interval", refresh_interval);
-    mc_to_dir_t  = get_param_uint64(num_to_str+"to_dir_t", mc_to_dir_t);
-    num_ranks_per_mc = get_param_uint64(num_to_str+"num_ranks_per_mc", num_ranks_per_mc);
-    num_banks_per_rank = get_param_uint64(num_to_str+"num_banks_per_rank", num_banks_per_rank);
-    tRCD          = get_param_uint64(num_to_str+"tRCD", tRCD);
-    tRR           = get_param_uint64(num_to_str+"tRR",  tRR);
-    tRP           = get_param_uint64(num_to_str+"tRP",  tRP);
-    tCL           = get_param_uint64(num_to_str+"tCL",  tCL);
-    tBL           = get_param_uint64(num_to_str+"tBL",  tBL);
-    tBBL          = get_param_uint64(num_to_str+"tBBL", tBBL);
-    tRAS          = get_param_uint64(num_to_str+"tRAS", tRAS);
-    tWRBUB        = get_param_uint64(num_to_str+"tWRBUB", tWRBUB);
-    tRWBUB        = get_param_uint64(num_to_str+"tRWBUB", tRWBUB);
-    tRRBUB        = get_param_uint64(num_to_str+"tRRBUB", tRRBUB);
-    tWTR          = get_param_uint64(num_to_str+"tWTR", tWTR);
-
-    num_pred_entries = get_param_uint64("num_pred_entries", num_pred_entries);
-  }
-
   if (refresh_interval != 0) {
     geq->add_event(refresh_interval, this);
   }
@@ -165,7 +141,6 @@ MemoryController::MemoryController(
 
   is_fixed_latency      = get_param_bool("is_fixed_latency", false);
   is_fixed_bw_n_latency = get_param_bool("is_fixed_bw_n_latency", false);
-  bimodal_entry         = 0;
 
   display_os_page_usage = get_param_bool("display_os_page_usage", false);
   num_reqs              = 0;
@@ -208,6 +183,8 @@ MemoryController::~MemoryController() {
            << ", " << std::setw(7) << iter.second << ") times at (Core, MC)." <<  std::endl;
     }
   }
+  delete[] pred_history;
+  delete[] num_req_from_a_th;
 }
 
 
@@ -215,9 +192,7 @@ void MemoryController::add_req_event(
     uint64_t event_time,
     LocalQueueElement * local_event,
     Component * from) {
-  if (event_time % process_interval != 0) {
-    event_time += process_interval - event_time%process_interval;
-  }
+  event_time = ceil_by_y(event_time, process_interval);
 
   if (is_fixed_latency == true) {
     if (local_event->type == et_evict || local_event->type == et_dir_evict) {
@@ -243,7 +218,7 @@ void MemoryController::add_req_event(
 
   // update access distribution
   num_reqs++;
-  uint64_t page_num = (local_event->address >> page_sz_base_bit);
+  uint64_t page_num = get_page_num(local_event->address);
   auto p_iter = os_page_acc_dist_curr.find(page_num);
 
   if (p_iter != os_page_acc_dist_curr.end()) {
@@ -274,19 +249,19 @@ uint64_t MemoryController::get_page_num(uint64_t addr) {
 
 
 void MemoryController::show_state(uint64_t curr_time) {
-  std::cout << "  -- MC  [" << num << "] : curr_time = " << curr_time << std::endl;
+  LOG(INFO) << "  -- MC  [" << num << "] : curr_time = " << curr_time << std::endl;
 
-  uint32_t i;
-  std::vector<LocalQueueElement *>::iterator iter;
-  for (iter = req_l.begin(), i = 0; iter != req_l.end()/* && i < req_window_sz*/ ; ++iter, ++i) {
-    uint64_t address  = (*iter)->address;
-    uint32_t rank_num = get_rank_num(address);
-    uint32_t bank_num = get_bank_num(address);
+  uint32_t i = 0;
+  for (auto && it : req_l) {
+    uint32_t rank_num = get_rank_num(it->address);
+    uint32_t bank_num = get_bank_num(it->address);
     std::cout << "  -- req_l[" << std::setw(2) <<  i << "] = (" << rank_num << ", " << bank_num
-      << ", 0x" << std::hex << get_page_num((*iter)->address) << std::dec << ") : " << std::hex << reinterpret_cast<uint64_t *>(*iter) << std::dec << " : "; (*iter)->display();
+      << ", 0x" << std::hex << get_page_num(it->address) << std::dec << ") : " << std::hex
+      << reinterpret_cast<uint64_t *>(it) << std::dec << " : " << *it;
+    i++;
   }
   if (curr_batch_last >= 0) {
-    std::cout << "  -- current batch ends at req_l[" << std::setw(2) << curr_batch_last << "]" << std::endl;
+    std::cout << "  -- current batch ends at req_l[" << std::setw(2) << curr_batch_last << "]\n";
   }
 
   for (uint32_t i = 0; i < num_ranks_per_mc; i++) {
@@ -299,12 +274,10 @@ void MemoryController::show_state(uint64_t curr_time) {
   }
 
   for (uint32_t i = 0; i < num_ranks_per_mc; i++) {
-    std::cout << "  -- last_activate_time[" << i << "] = " << last_activate_time[i] << std::endl;
+    std::cout << "  -- last_act_time[" << i << "] = " << last_activate_time[i] << std::endl;
   }
 
-
   auto miter = dp_status.begin();
-
   while (miter != dp_status.end()) {
     std::cout << "  -- data_path_status = ("
       << miter->first << ", "
@@ -312,7 +285,6 @@ void MemoryController::show_state(uint64_t curr_time) {
     ++miter;
   }
   miter = rd_dp_status.begin();
-
   while (miter != rd_dp_status.end()) {
     std::cout << "  -- rd_dp_status = ("
       << miter->first << ", "
@@ -320,7 +292,6 @@ void MemoryController::show_state(uint64_t curr_time) {
     ++miter;
   }
   miter = wr_dp_status.begin();
-
   while (miter != wr_dp_status.end()) {
     std::cout << "  -- wr_dp_status = ("
       << miter->first << ", "
@@ -337,34 +308,30 @@ uint32_t MemoryController::process_event(uint64_t curr_time) {
   last_process_time = curr_time;
 
   pre_processing(curr_time);
-  uint32_t i, i2;
+  uint32_t i;
   std::vector<LocalQueueElement *>::iterator iter, iter2;
 
-  int32_t c_idx    = -1;                                       // candidate index
-  auto c_iter = req_l.end();
+  int32_t c_idx    = -1;  // candidate index
+  auto c_iter      = req_l.end();
   bool    page_hit = false;
   int32_t num_req_from_the_same_thread = req_l.size() + 1;
 
   // first, find a request that can be serviced at this cycle
-  for (iter = req_l.begin(), i = 0; iter != req_l.end()/* && i < req_window_sz*/; ++iter, ++i) {
+  for (iter = req_l.begin(), i = 0; iter != req_l.end(); ++iter, ++i) {
     if (c_idx >= 0 && iter != req_l.begin() && (int32_t)i > curr_batch_last) {
       // we found a candidate from the ready batch already
       break;
     }
 
-    if (i >= req_window_sz) {
+    if (i >= req_window_sz)
       break;
-    }
 
     // check constraints
-    uint64_t address  = (*iter)->address;
-    event_type type   = (*iter)->type;
-    uint32_t rank_num = get_rank_num(address);
-    uint32_t bank_num = get_bank_num(address);
-    uint64_t page_num = get_page_num(address);
-
-    uint32_t tRCD_curr = tRCD;
-    uint32_t tRP_curr = 0;
+    const uint64_t & address  = (*iter)->address;
+    const event_type type   = (*iter)->type;
+    const uint32_t rank_num = get_rank_num(address);
+    const uint32_t bank_num = get_bank_num(address);
+    const uint64_t page_num = get_page_num(address);
 
     BankStatus & curr_bank = bank_status[rank_num][bank_num];
     std::map<uint64_t, mc_bank_action>::iterator miter, rd_miter, wr_miter;
@@ -374,22 +341,23 @@ uint32_t MemoryController::process_event(uint64_t curr_time) {
     }
     switch (curr_bank.action_type) {
       case mc_bank_precharge:
-        if (curr_bank.action_time + tRP_curr*process_interval > curr_time) {
+        if (curr_bank.action_time + tRP*process_interval > curr_time) {
           break;
         }
       case mc_bank_idle:
         if (page_hit == false &&  // page_hit has priority 2
             last_activate_time[rank_num] + tRR*process_interval <= curr_time) {
-          if (num_req_from_a_th[(*iter)->th_id] < num_req_from_the_same_thread ||
-              (num_req_from_a_th[(*iter)->th_id] == num_req_from_the_same_thread && c_idx == -1)) {
+          int32_t n_req_from_curr_th = num_req_from_a_th[(*iter)->th_id];
+          if (n_req_from_curr_th < num_req_from_the_same_thread ||
+              (n_req_from_curr_th == num_req_from_the_same_thread && c_idx == -1)) {
             c_idx  = i;
             c_iter = iter;
-            num_req_from_the_same_thread = num_req_from_a_th[(*iter)->th_id];
+            num_req_from_the_same_thread = n_req_from_curr_th;
           }
         }
         break;
       case mc_bank_activate:
-        if (curr_bank.action_time + tRCD_curr*process_interval > curr_time) {
+        if (curr_bank.action_time + tRCD*process_interval > curr_time) {
           break;
         }
       case mc_bank_read:
@@ -411,10 +379,9 @@ uint32_t MemoryController::process_event(uint64_t curr_time) {
                 iter2++;
                 continue;
               }
-              uint64_t address  = (*iter2)->address;
-              if (rank_num == get_rank_num(address) &&
-                  bank_num == get_bank_num(address) &&
-                  curr_bank.page_num == get_page_num(address)) {
+              if (rank_num == get_rank_num((*iter2)->address) &&
+                  bank_num == get_bank_num((*iter2)->address) &&
+                  curr_bank.page_num == get_page_num((*iter2)->address)) {
                 need_precharge = false;
                 break;
               }
@@ -424,17 +391,18 @@ uint32_t MemoryController::process_event(uint64_t curr_time) {
             if (need_precharge == true &&
                 page_hit == false &&  // page_hit has priority 2
                 last_activate_time[rank_num] + tRR*process_interval <= curr_time) {
-              if (num_req_from_a_th[(*iter)->th_id] < num_req_from_the_same_thread ||
-                  (num_req_from_a_th[(*iter)->th_id] == num_req_from_the_same_thread && c_idx == -1)) {
+              int32_t n_req_from_curr_th = num_req_from_a_th[(*iter)->th_id];
+              if (n_req_from_curr_th < num_req_from_the_same_thread ||
+                  (n_req_from_curr_th == num_req_from_the_same_thread && c_idx == -1)) {
                 c_idx  = i;
                 c_iter = iter;
-                num_req_from_the_same_thread = num_req_from_a_th[(*iter)->th_id];
+                num_req_from_the_same_thread = n_req_from_curr_th;
               }
             }
           }
         } else {  // row hit
           dp_status.erase(dp_status.begin(), dp_status.lower_bound(curr_time));
-          miter    =    dp_status.lower_bound(curr_time + tCL*process_interval);
+          auto miter = dp_status.lower_bound(curr_time + tCL*process_interval);
           bool met_constraints = false;
           switch (type) {
             case et_rd_dir_info_req:
@@ -509,8 +477,8 @@ uint32_t MemoryController::process_event(uint64_t curr_time) {
               }
               break;
             default:
-              LOG(ERROR) << "action_type = " << curr_bank.action_type << std::endl;
-              show_state(curr_time);  ASSERTX(0);
+              show_state(curr_time);
+              LOG(FATAL) << "currenly at req_l[" << i << "]\n";
               break;
           }
           if (met_constraints == true &&
@@ -524,8 +492,8 @@ uint32_t MemoryController::process_event(uint64_t curr_time) {
         }
         break;
       default:
-        LOG(ERROR) << "curr (rank, bank) = (" << rank_num << ", " << bank_num << ")" << std::endl;
-        show_state(curr_time);  ASSERTX(0);
+        show_state(curr_time);
+        LOG(FATAL) << "currenly at req_l[" << i << "]\n";
         break;
     }
   }
@@ -534,25 +502,20 @@ uint32_t MemoryController::process_event(uint64_t curr_time) {
     i    = c_idx;
     iter = c_iter;
     // check bank_status
-    uint64_t address  = (*iter)->address;
-
-    event_type type   = (*iter)->type;
-    uint32_t rank_num = get_rank_num(address);
-    uint32_t bank_num = get_bank_num(address);
-    uint64_t page_num = get_page_num(address);
+    const uint64_t address  = (*iter)->address;
+    const event_type type   = (*iter)->type;
+    const uint32_t rank_num = get_rank_num(address);
+    const uint32_t bank_num = get_bank_num(address);
+    const uint64_t page_num = get_page_num(address);
     BankStatus & curr_bank = bank_status[rank_num][bank_num];
 
-    uint32_t mc_to_dir_t_curr = mc_to_dir_t;
-    uint32_t tRAS_curr        = tRAS;
-    uint32_t tCL_curr         = tCL;
-    uint32_t tRP_curr         = tRP;
     std::map<uint64_t, mc_bank_action>::iterator miter, rd_miter, wr_miter;
 
     switch (curr_bank.action_type) {
       case mc_bank_precharge:
       case mc_bank_idle:
         curr_bank.action_time  = curr_time;
-        curr_bank.page_num = page_num;
+        curr_bank.page_num     = page_num;
         curr_bank.action_type  = mc_bank_activate;
         last_activate_time[rank_num] = curr_time;
         curr_bank.last_activate_time = curr_time;
@@ -564,12 +527,13 @@ uint32_t MemoryController::process_event(uint64_t curr_time) {
         if (curr_bank.page_num != page_num) {  // row miss
           if (policy == mc_scheduling_open) {
             num_precharge++;
-            curr_bank.action_time = tRP_curr*process_interval + ((curr_time - curr_bank.last_activate_time >= tRAS_curr*process_interval) ?
-                curr_time : (tRAS_curr*process_interval + curr_bank.last_activate_time));
+            curr_bank.action_time = tRP*process_interval +
+                std::max(curr_time, tRAS*process_interval + curr_bank.last_activate_time);
             curr_bank.action_type = mc_bank_precharge;
           }
           break;
         } else {  // row hit
+          mc_bank_action curr_action_type;
           switch (type) {
             case et_rd_dir_info_req:
             case et_rd_dir_info_rep:
@@ -585,50 +549,16 @@ uint32_t MemoryController::process_event(uint64_t curr_time) {
               curr_bank.action_time = curr_time;
 
               for (uint32_t j = 0; j < tBL; j++) {
-                uint64_t next_time = curr_time + (tCL_curr+j)*process_interval;
-                dp_status.insert(std::pair<uint64_t, mc_bank_action>(next_time, mc_bank_read));
-                rd_dp_status.insert(std::pair<uint64_t, mc_bank_action>(next_time, mc_bank_read));
+                uint64_t next_time = curr_time + (tCL+j)*process_interval;
+                dp_status.insert(std::pair{next_time, mc_bank_read});
+                rd_dp_status.insert(std::pair{next_time, mc_bank_read});
               }
               last_read_time.first  = rank_num;
-              last_read_time.second = curr_time;  // + (tCL_curr + tBL)*process_interval;
-              last_read_time_rank[rank_num] = curr_time + (tCL_curr + tBL)*process_interval;
+              last_read_time.second = curr_time;  // + (tCL + tBL)*process_interval;
+              last_read_time_rank[rank_num] = curr_time + (tCL + tBL)*process_interval;
+              directory->add_rep_event(curr_time + mc_to_dir_t, *iter);
 
-              directory->add_rep_event(curr_time + mc_to_dir_t_curr, *iter);
-              if (par_bs == true) num_req_from_a_th[(*iter)->th_id]--;
-              if (policy == mc_scheduling_open) {
-                curr_bank.action_type = mc_bank_read;
-              } else {
-                curr_bank.action_time = tRP_curr*process_interval + ((curr_time - curr_bank.last_activate_time >= tRAS_curr*process_interval) ?
-                    curr_time : (tRAS_curr*process_interval + curr_bank.last_activate_time));
-                curr_bank.action_type = mc_bank_precharge;
-                num_precharge++;
-                iter2 = iter;
-                i2    = i;
-                ++iter2;
-                ++i2;
-                for ( ; iter2 != req_l.end() && i2 < req_window_sz; ++iter2, ++i2) {
-                  uint64_t address  = (*iter2)->address;
-                  if (rank_num == get_rank_num(address) &&
-                      bank_num == get_bank_num(address) &&
-                      page_num == get_page_num(address)) {
-                    curr_bank.action_type = mc_bank_read;
-                    num_precharge--;
-                    curr_bank.action_time -= tRP_curr*process_interval;
-                    break;
-                  }
-                }
-              }
-              if (par_bs == true && curr_batch_last == (int32_t) i) {
-                if (i == 0) {
-                  curr_batch_last = (int32_t)req_l.size() - 2;
-                  if (curr_batch_last > (int32_t)req_window_sz - 1) curr_batch_last = req_window_sz - 1;
-                } else {
-                  curr_batch_last--;
-                }
-              } else if (par_bs == true && curr_batch_last > (int32_t)i) {
-                curr_batch_last--;
-              }
-              req_l.erase(iter);
+              curr_action_type = mc_bank_read;
               break;
             case et_evict:
             case et_dir_evict:
@@ -639,79 +569,77 @@ uint32_t MemoryController::process_event(uint64_t curr_time) {
               curr_bank.action_time = curr_time;
 
               for (uint32_t j = 0; j < tBL; j++) {
-                uint64_t next_time = curr_time + (tCL_curr+j)*process_interval;
-                dp_status.insert(std::pair<uint64_t, mc_bank_action>(next_time, mc_bank_write));
-                wr_dp_status.insert(std::pair<uint64_t, mc_bank_action>(next_time, mc_bank_write));
+                uint64_t next_time = curr_time + (tCL+j)*process_interval;
+                dp_status.insert(std::pair{next_time, mc_bank_write});
+                wr_dp_status.insert(std::pair{next_time, mc_bank_write});
               }
-              last_write_time[rank_num] = curr_time + (tCL_curr+tBL)*process_interval;
+              last_write_time[rank_num] = curr_time + (tCL+tBL)*process_interval;
 
-              if (par_bs == true) num_req_from_a_th[(*iter)->th_id]--;
               if (type == et_s_rd_wr) {
                 (*iter)->type = et_s_rd;
-                directory->add_rep_event(curr_time + mc_to_dir_t_curr, *iter);
+                directory->add_rep_event(curr_time + mc_to_dir_t, *iter);
               } else {
                 delete *iter;
               }
-              if (policy == mc_scheduling_open) {
-                curr_bank.action_type = mc_bank_write;
-              } else {
-                curr_bank.action_time = tRP_curr*process_interval + ((curr_time - curr_bank.last_activate_time >= tRAS_curr*process_interval) ?
-                    curr_time : (tRAS_curr*process_interval + curr_bank.last_activate_time));
-                curr_bank.action_type = mc_bank_precharge;
-                num_precharge++;
-                iter2 = iter;
-                i2    = i;
-                ++iter2;
-                ++i2;
-                for ( ; iter2 != req_l.end() && i2 < req_window_sz; ++iter2, ++i2) {
-                  uint64_t address  = (*iter2)->address;
-                  if (rank_num == get_rank_num(address) &&
-                      bank_num == get_bank_num(address) &&
-                      page_num == get_page_num(address)) {
-                    curr_bank.action_type = mc_bank_write;
-                    num_precharge--;
-                    curr_bank.action_time -= tRP_curr*process_interval;
-                    break;
-                  }
-                }
-              }
 
-              if (par_bs == true && curr_batch_last == (int32_t)i) {
-                if (i == 0) {
-                  curr_batch_last = (int32_t)req_l.size() - 2;
-                  if (curr_batch_last > (int32_t)req_window_sz - 1) curr_batch_last = req_window_sz - 1;
-                } else {
-                  curr_batch_last--;
-                }
-              } else if (par_bs == true && curr_batch_last > (int32_t)i) {
-                curr_batch_last--;
-              }
-              req_l.erase(iter);
+              curr_action_type = mc_bank_write;
               break;
             default:
-              LOG(ERROR) << "action_type = " << curr_bank.action_type << std::endl;
-              show_state(curr_time);  ASSERTX(0);
+              show_state(curr_time);
+              LOG(FATAL) << "currenly at req_l[" << i << "]\n";
               break;
           }
+          if (par_bs == true) num_req_from_a_th[(*iter)->th_id]--;
+          if (policy == mc_scheduling_open) {
+            curr_bank.action_type = curr_action_type;
+          } else {
+            num_precharge++;
+            curr_bank.action_time = tRP*process_interval +
+              std::max(curr_time, tRAS*process_interval + curr_bank.last_activate_time);
+            curr_bank.action_type = mc_bank_precharge;
+            iter2 = iter;
+            uint32_t i2 = i;
+            ++iter2;
+            ++i2;
+            for ( ; iter2 != req_l.end() && i2 < req_window_sz; ++iter2, ++i2) {
+              if (rank_num == get_rank_num((*iter2)->address) &&
+                  bank_num == get_bank_num((*iter2)->address) &&
+                  page_num == get_page_num((*iter2)->address)) {
+                curr_bank.action_type = curr_action_type;
+                num_precharge--;
+                curr_bank.action_time -= tRP*process_interval;
+                break;
+              }
+            }
+          }
+
+          if (par_bs == true && curr_batch_last == (int32_t)i) {
+            if (i == 0) {
+              curr_batch_last = std::min((int32_t)req_window_sz-1, (int32_t)req_l.size()-2);
+            } else {
+              curr_batch_last--;
+            }
+          } else if (par_bs == true && curr_batch_last > (int32_t)i) {
+            curr_batch_last--;
+          }
+          req_l.erase(iter);
         }
         break;
       default:
-        LOG(ERROR) << "curr (rank, bank) = (" << rank_num << ", " << bank_num << ")" << std::endl;
-        show_state(curr_time);  ASSERTX(0);
+        show_state(curr_time);
+        LOG(FATAL) << "currenly at req_l[" << i << "]\n";
         break;
     }
   }
 
-  // show_state(curr_time);
   if (req_l.empty() == false) {
     geq->add_event(curr_time + process_interval, this);
   }
-
   return 0;
 }
 
 
-bool MemoryController::pre_processing(uint64_t curr_time) {
+void MemoryController::pre_processing(uint64_t curr_time) {
   auto req_event_iter = req_event.begin();
 
   while (req_event_iter != req_event.end() && req_event_iter->first == curr_time) {
@@ -719,28 +647,22 @@ bool MemoryController::pre_processing(uint64_t curr_time) {
       num_req_from_a_th[req_event_iter->second->th_id]++;
     }
     req_l.push_back(req_event_iter->second);
-    ++req_event_iter;
+    req_event_iter = req_event.erase(req_event_iter);
   }
   if (par_bs == true && curr_batch_last == -1 && req_l.size() > 0) {
-    curr_batch_last = (int32_t)req_l.size() - 1;
-    if (curr_batch_last > (int32_t)req_window_sz - 1) curr_batch_last = req_window_sz - 1;
+    curr_batch_last = std::min(static_cast<uint32_t>(req_l.size()), req_window_sz) - 1;
   }
-  req_event.erase(curr_time);
-
-
-  bool command_sent = false;
-  return command_sent;
 }
 
 
 void MemoryController::update_acc_dist() {
-  for (auto c_iter = os_page_acc_dist_curr.begin(); c_iter != os_page_acc_dist_curr.end(); ++c_iter) {
-    auto p_iter = os_page_acc_dist.find(c_iter->first);
+  for (auto && it : os_page_acc_dist_curr) {
+    auto p_iter = os_page_acc_dist.find(it.first);
 
     if (p_iter == os_page_acc_dist.end()) {
-      os_page_acc_dist.insert(std::pair<uint64_t, uint64_t>(c_iter->first, 1));
+      os_page_acc_dist.insert(std::pair<uint64_t, uint64_t>(it.first, 1));
     } else {
-      p_iter->second += c_iter->second;
+      p_iter->second += it.second;
     }
   }
 

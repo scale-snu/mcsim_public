@@ -72,11 +72,9 @@ class MemoryController : public Component {
     uint64_t page_num;
     mc_bank_action action_type;
     uint64_t last_activate_time;
-    std::list<std::pair<uint64_t, bool>> cached_pages;  // page number, dirty
-    std::vector<uint32_t> bimodal_entry;             // 0 -- strongly open
 
     explicit BankStatus(uint32_t num_entries): action_time(0), page_num(0), action_type(mc_bank_idle),
-      last_activate_time(0), cached_pages(), bimodal_entry(num_entries, 0) {
+      last_activate_time(0) {
     }
   };
 
@@ -133,7 +131,6 @@ class MemoryController : public Component {
   bool          full_duplex;
   bool          is_fixed_latency;       // infinite BW
   bool          is_fixed_bw_n_latency;  // take care of BW as well
-  uint32_t bimodal_entry;               // global predictor : 0 -- strongly open
   uint64_t * pred_history;              // size : num_hthreads
   uint32_t addr_offset_lsb;
 
@@ -159,7 +156,7 @@ class MemoryController : public Component {
   uint64_t last_process_time;
   uint64_t packet_time_in_mc_acc;
 
-  std::vector<std::vector<BankStatus>> bank_status;       // [rank][bank]
+  std::vector<std::vector<BankStatus>> bank_status;  // [rank][bank]
   std::vector<uint64_t> last_activate_time;          // [rank]
   std::vector<uint64_t> last_write_time;             // [rank]
   std::pair<uint32_t, uint64_t> last_read_time;      // <rank, tick>
@@ -182,8 +179,8 @@ class MemoryController : public Component {
   uint64_t get_page_num(uint64_t addr);
   void show_state(uint64_t curr_time);
 
-  bool     pre_processing(uint64_t curr_time);  // returns if the command was already sent or not.
-  void     check_bank_status(LocalQueueElement * local_event);
+  void pre_processing(uint64_t curr_time);
+  void check_bank_status(LocalQueueElement * local_event);
 
   uint32_t num_hthreads;
   int32_t * num_req_from_a_th;

@@ -109,13 +109,9 @@ pts.mc.num_ranks_per_mc         = 1
 pts.mc.num_banks_per_rank       = 8
 # parameters that start with 'pts.mc.t[capital letter]'
 # have the unit of 'pts.mc.process_interval' ticks.
-pts.mc.mc_asymmetric_mode  = true
-pts.mc.0.tRCD       = 14
-pts.mc.1.tRCD       = 28 
-pts.mc.0.tRAS       = 34
-pts.mc.1.tRAS       = 68
-pts.mc.0.tRP        = 14
-pts.mc.1.tRP        = 28
+pts.mc.tRCD       = 14
+pts.mc.tRAS       = 34
+pts.mc.tRP        = 14
 pts.mc.tRR          = 1
 pts.mc.tCL          = 14
 pts.mc.tBL          = 4
