@@ -47,7 +47,6 @@ class GlobalEventQueue;
 
 enum component_type {
   ct_core,
-  ct_lsu,
   ct_o3core,
   ct_cachel1d,
   ct_cachel1i,

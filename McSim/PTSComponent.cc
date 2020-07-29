@@ -33,7 +33,6 @@
 
 #include "McSim.h"
 #include "PTSComponent.h"
-#include "PTSCore.h"
 
 
 namespace PinPthread {
@@ -88,7 +87,7 @@ std::ostream & Component::print(std::ostream & out) const {
 
 const char * Component::prefix_str() const {
   switch (type) {
-    case ct_lsu:       return "pts.lsu.";
+    case ct_core:     return "pts.core.";
     case ct_o3core:    return "pts.o3core.";
     case ct_cachel1d:  return "pts.l1d$.";
     case ct_cachel1i:  return "pts.l1i$.";
@@ -210,36 +209,6 @@ uint32_t GlobalEventQueue::process_event() {
           break;
       }
     } else {
-      for (uint32_t i = 0; i < mcsim->cores.size(); i++) {
-        Core * core = mcsim->cores[i];
-        for (uint32_t j = 0; j < core->hthreads.size(); j++) {
-          Hthread * hthread = core->hthreads[j];
-          if (/* hthread->mem_acc.empty() == true && core->is_active[j] == true && */
-              hthread->active == true) {
-            // core->is_active[j] = false;
-            return hthread->num;
-          }
-        }
-      }
-
-      /* if (true)
-      {
-        cout << mcsim->global_q->curr_time << endl;
-        for (uint32_t i = 0; i < mcsim->cores.size(); i++)
-        {
-          Core * core = mcsim->cores[i];
-          for (uint32_t j = 0; j < core->hthreads.size(); j++)
-          {
-            Hthread * hthread = core->hthreads[j];
-            cout << hthread->mem_acc.empty() << ", ";
-            cout << core->is_active[j] << ", ";
-            cout << hthread->active << ": ";
-            cout << hthread->resume_time << ", " << hthread->latest_bmp_time << endl;
-          }
-        }
-
-      } */
-
       LOG(INFO) << "  -- event became empty at cycle = " << curr_time << std::endl;
       return num_hthreads;
       // ASSERTX(0);

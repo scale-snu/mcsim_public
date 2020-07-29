@@ -31,7 +31,6 @@
 #include "McSim.h"
 #include "PTSCache.h"
 #include "PTSComponent.h"
-#include "PTSCore.h"
 #include "PTSO3Core.h"
 #include "PTSTLB.h"
 #include "PTSXbar.h"
@@ -55,7 +54,6 @@ namespace PinPthread {
 std::ostream& operator<<(std::ostream & output, component_type ct) {
   switch (ct) {
     case ct_core:      output << "ct_core"; break;
-    case ct_lsu:       output << "ct_lsu"; break;
     case ct_o3core:    output << "ct_o3core"; break;
     case ct_cachel1d:  output << "ct_l1d$"; break;
     case ct_cachel1i:  output << "ct_l1i$"; break;
@@ -159,27 +157,22 @@ McSim::McSim(PthreadTimingSimulator * pts_)
   show_l2_stat_per_interval(pts_->get_param_bool("pts.show_l2_stat_per_interval", false)),
   is_race_free_application(pts_->get_param_bool("pts.is_race_free_application", true)),
   max_acc_queue_size(pts_->get_param_uint64("pts.max_acc_queue_size", 1000)),
-  cores(), hthreads(), l1ds(), l1is(), l2s(), dirs(), mcs(), tlbl1ds(), tlbl1is(), comps(),
+  l1ds(), l1is(), l2s(), dirs(), mcs(), tlbl1ds(), tlbl1is(), comps(),
   num_fetched_instrs(0), num_instrs_printed_last_time(0),
   num_destroyed_cache_lines_last_time(0), cache_line_life_time_last_time(0),
   time_between_last_access_and_cache_destroy_last_time(0) {
   global_q      = new GlobalEventQueue(this);
   num_hthreads  = pts->get_param_uint64("pts.num_hthreads", max_hthreads);
-  use_o3core    = pts->get_param_bool("pts.use_o3core", false);
 
   uint32_t num_threads_per_l1_cache   = pts->get_param_uint64("pts.num_hthreads_per_l1$", 4);
-  assert(use_o3core == false || num_threads_per_l1_cache == 1);
+  assert(num_threads_per_l1_cache == 1);
   uint32_t num_l1_caches_per_l2_cache = pts->get_param_uint64("pts.num_l1$_per_l2$", 2);
   uint32_t num_mcs                    = pts->get_param_uint64("pts.num_mcs", 2);
   print_interval                      = pts->get_param_uint64("pts.print_interval", 1000000);
   std::string   noc_type(pts->get_param_str("pts.noc_type"));
 
   // for stats
-  if (use_o3core) {
-    lsu_process_interval = pts->get_param_uint64("pts.o3core.process_interval", 10);
-  } else {
-    lsu_process_interval = pts->get_param_uint64("pts.lsu.process_interval",    10);
-  }
+  lsu_process_interval = pts->get_param_uint64("pts.o3core.process_interval", 10);
   curr_time_last          = 0;
   num_fetched_instrs_last = 0;
   num_mem_acc_last        = 0;
@@ -194,58 +187,34 @@ McSim::McSim(PthreadTimingSimulator * pts_)
   }
 
   for (uint32_t i = 0; i < num_hthreads; i++) {
-    if (use_o3core == true) {
-      o3cores.push_back(new O3Core(ct_o3core, i, this));
-      is_migrate_ready.push_back(false);
-    } else {
-      hthreads.push_back(new Hthread(ct_lsu, i, this));
-    }
+    o3cores.push_back(new O3Core(ct_o3core, i, this));
+    is_migrate_ready.push_back(false);
   }
 
   // instantiate L1 caches
   for (uint32_t i = 0; i < num_hthreads / num_threads_per_l1_cache; i++) {
-    if (use_o3core == false) {
-      cores.push_back(new Core(ct_core, i, this));
-    }
     l1is.push_back(new CacheL1(ct_cachel1i, i, this));
     l1ds.push_back(new CacheL1(ct_cachel1d, i, this));
     tlbl1ds.push_back(new TLBL1(ct_tlbl1d, i, this));
     tlbl1is.push_back(new TLBL1(ct_tlbl1i, i, this));
   }
   if (num_hthreads % num_threads_per_l1_cache != 0) {
-    if (use_o3core == false) {
-      cores.push_back(cores[0]);
-    }
     l1is.push_back(l1is[0]);
     l1ds.push_back(l1ds[0]);
     tlbl1ds.push_back(tlbl1ds[0]);
     tlbl1is.push_back(tlbl1is[0]);
   }
 
-  // connect hthreads and l1s
+  // connect o3core and l1s
   for (uint32_t i = 0; i < num_hthreads; i++) {
-    if (use_o3core == true) {
-      o3cores[i]->cachel1i = (l1is[i]);
-      l1is[i]->lsus.push_back(o3cores[i]);
-      o3cores[i]->cachel1d = (l1ds[i]);
-      l1ds[i]->lsus.push_back(o3cores[i]);
-      o3cores[i]->tlbl1d   = (tlbl1ds[i]);
-      tlbl1ds[i]->lsus.push_back(o3cores[i]);
-      o3cores[i]->tlbl1i   = (tlbl1is[i]);
-      tlbl1is[i]->lsus.push_back(o3cores[i]);
-    } else {
-      hthreads[i]->core     = (cores[i/num_threads_per_l1_cache]);
-      cores[i/num_threads_per_l1_cache]->hthreads.push_back(hthreads[i]);
-      cores[i/num_threads_per_l1_cache]->is_active.push_back(false);
-      hthreads[i]->cachel1i = (l1is[i/num_threads_per_l1_cache]);
-      l1is[i/num_threads_per_l1_cache]->lsus.push_back(hthreads[i]);
-      hthreads[i]->cachel1d = (l1ds[i/num_threads_per_l1_cache]);
-      l1ds[i/num_threads_per_l1_cache]->lsus.push_back(hthreads[i]);
-      hthreads[i]->tlbl1d   = (tlbl1ds[i/num_threads_per_l1_cache]);
-      tlbl1ds[i/num_threads_per_l1_cache]->lsus.push_back(hthreads[i]);
-      hthreads[i]->tlbl1i   = (tlbl1is[i/num_threads_per_l1_cache]);
-      tlbl1is[i/num_threads_per_l1_cache]->lsus.push_back(hthreads[i]);
-    }
+    o3cores[i]->cachel1i = (l1is[i]);
+    l1is[i]->lsus.push_back(o3cores[i]);
+    o3cores[i]->cachel1d = (l1ds[i]);
+    l1ds[i]->lsus.push_back(o3cores[i]);
+    o3cores[i]->tlbl1d   = (tlbl1ds[i]);
+    tlbl1ds[i]->lsus.push_back(o3cores[i]);
+    o3cores[i]->tlbl1i   = (tlbl1is[i]);
+    tlbl1is[i]->lsus.push_back(o3cores[i]);
   }
 
   // instantiate L2 caches
@@ -287,7 +256,6 @@ McSim::~McSim() {
     << " (IPC = " << std::setw(3) << ipc1000/1000 << "." << std::setfill('0')
     << std::setw(3) << ipc1000%1000 << std::setfill(' ') << ")" << std::endl;
 
-  for (auto && el : hthreads) delete el;
   for (auto && el : o3cores) delete el;
   for (auto && el : l1is) delete el;
   for (auto && el : l1ds) delete el;
@@ -310,53 +278,19 @@ std::pair<uint32_t, uint64_t> McSim::resume_simulation(bool must_switch) {
 
   if (/*must_switch == true &&*/ global_q->event_queue.empty()) {
     bool any_resumable_thread = false;
-    if (use_o3core == true) {
-      for (uint32_t i = 0; i < o3cores.size(); i++) {
-        O3Core * o3core = o3cores[i];
-        if (o3core->active == true) {
-          ret_val.first  = o3core->num;
-          ret_val.second = global_q->curr_time;
-          i = o3cores.size();
-          any_resumable_thread = true;
-          break;
-        }
-      }
-    } else {
-      for (uint32_t i = 0; i < cores.size(); i++) {
-        Core * core = cores[i];
-        for (uint32_t j = 0; j < core->hthreads.size(); j++) {
-          Hthread * hthread = core->hthreads[j];
-          if (/*hthread->mem_acc.empty() == true && core->is_active[j] == true &&*/
-              hthread != NULL && hthread->active == true) {
-            ret_val.first  = hthread->num;
-            ret_val.second = global_q->curr_time;
-            // core->is_active[j] = false;
-            i = cores.size();
-            any_resumable_thread = true;
-            break;
-          }
-        }
+    for (uint32_t i = 0; i < o3cores.size(); i++) {
+      O3Core * o3core = o3cores[i];
+      if (o3core->active == true) {
+        ret_val.first  = o3core->num;
+        ret_val.second = global_q->curr_time;
+        i = o3cores.size();
+        any_resumable_thread = true;
+        break;
       }
     }
 
     if (any_resumable_thread == false) {
       std::cout << global_q->curr_time << std::endl;
-      for (uint32_t i = 0; i < cores.size(); i++) {
-        Core * core = cores[i];
-        for (uint32_t j = 0; j < core->hthreads.size(); j++) {
-          Hthread * hthread = core->hthreads[j];
-          if (hthread == NULL) {
-            continue;
-          }
-          if (use_o3core == false) {
-            std::cout << hthread->mem_acc.empty() << ", ";
-          }
-          std::cout << core->is_active[j] << ", ";
-          std::cout << hthread->active << ": ";
-          std::cout << hthread->resume_time << ", " << hthread->latest_bmp_time << std::endl;
-        }
-      }
-
       // cout << "  -- event queue can not be empty : cycle = " << curr_time << std::endl;
       // ASSERTX(0);
     } else {
@@ -461,136 +395,68 @@ uint32_t McSim::add_instruction(
   uint32_t num_available_slot = 0;
   num_fetched_instrs++;
 
-  if (use_o3core == true) {
-    O3Core * o3core = o3cores[hthreadid_];
+  O3Core * o3core = o3cores[hthreadid_];
 
-    if (o3core->o3queue_size == 0) {
-      if (o3core->resume_time <= curr_time_) {
-        global_q->add_event(curr_time_, o3core);
-        o3core->is_active = true;
-      }
+  if (o3core->o3queue_size == 0) {
+    if (o3core->resume_time <= curr_time_) {
+      global_q->add_event(curr_time_, o3core);
+      o3core->is_active = true;
     }
-    ins_type type = (islock == true && isunlock == true && isbarrier == false) ? ins_notify :
-      (islock == true && isunlock == true && isbarrier == true) ? ins_waitfor :
-      (isbranch && isbranchtaken)        ? ins_branch_taken :
-      (isbranch && !isbranchtaken)       ? ins_branch_not_taken :
-      (category == XED_CATEGORY_X87_ALU || category == XED_CATEGORY_SSE) ? ins_x87 :  // treat an SSE op as an X87 op
-      (islock == true)                   ? ins_lock :
-      (isunlock == true)                 ? ins_unlock :
-      (isbarrier == true)                ? ins_barrier : no_mem;
-
-    o3core->num_instrs++;
-    o3core->num_call_ops += (category == XED_CATEGORY_CALL) ? 1 : 0;
-    if (o3core->o3queue_size >= o3core->o3queue_max_size) {
-      return 0;
-      LOG(ERROR) << " *_* " << curr_time_;
-      o3core->displayO3Queue();
-      o3core->displayO3ROB();
-      global_q->display();
-      ASSERTX(0);
-    }
-    O3Queue & o3q_entry  = o3core->o3queue[(o3core->o3queue_max_size + o3core->o3queue_head + o3core->o3queue_size)%o3core->o3queue_max_size];
-    o3q_entry.state      = o3iqs_not_in_queue;
-    o3q_entry.ready_time = curr_time_;
-    o3q_entry.waddr      = waddr;
-    o3q_entry.wlen       = wlen;
-    o3q_entry.raddr      = raddr;
-    o3q_entry.raddr2     = raddr2;
-    o3q_entry.rlen       = rlen;
-    o3q_entry.ip         = ip;
-    o3q_entry.type       = type;
-    o3q_entry.rr0        = rr0;
-    o3q_entry.rr1        = rr1;
-    o3q_entry.rr2        = rr2;
-    o3q_entry.rr3        = rr3;
-    o3q_entry.rw0        = rw0;
-    o3q_entry.rw1        = rw1;
-    o3q_entry.rw2        = rw2;
-    o3q_entry.rw3        = rw3;
-
-    o3core->o3queue_size++;
-
-    if ((raddr != 0 && !is_race_free_application && !o3core->is_private(raddr)) ||
-        (raddr != 0 && !is_race_free_application && !o3core->is_private(raddr2)) ||
-        (waddr != 0 && !is_race_free_application && !o3core->is_private(waddr))) {
-      num_available_slot = 0;
-    }
-
-    // if (ip != 0)
-    // {
-    //   cout << curr_time_ << ", " << std::hex << ip << std::dec << ", " << category;
-    //   cout << ", " << xed_category_enum_t2str((xed_category_enum_t) category) << std::endl;
-    // }
-
-    // if (o3core->o3queue_size + 4 >= o3core->o3queue_max_size) resume = true;
-    num_available_slot = ((o3core->o3queue_size + 4 > o3core->o3queue_max_size) ? 0 :
-        (o3core->o3queue_max_size - (o3core->o3queue_size + 4)));
-  } else {
-    Hthread * hthread = hthreads[hthreadid_];
-
-    if (hthread->mem_acc.empty() == true) {
-      if (hthread->resume_time <= curr_time_) {
-        global_q->add_event(curr_time_, hthread->core);
-        if (hthread->num == hthreads.size() - 1) {
-          hthread->core->is_active[hthread->core->hthreads.size() - 1] = true;
-        } else {
-          hthread->core->is_active[hthread->num%hthread->core->hthreads.size()] = true;
-        }
-      }
-    }
-    ins_type type = (isbranch && isbranchtaken)  ? ins_branch_taken :
-      (isbranch && !isbranchtaken)       ? ins_branch_not_taken :
-      (category == XED_CATEGORY_X87_ALU || category == XED_CATEGORY_SSE) ? ins_x87 :  // treat an SSE op as an X87 op
-      (islock == true)                   ? ins_lock :
-      (isunlock == true)                 ? ins_unlock :
-      (isbarrier == true)                ? ins_barrier : no_mem;
-
-    hthread->num_call_ops += (category == XED_CATEGORY_CALL) ? 1 : 0;
-    hthread->tlb_rd    = false;
-    if (simulate_only_data_caches == false) {
-      hthread->mem_acc.push(std::pair<ins_type, uint64_t>(type, ip));
-    }
-
-    // if (ip != 0)
-    // {
-    //   cout << curr_time_ << ", " << std::hex << ip << std::dec << ", " << category;
-    //   cout << ", " << xed_category_enum_t2str((xed_category_enum_t) category) << std::endl;
-    // }
-
-    if (raddr) {
-      if (rlen % sizeof(uint64_t) != 0) {
-        rlen = rlen - (rlen % sizeof(uint64_t)) + sizeof(uint64_t);
-      }
-
-      while (rlen != 0) {
-        if (!is_race_free_application && !hthread->is_private(raddr)) num_available_slot = 0;
-        hthread->mem_acc.push(std::pair<ins_type, uint64_t>(mem_rd, raddr));
-        raddr += sizeof(uint64_t);
-        if (raddr2) {
-          if (!is_race_free_application && !hthread->is_private(raddr2)) num_available_slot = 0;
-          hthread->mem_acc.push(std::pair<ins_type, uint64_t>(mem_rd, raddr2));
-          raddr2 += sizeof(uint64_t);
-        }
-        rlen -= sizeof(uint64_t);
-      }
-    }
-
-    if (waddr) {
-      if (wlen % sizeof(uint64_t) != 0) {
-        wlen = wlen - (wlen % sizeof(uint64_t)) + sizeof(uint64_t);
-      }
-
-      while (wlen != 0) {
-        if (!is_race_free_application && !hthread->is_private(waddr)) num_available_slot = 0;
-        hthread->mem_acc.push(std::pair<ins_type, uint64_t>(mem_wr, waddr));
-        waddr += sizeof(uint64_t);
-        wlen  -= sizeof(uint64_t);
-      }
-    }
-
-    num_available_slot = ((max_acc_queue_size <= hthread->mem_acc.size()) ? 0 :
-        (max_acc_queue_size - hthread->mem_acc.size()));
   }
+  ins_type type = (islock == true && isunlock == true && isbarrier == false) ? ins_notify :
+    (islock == true && isunlock == true && isbarrier == true) ? ins_waitfor :
+    (isbranch && isbranchtaken)        ? ins_branch_taken :
+    (isbranch && !isbranchtaken)       ? ins_branch_not_taken :
+    (category == XED_CATEGORY_X87_ALU || category == XED_CATEGORY_SSE) ? ins_x87 :  // treat an SSE op as an X87 op
+    (islock == true)                   ? ins_lock :
+    (isunlock == true)                 ? ins_unlock :
+    (isbarrier == true)                ? ins_barrier : no_mem;
+
+  o3core->num_instrs++;
+  o3core->num_call_ops += (category == XED_CATEGORY_CALL) ? 1 : 0;
+  if (o3core->o3queue_size >= o3core->o3queue_max_size) {
+    return 0;
+    LOG(ERROR) << " *_* " << curr_time_;
+    o3core->displayO3Queue();
+    o3core->displayO3ROB();
+    global_q->display();
+    ASSERTX(0);
+  }
+  O3Queue & o3q_entry  = o3core->o3queue[(o3core->o3queue_max_size + o3core->o3queue_head + o3core->o3queue_size)%o3core->o3queue_max_size];
+  o3q_entry.state      = o3iqs_not_in_queue;
+  o3q_entry.ready_time = curr_time_;
+  o3q_entry.waddr      = waddr;
+  o3q_entry.wlen       = wlen;
+  o3q_entry.raddr      = raddr;
+  o3q_entry.raddr2     = raddr2;
+  o3q_entry.rlen       = rlen;
+  o3q_entry.ip         = ip;
+  o3q_entry.type       = type;
+  o3q_entry.rr0        = rr0;
+  o3q_entry.rr1        = rr1;
+  o3q_entry.rr2        = rr2;
+  o3q_entry.rr3        = rr3;
+  o3q_entry.rw0        = rw0;
+  o3q_entry.rw1        = rw1;
+  o3q_entry.rw2        = rw2;
+  o3q_entry.rw3        = rw3;
+
+  o3core->o3queue_size++;
+
+  if ((raddr != 0 && !is_race_free_application && !o3core->is_private(raddr)) ||
+      (raddr != 0 && !is_race_free_application && !o3core->is_private(raddr2)) ||
+      (waddr != 0 && !is_race_free_application && !o3core->is_private(waddr))) {
+    num_available_slot = 0;
+  }
+
+  // if (ip != 0) {
+  //   cout << curr_time_ << ", " << std::hex << ip << std::dec << ", " << category;
+  //   cout << ", " << xed_category_enum_t2str((xed_category_enum_t) category) << std::endl;
+  // }
+
+  // if (o3core->o3queue_size + 4 >= o3core->o3queue_max_size) resume = true;
+  num_available_slot = ((o3core->o3queue_size + 4 > o3core->o3queue_max_size) ? 0 :
+      (o3core->o3queue_max_size - (o3core->o3queue_size + 4)));
 
   return num_available_slot;
 }
@@ -600,22 +466,13 @@ void McSim::set_stack_n_size(
     int32_t pth_id,
     ADDRINT stack,
     ADDRINT stacksize) {
-  if (use_o3core == true) {
-    o3cores[pth_id]->stack     = stack;
-    o3cores[pth_id]->stacksize = stacksize;
-  } else {
-    hthreads[pth_id]->stack     = stack;
-    hthreads[pth_id]->stacksize = stacksize;
-  }
+  o3cores[pth_id]->stack     = stack;
+  o3cores[pth_id]->stacksize = stacksize;
 }
 
 
 void McSim::set_active(int32_t pth_id, bool is_active) {
-  if (use_o3core == true) {
-    o3cores[pth_id]->active    = is_active;
-  } else {
-    hthreads[pth_id]->active   = is_active;
-  }
+  o3cores[pth_id]->active    = is_active;
 }
 
 

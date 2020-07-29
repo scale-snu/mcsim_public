@@ -33,7 +33,6 @@ endif()
 set(SRC_FILES
   PTSCache.cc
   PTSComponent.cc
-  PTSCore.cc
   PTSO3Core.cc
   PTSDirectory.cc
   PTSMemoryController.cc

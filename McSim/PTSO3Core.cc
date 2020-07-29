@@ -41,8 +41,26 @@
 
 namespace PinPthread {
 
-static const int32_t word_log = 3;
+BranchPredictor::BranchPredictor(uint32_t num_entries_, uint32_t gp_size_):
+  num_entries(num_entries_), gp_size(gp_size_), bimodal_entry(num_entries, 1),
+  global_history(0) {
+}
 
+
+bool BranchPredictor::miss(uint64_t addr, bool taken) {
+  bool miss;
+  global_history      = (gp_size == 0) ? 0 : ((global_history << 1) + (taken == true ? 1 : 0));
+  addr                = addr ^ (global_history << (64 - gp_size));
+  uint32_t curr_entry = bimodal_entry[addr%num_entries];
+
+  miss = (curr_entry > 1 && taken == false) || (curr_entry < 2 && taken == true);
+  bimodal_entry[addr%num_entries] = (curr_entry == 0 && taken == false) ? 0 :
+    (curr_entry == 3 && taken == true)  ? 3 :
+    (taken == true) ? (curr_entry + 1) : (curr_entry - 1);
+  return miss;
+}
+
+static const int32_t word_log = 3;
 
 std::ostream& operator<<(std::ostream & output, o3_instr_queue_state iqs) {
   switch (iqs) {

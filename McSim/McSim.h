@@ -50,7 +50,6 @@ static const uint32_t max_hthreads = 1024;
 namespace PinPthread {
 class Core;
 class O3Core;
-class Hthread;
 class CacheL1;
 class CacheL2;
 class Directory;
@@ -130,10 +129,7 @@ class McSim {
   uint32_t max_acc_queue_size;
   uint32_t num_hthreads;
   uint64_t print_interval;
-  bool     use_o3core;
 
-  std::vector<Core *>             cores;
-  std::vector<Hthread *>          hthreads;
   std::vector<O3Core *>           o3cores;
   std::vector<bool>               is_migrate_ready;  // TODO(gajh): what is this?
   std::vector<CacheL1 *>          l1ds;

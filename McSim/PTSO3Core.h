@@ -33,13 +33,27 @@
 
 #include "PTS.h"
 #include "PTSComponent.h"
-#include "PTSCore.h"
 
 #include <queue>
 #include <utility>
 
 
 namespace PinPthread {
+
+class BranchPredictor {
+ public:
+  BranchPredictor(uint32_t num_entries_, uint32_t gp_size_);
+  ~BranchPredictor() { }
+
+  bool miss(uint64_t addr, bool taken);
+
+ private:
+  uint32_t num_entries;
+  uint32_t gp_size;
+  std::vector<uint32_t> bimodal_entry;  // 0 -- strongly not taken
+  uint64_t global_history;
+};
+
 
 enum o3_instr_queue_state {
   o3iqs_not_in_queue,  // just arrived
