@@ -58,8 +58,6 @@ enum component_type {
   ct_tlbl1d,
   ct_tlbl1i,
   ct_tlbl2,
-  ct_mesh,
-  ct_ring,
 };
 
 enum event_type {

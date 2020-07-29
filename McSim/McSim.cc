@@ -66,8 +66,6 @@ std::ostream& operator<<(std::ostream & output, component_type ct) {
     case ct_tlbl1d:    output << "ct_tlbl1d"; break;
     case ct_tlbl1i:    output << "ct_tlbl1i"; break;
     case ct_tlbl2:     output << "ct_tlbl2"; break;
-    case ct_mesh:      output << "ct_mesh"; break;
-    case ct_ring:      output << "ct_ring"; break;
     default: output << ct; break;
   }
   return output;
@@ -192,8 +190,7 @@ McSim::McSim(PthreadTimingSimulator * pts_)
   num_l2_miss_last        = 0;
   num_dependency_distance_last = 0;
 
-  if (noc_type != "mesh" && noc_type != "ring" &&
-      num_mcs * num_l1_caches_per_l2_cache * num_threads_per_l1_cache > num_hthreads) {
+  if (num_mcs * num_l1_caches_per_l2_cache * num_threads_per_l1_cache > num_hthreads) {
     LOG(FATAL) << "the # of memory controllers must not be larger than the # of L2 caches\n";
   }
 
@@ -265,55 +262,31 @@ McSim::McSim(PthreadTimingSimulator * pts_)
     l2s[i/num_l1_caches_per_l2_cache]->cachel1d.push_back(l1ds[i]);
   }
 
-  if (noc_type == "mesh" || noc_type == "ring") {
-    if (noc_type == "mesh") {
-      noc = new Mesh2D(ct_mesh, 0, this);
-    } else {
-      noc = new Ring(ct_ring, 0, this);
-    }
-    Directory * dummy_dir = new Directory(ct_directory, num_mcs, this);
+  noc = new Crossbar(ct_crossbar, 0, this, num_hthreads / num_threads_per_l1_cache / num_l1_caches_per_l2_cache);
 
-    for (uint32_t i = 0; i < num_hthreads / num_threads_per_l1_cache / num_l1_caches_per_l2_cache; i++) {
-      l2s[i]->directory = dummy_dir;
-      l2s[i]->crossbar  = noc;
-      noc->cachel2.push_back(l2s[i]);
-    }
+  // instantiate directories
+  // currently it is assumed that (# of MCs) == (# of L2$s) == (# of directories)
+  for (uint32_t i = 0; i < num_hthreads / num_threads_per_l1_cache / num_l1_caches_per_l2_cache; i++) {
+    mcs.push_back(new MemoryController(ct_memory_controller, i, this));
+    dirs.push_back(new Directory(ct_directory, i, this));
+    dirs[i]->memorycontroller = (mcs[i]);
+    mcs[i]->directory = (dirs[i]);
 
-    for (uint32_t i = 0; i < num_mcs; i++) {
-      mcs.push_back(new MemoryController(ct_memory_controller, i, this));
-      dirs.push_back(new Directory(ct_directory, i, this));
-      dirs[i]->memorycontroller = (mcs[i]);
-      mcs[i]->directory = (dirs[i]);
-      noc->directory.push_back(dirs[i]);
-      dirs[i]->cachel2  = NULL;
-      dirs[i]->crossbar = noc;
-    }
-  } else {
-    noc = new Crossbar(ct_crossbar, 0, this, num_hthreads / num_threads_per_l1_cache / num_l1_caches_per_l2_cache);
-
-    // instantiate directories
-    // currently it is assumed that (# of MCs) == (# of L2$s) == (# of directories)
-    for (uint32_t i = 0; i < num_hthreads / num_threads_per_l1_cache / num_l1_caches_per_l2_cache; i++) {
-      mcs.push_back(new MemoryController(ct_memory_controller, i, this));
-      dirs.push_back(new Directory(ct_directory, i, this));
-      dirs[i]->memorycontroller = (mcs[i]);
-      mcs[i]->directory = (dirs[i]);
-
-      l2s[i]->directory = (dirs[i]);
-      l2s[i]->crossbar  = noc;
-      noc->directory.push_back(dirs[i]);
-      noc->cachel2.push_back(l2s[i]);
-      dirs[i]->cachel2  = (l2s[i]);
-      dirs[i]->crossbar = noc;
-    }
+    l2s[i]->directory = (dirs[i]);
+    l2s[i]->crossbar  = noc;
+    noc->directory.push_back(dirs[i]);
+    noc->cachel2.push_back(l2s[i]);
+    dirs[i]->cachel2  = (l2s[i]);
+    dirs[i]->crossbar = noc;
   }
-  }
+}
 
 
 McSim::~McSim() {
   uint64_t ipc1000 = (global_q->curr_time == 0) ? 0 : (1000 * num_fetched_instrs * lsu_process_interval / global_q->curr_time);
   std::cout << "  -- total number of fetched instructions : " << num_fetched_instrs
-    << " (IPC = " << std::setw(3) << ipc1000/1000 << "." << std::setfill('0') << std::setw(3) << ipc1000%1000 << std::setfill(' ') << ")" << std::endl;
+    << " (IPC = " << std::setw(3) << ipc1000/1000 << "." << std::setfill('0')
+    << std::setw(3) << ipc1000%1000 << std::setfill(' ') << ")" << std::endl;
 
   for (auto && el : hthreads) delete el;
   for (auto && el : o3cores) delete el;

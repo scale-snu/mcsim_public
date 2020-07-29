@@ -99,8 +99,6 @@ const char * Component::prefix_str() const {
     case ct_tlbl1d:    return "pts.l1dtlb.";
     case ct_tlbl1i:    return "pts.l1itlb.";
     case ct_tlbl2:     return "pts.l2tlb.";
-    case ct_mesh:      return "pts.mesh.";
-    case ct_ring:      return "pts.ring.";
     default:           return "pts.";
   }
 }
@@ -198,8 +196,6 @@ uint32_t GlobalEventQueue::process_event() {
         case ct_crossbar:
         case ct_tlbl1d:
         case ct_tlbl1i:
-        case ct_mesh:
-        case ct_ring:
           p_comp = *comp_iter;
           p_comp->process_event(curr_time);
 
