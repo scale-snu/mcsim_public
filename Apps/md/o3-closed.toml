@@ -13,15 +13,14 @@ pts.simulate_only_data_caches = false
 pts.show_l2_stat_per_interval = false
 
 pts.num_hthreads             = 16 
-pts.'num_hthreads_per_l1$'     = 1
-pts.'num_l1$_per_l2$'          = 1 
+pts.'num_hthreads_per_l1$'   = 1
+pts.'num_l1$_per_l2$'        = 1 
 pts.num_mcs                  = 2 
 # display simulation statistics when every pts.print_interval
 # instruction is executed.
 pts.print_interval           = 1000000
 pts.is_race_free_application = true
 pts.max_acc_queue_size       = 5
-pts.use_o3core               = true
 
 pts.o3core.to_l1i_t_for_x87_op = 10
 pts.o3core.to_l1i_t            = 2
@@ -31,8 +30,7 @@ pts.o3core.process_interval    = 10             # unit: tick
 pts.o3core.bypass_tlb          = false
 pts.o3core.consecutive_nack_threshold = 200000   # unit: instruction
 # pts.o3core.num_bp_entries stands for the number of entries
-# in a branch predictor.  currently it is assumed that each
-# hardware thread has a branch predictor.
+# in a branch predictor.
 pts.o3core.num_bp_entries      = 256
 # how many bits of global branch history information is XORed
 # with branch instruction addresses.  Please check 
@@ -42,8 +40,8 @@ pts.o3core.gp_size             = 60
 pts.o3core.spinning_slowdown   = 10
 pts.o3core.o3queue_max_size    = 128
 pts.o3core.o3rob_max_size      = 64
-pts.o3core.max_issue_width     = 8
-pts.o3core.max_commit_width    = 8
+pts.o3core.max_issue_width     = 4
+pts.o3core.max_commit_width    = 4
 
 pts.'l1i$'.num_sets           = 64
 pts.'l1i$'.num_ways           = 4
@@ -91,16 +89,13 @@ pts.dir.num_sets             = 1024
 pts.dir.num_ways             = 16
 pts.dir.has_directory_cache  = false
 
-# NoC type = ring/mesh/xbar
+# NoC type = xbar only for now
 pts.noc_type                 = "xbar"
 pts.xbar.to_dir_t            = 40
 pts.xbar.to_l2_t             = 40
 pts.xbar.process_interval    = 10
 pts.noc.num_node             = 2
 
-# please check 'Future Scaling of Processor-Memory
-# Interfaces' by Jung Ho Ahn at el. SC09 for further
-# details on the concept of VMDs.
 pts.mc.process_interval         = 30
 pts.mc.to_dir_t                 = 430
 pts.mc.interleave_base_bit      = 12
@@ -112,23 +107,17 @@ pts.mc.num_banks_per_rank       = 8
 pts.mc.tRCD       = 14
 pts.mc.tRAS       = 34
 pts.mc.tRP        = 14
-pts.mc.tRR          = 1
-pts.mc.tCL          = 14
-pts.mc.tBL          = 4
-pts.mc.tWRBUB       = 0
-pts.mc.RWBUB        = 0
-pts.mc.tRRBUB       = 0
-pts.mc.tXP          = 0
-pts.mc.tEP          = 0
-pts.mc.tWTR         = 0
-pts.mc.tRDBUB_same_group    = 2
-pts.mc.tWRBUB_same_group    = 2
+pts.mc.tRR        = 1
+pts.mc.tCL        = 14
+pts.mc.tBL        = 4
+pts.mc.tWRBUB     = 0
+pts.mc.RWBUB      = 0
+pts.mc.tRRBUB     = 0
+pts.mc.tWTR       = 0
 pts.mc.use_bank_group       = true
 pts.mc.num_bank_groups      = 4
 
-
-pts.mc.mini_rank            = false
-pts.mc.req_window_sz        = 32
+pts.mc.req_window_sz            = 32
 pts.mc.rank_interleave_base_bit = 14
 pts.mc.bank_interleave_base_bit = 14
 pts.mc.page_sz_base_bit         = 12

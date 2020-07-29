@@ -121,7 +121,6 @@ class MemoryController : public Component {
 
  private:
   mc_scheduling_policy policy;
-  bool           mini_rank;
   bool           par_bs;  // parallelism-aware batch-scheduling
   uint64_t      refresh_interval;
   uint64_t      curr_refresh_page;

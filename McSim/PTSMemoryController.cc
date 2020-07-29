@@ -102,6 +102,7 @@ MemoryController::MemoryController(
   rd_dp_status(),
   wr_dp_status() {
   process_interval = get_param_uint64("process_interval", 10);
+  // TODO(gajh): refresh implementation should be restored soon.
   refresh_interval = get_param_uint64("refresh_interval",  0);
 
   if (refresh_interval != 0) {
