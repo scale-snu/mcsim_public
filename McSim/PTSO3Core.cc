@@ -83,7 +83,7 @@ O3Core::O3Core(
   num_instrs(0), num_branch(0), num_branch_miss(0), num_nacks(0),
   num_consecutive_nacks(0),
   num_x87_ops(0), num_call_ops(0), total_mem_wr_time(0),
-  total_mem_rd_time(0), total_dependency_distance(0),
+  total_mem_rd_time(0),
   lsu_to_l1i_t(get_param_uint64("to_l1i_t", 10)),
   lsu_to_l1d_t(get_param_uint64("to_l1d_t", 10)),
   lsu_to_l1i_t_for_x87_op(get_param_uint64("to_l1i_t_for_x87_op", lsu_to_l1i_t)),
@@ -154,8 +154,7 @@ O3Core::~O3Core() {
          << ", call_ops= " << num_call_ops
          << ", latest_ip= 0x" << std::hex << latest_ip << std::dec
          << ", tot_mem_wr_time= " << total_mem_wr_time
-         << ", tot_mem_rd_time= " << total_mem_rd_time
-         << ", tot_dep_dist= " << total_dependency_distance<< std::endl;
+         << ", tot_mem_rd_time= " << total_mem_rd_time << std::endl;
   }
 
   delete bp;
@@ -207,7 +206,6 @@ uint32_t O3Core::process_event(uint64_t curr_time) {
   // "-3" is a number considering that an instruction might
   // occupy up to three ROB entries (when it has 3 memory accesses).
   for (unsigned int i = 0; i < max_issue_width && o3queue_size > 0 && o3rob_size < o3rob_max_size - 3; i++) {
-    uint32_t dependency_distance = o3rob_size;
     O3Queue & o3q_entry      = o3queue[o3queue_head];
 
     if (o3q_entry.state == o3iqs_ready && o3q_entry.ready_time <= curr_time) {
@@ -230,7 +228,6 @@ uint32_t O3Core::process_event(uint64_t curr_time) {
         if (o3rob_br.state == o3irs_completed && o3rob_br.ready_time <= curr_time) continue;
         if (o3rob_br.branch_miss == true) {
           branch_dep = rob_idx_br;
-          dependency_distance = j + 1;
           break;
         }
       }
@@ -246,19 +243,15 @@ uint32_t O3Core::process_event(uint64_t curr_time) {
         if (o3rob_r.state == o3irs_completed && o3rob_r.ready_time <= curr_time) continue;
         if (rr0 == -1 && IsRegDep(o3q_entry.rr0, o3rob_r)) {
           rr0 = rob_idx_r;
-          dependency_distance = std::min(j+1, dependency_distance);
         }
         if (rr1 == -1 && IsRegDep(o3q_entry.rr1, o3rob_r)) {
           rr1 = rob_idx_r;
-          dependency_distance = std::min(j+1, dependency_distance);
         }
         if (rr2 == -1 && IsRegDep(o3q_entry.rr2, o3rob_r)) {
           rr2 = rob_idx_r;
-          dependency_distance = std::min(j+1, dependency_distance);
         }
         if (rr3 == -1 && IsRegDep(o3q_entry.rr3, o3rob_r)) {
           rr3 = rob_idx_r;
-          dependency_distance = std::min(j+1, dependency_distance);
         }
       }
 
@@ -301,7 +294,6 @@ uint32_t O3Core::process_event(uint64_t curr_time) {
             if ((o3rob_dep.state != o3irs_completed || o3rob_dep.ready_time > curr_time) &&
                 (o3rob_dep.memaddr >> word_log) == (memaddr >> word_log)) {
               mem_dep = rob_idx_dep;
-              dependency_distance = std::min(j+1, dependency_distance);
               break;
             }
           }
@@ -329,7 +321,6 @@ uint32_t O3Core::process_event(uint64_t curr_time) {
       o3queue_size--;
       o3q_entry.state = o3iqs_invalid;
       o3queue_head    = (o3queue_head + 1) % o3queue_max_size;
-      total_dependency_distance += dependency_distance;
     }
   }
 

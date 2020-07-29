@@ -188,7 +188,6 @@ McSim::McSim(PthreadTimingSimulator * pts_)
   num_l1_miss_last        = 0;
   num_l2_acc_last         = 0;
   num_l2_miss_last        = 0;
-  num_dependency_distance_last = 0;
 
   if (num_mcs * num_l1_caches_per_l2_cache * num_threads_per_l1_cache > num_hthreads) {
     LOG(FATAL) << "the # of memory controllers must not be larger than the # of L2 caches\n";
@@ -427,20 +426,6 @@ std::pair<uint32_t, uint64_t> McSim::resume_simulation(bool must_switch) {
     std::cout << std::setw(4) << num_used_pages - num_used_pages_last << ") touched pages (this time, 1stly), ";
     num_mem_acc_last    = num_mem_acc;
     num_used_pages_last = num_used_pages;
-
-    if (o3cores.size() > 0) {
-      uint64_t total_dependency_distance = 0;
-      for (unsigned int i = 0; i < o3cores.size(); i++) {
-        total_dependency_distance += o3cores[i]->total_dependency_distance;
-      }
-
-      if (num_fetched_instrs > num_fetched_instrs_last) {
-        uint64_t dd1000 = 1000 * (total_dependency_distance - num_dependency_distance_last)/(num_fetched_instrs - num_fetched_instrs_last);
-        std::cout << " avg_dd= " << std::setw(2) << dd1000/1000 << "." << std::setfill('0') << std::setw(3) << dd1000%1000
-          << std::setfill(' ') << ", ";
-      }
-      num_dependency_distance_last = total_dependency_distance;
-    }
 
     num_fetched_instrs_last = num_fetched_instrs;
     curr_time_last = global_q->curr_time;

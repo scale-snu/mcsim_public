@@ -139,7 +139,6 @@ class O3Core : public Component {
   uint64_t num_call_ops;
   uint64_t total_mem_wr_time;
   uint64_t total_mem_rd_time;
-  uint64_t total_dependency_distance;
 
   const uint32_t lsu_to_l1i_t;
   const uint32_t lsu_to_l1d_t;

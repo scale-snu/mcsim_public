@@ -173,7 +173,6 @@ class McSim {
   uint64_t num_l1_miss_last;
   uint64_t num_l2_acc_last;
   uint64_t num_l2_miss_last;
-  uint64_t num_dependency_distance_last;
 };
 
 }  // namespace PinPthread
