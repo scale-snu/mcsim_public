@@ -68,10 +68,10 @@ PthreadScheduler::~PthreadScheduler() {
   resume_simulation(true, true);  // send kill signal to backend
   KillThread(GetCurrentThread());
 
-  cout << "  -- {" << setw(2) << pid << "} total number of unsimulated (ins, rd, wr, rd_2nd): ("
+  cout << "  ++ {" << setw(2) << pid << "} total number of unsimulated (ins, rd, wr, rd_2nd): ("
     << total_discarded_instrs << ", " << total_discarded_mem_rd << ", "
     << total_discarded_mem_wr << ", " << total_discarded_2nd_mem_rd << ")" << endl;
-  cout << "  -- {" << setw(2) << pid << "} (cond_broadcast, cond_signal, cond_wait, barrier) = ("
+  cout << "  ++ {" << setw(2) << pid << "} (cond_broadcast, cond_signal, cond_wait, barrier) = ("
     << num_cond_broadcast << ", "
     << num_cond_signal << ", "
     << num_cond_wait << ", "
@@ -152,7 +152,7 @@ void PthreadScheduler::AddThread(
   if (pthreads.size() == 1) {
     current = pthreads.begin();
   } else if (pthreads.size() > pts->num_hthreads) {
-    std::cout << "  -- (# of pthreads) > (# of hthreads) is not supported yet" << std::endl;
+    std::cout << "  ++ (# of pthreads) > (# of hthreads) is not supported yet" << std::endl;
     exit(1);
   }
   nactive++;
@@ -166,7 +166,7 @@ void PthreadScheduler::AddThread(
       (ADDRINT)pthreads.find(thread)->second->stacksize);
   pts->set_active(pthreads.size()-1, pthreads.find(thread)->second->active);
 
-  cout << "  -- [" << std::setw(12) << pts->get_curr_time() << "]: {"
+  cout << "  ++ [" << std::setw(12) << pts->get_curr_time() << "]: {"
     << setw(2) << pid << "} thread " << pth_to_hth[pthreads[thread]] << " is created" << std::endl;
 
   if (pthreads.size() > 1) {
@@ -190,7 +190,7 @@ void PthreadScheduler::KillThread(pthread_t thread) {
 
   pts->set_stack_n_size(pth_to_hth[pthreads[thread]], 0, 0);
   pts->set_active(pth_to_hth[pthreads[thread]], false);
-  cout << "  -- [" << std::setw(12) << pts->get_curr_time() << "]: {"
+  cout << "  ++ [" << std::setw(12) << pts->get_curr_time() << "]: {"
     << setw(2) << pid << "} thread " << pth_to_hth[pthreads[thread]] << " is killed : ";
   delete pthreads[thread];
   pthreads.erase(thread);
@@ -204,7 +204,7 @@ void PthreadScheduler::KillThread(pthread_t thread) {
 /* --------------------------------------------------------------------------- */
 void PthreadScheduler::BlockThread(pthread_t thread, const CONTEXT * ctxt, uint64_t barrier, uint32_t n_part) {
   if (barrier != 0) {
-    // gajh: send barrier address to timing simulator through waddr
+    // gajh: send barrier address to the timing simulator through waddr
     // gajh: send # barrier participants through wlen
     pts->add_instruction(pth_to_hth[GetThreadPtr(thread)->second], curr_time, barrier, n_part, 0, 0, 0, 0, 0,
         false, false, false, false, true,
@@ -216,10 +216,6 @@ void PthreadScheduler::BlockThread(pthread_t thread, const CONTEXT * ctxt, uint6
 
   ASSERT(nactive > 0, "[ERROR] Deadlocked!\n");
 
-  /* for (int i = REG_GR_BASE; i <= REG_LAST; i++) {
-    if (i >= REG_XMM_BASE && i <= REG_YMM_LAST) continue;
-    current->second->registers[i] = PIN_GetContextReg(ctxt, (REG)i);
-  } */
   PIN_SaveContext(ctxt, GetCurrentContext());
   PIN_GetContextFPState(ctxt, current->second->fpstate);
   current->second->executed = false;
@@ -235,7 +231,6 @@ void PthreadScheduler::BlockThread(pthread_t thread, const CONTEXT * ctxt, uint6
 void PthreadScheduler::UnblockThread(pthread_t thread, bool isbarrier) {
   ASSERTX(!IsActive(thread));
   SetActiveState(thread, true);
-  // if (curr_time >= 8266900) cout << "AA" << endl;
   // if (isbarrier == false)
   {
     pts->add_instruction(pth_to_hth[GetThreadPtr(thread)->second], curr_time, 0, 0, 0, 0, 0, 0, 0,
@@ -362,11 +357,6 @@ void PthreadScheduler::resume_simulation(bool must_switch, bool killed) {
   std::pair<uint32_t, uint64_t> ret_val;
   ret_val   = pts->resume_simulation(must_switch, killed);
   curr_time = ret_val.second;
-  /* if (curr_time >= 8266000) {
-    cout << ret_val.first << " --- " << ret_val.second << " --- "
-    << (hth_to_pth[ret_val.first] == current) << " --- "
-    << HasStarted(current) << endl;
-  } */
 
   if (hth_to_pth[ret_val.first] == current && HasStarted(current)) {
     current->second->executed = true;
@@ -455,7 +445,7 @@ Pthread::~Pthread() {
   // CHAR * fpstate_char = reinterpret_cast<CHAR *>(fpstate);
   munmap(stack, stacksize);
 
-  std::cout << "  -- num_ins : (mem_rd, mem_wr, 2nd_mem_rd, spin, lock, trylock, all)=";
+  std::cout << "  ++ num_ins : (mem_rd, mem_wr, 2nd_mem_rd, spin, lock, trylock, all)=";
   std::cout << "( " << dec << setw(10) << num_ins_mem_rd << ", "
     << setw(10) << num_ins_mem_wr << ", "
     << setw(8) << num_ins_2nd_mem_rd << ", "

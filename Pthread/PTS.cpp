@@ -151,14 +151,16 @@ bool PthreadTimingSimulator::add_instruction(
   ptsinstr->rw2        = rw2;
   ptsinstr->rw3        = rw3;
   if (num_piled_instr > 0 && (ptsmessage->val.instr[num_piled_instr-1]).hthreadid_ != hthreadid_) {
-    cout << curr_time_ << "  " << (ptsmessage->val.instr[num_piled_instr-1]).hthreadid_ << "  " << hthreadid_ << endl;
+    cout << "  ++ [" << std::setw(12) << curr_time_ << "]:  " 
+      << (ptsmessage->val.instr[num_piled_instr-1]).hthreadid_ << "  " << hthreadid_ << endl;
     exit(1);
   }
 
   num_piled_instr++;
   ptsmessage->uint32_t_val = num_piled_instr;
 
-  if (can_be_piled == false || num_piled_instr >= instr_batch_size || num_piled_instr >= num_available_slot[hthreadid_]/* || isbarrier == true*/) {
+  if (can_be_piled == false || num_piled_instr >= instr_batch_size ||
+    num_piled_instr >= num_available_slot[hthreadid_]/* || isbarrier == true*/) {
     sync_with_mcsim();
 
     num_piled_instr    = 0;

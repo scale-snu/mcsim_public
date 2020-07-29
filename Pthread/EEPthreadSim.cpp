@@ -1,12 +1,39 @@
+/*
+ * Copyright (c) 2010 The Hewlett-Packard Development Company
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met: redistributions of source code must retain the above copyright
+ * notice, this list of conditions and the following disclaimer;
+ * redistributions in binary form must reproduce the above copyright
+ * notice, this list of conditions and the following disclaimer in the
+ * documentation and/or other materials provided with the distribution;
+ * neither the name of the copyright holders nor the names of its
+ * contributors may be used to endorse or promote products derived from
+ * this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Authors: Jung Ho Ahn
+ */
 #include "PthreadSim.h"
 #include <assert.h>
 #include <fstream>
 #include <sstream>
 #include <string>
 
-using namespace PinPthread;
-using namespace std;
-
+namespace PinPthread {
 
 /* --------------------------------------------------------------------------- */
 /* PthreadSim Constructor and Destructor:                                      */
@@ -41,7 +68,7 @@ PthreadSim::PthreadSim(int32_t argc, char** argv):
     }
   }
 
-  cout << "  -- cmd: ";
+  cout << "  ++ cmd: ";
   for (int32_t i = 0; i < argc; i++) {
     cout << argv[i] << " ";
   }
@@ -315,7 +342,6 @@ int PthreadSim::pthread_detach(pthread_t thread) {
 /* return non-zero if they are the same thread, 0 otherwise                    */
 /* --------------------------------------------------------------------------- */
 int PthreadSim::pthread_equal(pthread_t thread1, pthread_t thread2) {
-  // cerr << "PthreadSim::pthread_equal(pthread_t thread1, pthread_t thread2);" << endl;
   assert(scheduler != nullptr);
   return ((thread1 == thread2) ? 1 : 0);
 }
@@ -456,7 +482,6 @@ int PthreadSim::pthread_kill(pthread_t thread, int signo) {
 /* the current thread either blocks on or locks the given mutex                */
 /* --------------------------------------------------------------------------- */
 int PthreadSim::pthread_mutex_lock(pthread_mutex_t* mutex, CONTEXT *ctxt) {
-  // cerr << "PthreadSim::pthread_mutex_lock(pthread_mutex_t* mutex, CONTEXT *ctxt)" << endl;
   assert(scheduler != nullptr);
   if (scheduler->current->second->executed == false) {
     scheduler->current->second->executed = true;
@@ -481,7 +506,6 @@ int PthreadSim::pthread_mutex_lock(pthread_mutex_t* mutex, CONTEXT *ctxt) {
 /* the current thread tries to lock the given mutex                            */
 /* --------------------------------------------------------------------------- */
 int PthreadSim::pthread_mutex_trylock(pthread_mutex_t* mutex) {
-  // cerr << "PthreadSim::pthread_mutex_trylock(pthread_mutex_t* mutex)" << endl;
   assert(scheduler != nullptr);
   if (scheduler->current->second->executed == false) {
     scheduler->current->second->executed = true;
@@ -501,7 +525,6 @@ int PthreadSim::pthread_mutex_trylock(pthread_mutex_t* mutex) {
 /* the current thread releases the given mutex                                 */
 /* --------------------------------------------------------------------------- */
 int PthreadSim::pthread_mutex_unlock(pthread_mutex_t* mutex) {
-  // cerr << "PthreadSim::pthread_mutex_unlock(pthread_mutex_t* mutex)" << endl;
   assert(scheduler != nullptr);
   if (scheduler->current->second->executed == false) {
     scheduler->current->second->executed = true;
@@ -630,10 +653,14 @@ void PthreadSim::process_ins(
 void PthreadSim::mcsim_skip_instrs_begin() {
   assert(scheduler != nullptr);
   if (scheduler->current->second->executed == false) {
-    // cout << "mcsim_skip_instrs_begin(): excuted = true" << endl;
+#if VERBOSE
+    cout << "mcsim_skip_instrs_begin(): excuted = true" << endl;
+#endif
     scheduler->current->second->executed = true;
   } else {
-    // cout << "mcsim_skip_instrs_begin(): call scheduler" << endl;
+#if VERBOSE
+    cout << "mcsim_skip_instrs_begin(): call scheduler" << endl;
+#endif
     scheduler->mcsim_skip_instrs_begin();
   }
 }
@@ -642,10 +669,14 @@ void PthreadSim::mcsim_skip_instrs_begin() {
 void PthreadSim::mcsim_skip_instrs_end() {
   assert(scheduler != nullptr);
   if (scheduler->current->second->executed == false) {
-    // cout << "mcsim_skip_instrs_end(): executed = false" << endl;
+#if VERBOSE
+    cout << "mcsim_skip_instrs_end(): executed = false" << endl;
+#endif
     scheduler->current->second->executed = true;
   } else {
-    // cout << "mcsim_skip_instrs_end(): call scheduler" << endl;
+#if VERBOSE
+    cout << "mcsim_skip_instrs_end(): call scheduler" << endl;
+#endif
     scheduler->mcsim_skip_instrs_end();
   }
 }
@@ -745,3 +776,5 @@ int PthreadSim::pthread_barrier_wait(
   }
   return 0;
 }
+
+}  // namespace PinPthread
