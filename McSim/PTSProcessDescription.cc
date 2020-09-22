@@ -3,6 +3,7 @@
 #include <glog/logging.h>
 
 #include "PTSProcessDescription.h"
+#include "toml.hpp"
 
 namespace PinPthread {
 
@@ -65,5 +66,12 @@ ProcessDescription::ProcessDescription(const std::string & runfile):
 
   num_hthreads = offset;
 }
+
+
+/* ProcessDescription::~ProcessDescription() {
+  for (auto && curr_process : pts_processes) {
+    delete curr_process.buffer;
+  }
+} */
 
 }  // namespace PinPthread

@@ -1,5 +1,6 @@
 **/cscope.out
 **/pin.log
+**/pintool.log
 McSim/build
 McSim/stream/*.o
 McSim/stream/STREAM

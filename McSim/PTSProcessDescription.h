@@ -5,7 +5,8 @@
 #include <vector>
 
 #include "PTS.h"
-#include "toml.hpp"
+
+extern int main(int, char**);
 
 namespace PinPthread  {
 
@@ -24,18 +25,20 @@ struct PTSProcess {
   char * pmmap;
 };
 
+
 class ProcessDescription {
  public:
   explicit ProcessDescription(const std::string & runfile);
-  ~ProcessDescription();
+  // ~ProcessDescription();
 
  private:
   std::vector<PTSProcess> pts_processes;
   uint32_t num_hthreads;
 
  public:
-  friend int main(int, char *);
+  friend int ::main(int, char **);
 };
+
 }  // namespace PinPthread
 
 #endif  // PTSPROCESSDESCRIPTION_H_
