@@ -118,7 +118,6 @@ int main(int argc, char * argv[]) {
   CHECK(fs::exists(pin_ptr)) << "PIN should be an existing filename." << std::endl;
   CHECK(fs::exists(pintool_ptr)) << "PINTOOL should be an existing filename." << std::endl;
   ld_library_path_full +=ld_library_path;
-  uint32_t idx    = 0;
   uint32_t offset = 0;
   // uint32_t num_hthreads = pts->get_num_hthreads();
 
@@ -149,7 +148,6 @@ int main(int argc, char * argv[]) {
       LOG(FATAL) << "Only 'pintool' and 'trace' types are supported as of now." << std::endl;
     }
 
-    nactive += programs.back().num_threads;
     programs.back().num_instrs_to_skip_first = toml::find_or(run, "num_instrs_to_skip_first", 0);
     programs.back().directory = toml::find<toml::string>(run, "path");
     // programs.back().prog_n_argv.push_back(toml::find<toml::string>(run, "arg"));
@@ -162,22 +160,29 @@ int main(int argc, char * argv[]) {
     } while (ss);
 
     programs.back().tid_to_htid = offset;
-    for (int32_t j = 0; j < programs.back().num_threads; j++) {
-      htid_to_tid.push_back(j);
-      htid_to_pid.push_back(idx);
-    }
 
     // Shared memory buffer
     programs.back().buffer = new PTSMessage();
 
-    if (idx > 0) {
-      pts->add_instruction(offset, 0, 0, 0, 0, 0, 0, 0, 0,
-          false, false, false, false, false,
-          0, 0, 0, 0, 0, 0, 0, 0);
-      pts->set_active(offset, true);
+    offset += programs.back().num_threads;
+  }
+
+  nactive      = offset;
+  uint32_t idx = 0;
+
+  // TODO(gajh): check if the following two for loops can be merged.
+  for (auto && program : programs) {
+    for (int32_t j = 0; j < program.num_threads; j++) {
+      htid_to_tid.push_back(j);
+      htid_to_pid.push_back(idx);
     }
 
-    offset += programs.back().num_threads;
+    if (idx > 0) {
+      pts->add_instruction(program.tid_to_htid, 0, 0, 0, 0, 0, 0, 0, 0,
+          false, false, false, false, false,
+          0, 0, 0, 0, 0, 0, 0, 0);
+      pts->set_active(program.tid_to_htid, true);
+    }
     idx++;
   }
 

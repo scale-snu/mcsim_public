@@ -40,6 +40,7 @@ set(SRC_FILES
   PTSXbar.cc
   McSim.cc
   PTS.cc
+  PTSProcessDescription.cc
   main.cc)
 
 include_directories( ${INCL_XED_DIR} ${INCL_TOML_DIR} )
