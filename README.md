@@ -27,99 +27,71 @@ McSimA+ was tested under the following system.
 To build the McSimA+ simulator on Linux, first install
 the required packages with the following commands:
 
-+ `libelf`: 
-  ```bash
-  $ wget https://launchpad.net/ubuntu/+archive/primary/+files/libelf_0.8.13.orig.tar.gz
-  $ tar -zxvf libelf_0.8.13.orig.tar.gz
-  $ cd libelf-0.8.13.orig/
-  $ ./configure
-  $ make
-  $ make install
-  ```
-
-+ `m4`:
-  ```bash
-  $ wget http://ftp.gnu.org/gnu/m4/m4-1.4.18.tar.gz
-  $ tar -zxvf m4-1.4.18.tar.gz
-  $ cd m4-1.4.18/
-  $ ./configure
-  $ make
-  $ make install
-  ```
-
-+ `elfutils`:
-  ```bash
-  $ wget https://fedorahosted.org/releases/e/l/elfutils/0.161/elfutils-0.161.tar.bz2
-  $ tar -xvf elfutils-0.161.tar.bz2
-  $ cd elfutils-0.161
-  $ ./configure --prefix=$HOME
-  $ make
-  $ make install
-  $ export COMPILER_PATH=/usr/bin
-  ```
-
-+ `libdwarf`:
-  ```bash
-  $ git clone git://libdwarf.git.sourceforge.net/gitroot/libdwarf/libdwarf
-  $ cd libdwarf
-  $ ./configure --enable-shared
-  $ make
-  ```
-
 + [gflags][gflags]
-  - Check [this](https://github.com/gflags/gflags/blob/master/INSTALL.md) how-to-install guide.
+  ```bash
+  $ cd third-party/gflags
+  $ mkdir -p build && cd build
+  $ cmake .. -DCMAKE_INSTALL_PREFIX="$(pwd)"/../../../build -DGFLAGS_NAMESPACE=gflags -DBUILD_SHARED_LIBS=ON
+  $ make
+  $ sudo make install
+  ```
 
 [gflags]: https://gflags.github.io/gflags/
 
 + [glog][glog]
-  - Check [this](https://github.com/google/glog/blob/master/cmake/INSTALL.md) for using cmake.
+  ```bash
+  $ cd third-party/glog
+  $ mkdir build; cd build
+  $ cmake .. -DCMAKE_INSTALL_PREFIX="$(pwd)"/../../../build -DBUILD_SHARED_LIBS=ON
+  $ make -j
+  $ sudo make install
+  ```
 
 [glog]: https://github.com/google/glog/
 
-+ [toml11][toml11]
++ [snappy][snappy]
   ```bash
-  $ git clone https://github.com/ToruNiina/toml11.git
-  $ ln -s "$(pwd)"/toml11 mcsim_private/toml11
+  $ cd third-party/snappy
+  $ mkdir build; cd build
+  $ cmake ..
   ```
+
+[snappy]: https://github.com/google/snappy/
+
++ [toml11][toml11]
 
 [toml11]: https://github.com/ToruNiina/toml11
 
 
 ## How to compile the simulator?
 
-1. Download the Pin at [Pin - A Binary Instrumentation Tool](https://software.intel.com/en-us/articles/pin-a-binary-instrumentation-tool-downloads).
-```bash
-$ wget http://software.intel.com/sites/landingpage/pintool/downloads/pin-3.15-98253-gb56e429b1-gcc-linux.tar.gz
-$ tar -xvf pin-3.15-98253-gb56e429b1-gcc-linux.tar.gz
-```
-
-2. Download the McSimA+ simulator at [Scalable Computer Architecture Laboratory](http://scale.snu.ac.kr/). The URL to the repository might be different from the example command below:
+1. Download the McSimA+ simulator at [Scalable Computer Architecture Laboratory](http://scale.snu.ac.kr/). The URL to the repository might be different from the example command below:
 ```bash
 $ git clone https://github.com/scale-snu/mcsim_private.git --recursive
 ```
 
+2. Download the Pin at [Pin - A Binary Instrumentation Tool](https://software.intel.com/en-us/articles/pin-a-binary-instrumentation-tool-downloads).
+```bash
+$ cd third-party
+$ wget http://software.intel.com/sites/landingpage/pintool/downloads/pin-3.15-98253-gb56e429b1-gcc-linux.tar.gz
+$ tar -xvf pin-3.15-98253-gb56e429b1-gcc-linux.tar.gz
+```
+
 3. Create a `Pin` symbolic link in the `mcsim_private` directory.
 ```bash
-$ ln -s "$(pwd)"/pin-3.15-98253-gb56e429b1-gcc-linux mcsim_private/pin
+$ ln -s "$(pwd)"/pin-3.15-98253-gb56e429b1-gcc-linux "$(pwd)"/../pin
 ```
 
 4. Go to `McSim` and compile McSim. (To build the back-end, the 
   absolute path of `pin` header is required)
 ```bash
-$ cd mcsim_private/McSim
+$ cd ../McSim
 $ mkdir build; cd build
 $ cmake ..
 $ cmake --build .  -- -j
 ```
 
-5. Go to `snappy` and run `cmake`.
-```bash
-$ cd ../../snappy
-$ mkdir build; cd build
-$ cmake ..
-```
-
-6. Go to `Pthread` and compile the user-level thread library pin 
+5. Go to `Pthread` and compile the user-level thread library pin 
   tool [2] (called `mypthreadtool`) as a dynamic library. (To build the front-end, 
   the absolute path of `pin` root directory should be provided)
 ```bash
@@ -127,7 +99,7 @@ $ cd ../../Pthread
 $ make PIN_ROOT="$(pwd)"/../pin -j
 ```
 
-7. Go to `TraceGen` and compile the trace generator pin tool.
+6. Go to `TraceGen` and compile the trace generator pin tool.
 ```bash
 $ cd ../TraceGen
 $ make PIN_ROOT="$(pwd)"/../pin obj-intel64/tracegen.so -j
@@ -158,7 +130,9 @@ $ source bash_setup
 BASE="$(pwd)"
 export PIN=${BASE}/pin/pin
 export PINTOOL=${BASE}/Pthread/obj-intel64/mypthreadtool.so
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${BASE}/build/lib
+export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:${BASE}/build/include
+export C_INCLUDE_PATH=$C_INCLUDE_PATH:${BASE}/build/include
 ```
 
 3. Add the absolute path of `stream` directory to `Apps/list/run-stream.toml`
