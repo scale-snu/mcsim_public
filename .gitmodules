@@ -4,3 +4,6 @@
 [submodule "third-party/snappy"]
 	path = third-party/snappy
 	url = https://github.com/google/snappy.git
+[submodule "third-party/toml11"]
+	path = third-party/toml11
+	url = https://github.com/ToruNiina/toml11.git
