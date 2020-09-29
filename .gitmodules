@@ -7,3 +7,6 @@
 [submodule "third-party/toml11"]
 	path = third-party/toml11
 	url = https://github.com/ToruNiina/toml11.git
+[submodule "third-party/gflags"]
+	path = third-party/gflags
+	url = https://github.com/gflags/gflags.git
