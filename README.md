@@ -147,7 +147,7 @@ arg  = "STREAM -p4 -n1048576 -r10 -s512"
 
 4. Type the following command:
 ```bash
-$ setarch x86_64 -R ./McSim/build/mcsim -mdfile Apps/md/-o3-closed.toml -runfile Apps/list/run-stream.toml -logtostderr=true
+$ setarch x86_64 -R ./McSim/build/mcsim -mdfile Apps/md/o3-closed.toml -runfile Apps/list/run-stream.toml -logtostderr=true
 ```
 
 
@@ -172,7 +172,7 @@ $ ./pin/pin -t TraceGen/obj-intel64/tracegen.so -prefix test -slice_size 100000 
 2. Generate a runfile for the trace file to `Apps/list` in the following format.
 ```bash
 $ mv test.0.snappy /tmp
-$ vim Apps/list/run-trace.py
+$ vim Apps/list/run-trace.toml
 ```
 
 ```

@@ -5,10 +5,6 @@ project(mcsim)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-find_package(gflags REQUIRED)
-find_package(glog REQUIRED)
-
-
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
