@@ -66,18 +66,34 @@ DEFINE_string(instrs_skip, "0", "# of instructions to skip before timing simulat
 DEFINE_bool(run_manually, false, "Whether to run the McSimA+ frontend manually or not.");
 
 
+static void remove_tmpfile() {
+  std::stringstream ss;
+  ss << getpid() << "_mcsim.tmp";
+  std::string tmp_s = ss.str();
+  auto tmp_dir = fs::temp_directory_path();
+
+  for (const auto & entry : fs::directory_iterator(tmp_dir)) {
+    auto item = entry.path().filename().string();
+    if (item.compare(0, item.size()-1, tmp_s) == 0) {
+      remove(entry.path());
+    }
+  }
+}
+
 static void sig_handler(const int sig) {
   pid_t pid = getpid();
+  remove_tmpfile();
   int ret = kill(0, SIGKILL/*SIGTERM*/);
   if (ret == 0)
     LOG(INFO) << "[" << strsignal(sig) << "] Frontend process (" << pid << ") killed" << std::endl;
 }
 
 void setupSignalHandlers(void) {
-  signal(SIGINT, sig_handler);
-  //signal(SIGTERM, sig_handler);
-  //signal(SIGHUP, sig_handler);
-  //signal(SIGQUIT, sig_handler);
+  signal(SIGINT, sig_handler);  // Interrupt from keyboard
+  signal(SIGTERM, sig_handler); // Termination signal
+  signal(SIGHUP, sig_handler);  // Hangup detected on controlling terminal
+  signal(SIGQUIT, sig_handler);  // Quit from keyboard
+  signal(SIGSEGV, sig_handler);  // Invalid memory reference
 }
 
 int main(int argc, char * argv[]) {
@@ -408,6 +424,7 @@ int main(int argc, char * argv[]) {
   gettimeofday(&finish, NULL);
   double msec = (finish.tv_sec*1000 + finish.tv_usec/1000) - (start.tv_sec*1000 + start.tv_usec/1000);
   LOG(INFO) << "simulation time(sec) = " << msec/1000 << std::endl;
+
 
   for (auto && curr_process : pd->pts_processes) {
     munmap(curr_process.pmmap, sizeof(PTSMessage)+2);
