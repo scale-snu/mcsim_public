@@ -66,6 +66,20 @@ DEFINE_string(instrs_skip, "0", "# of instructions to skip before timing simulat
 DEFINE_bool(run_manually, false, "Whether to run the McSimA+ frontend manually or not.");
 
 
+static void sig_handler(const int sig) {
+  pid_t pid = getpid();
+  int ret = kill(0, SIGKILL/*SIGTERM*/);
+  if (ret == 0)
+    LOG(INFO) << "[" << strsignal(sig) << "] Frontend process (" << pid << ") killed" << std::endl;
+}
+
+void setupSignalHandlers(void) {
+  signal(SIGINT, sig_handler);
+  //signal(SIGTERM, sig_handler);
+  //signal(SIGHUP, sig_handler);
+  //signal(SIGQUIT, sig_handler);
+}
+
 int main(int argc, char * argv[]) {
   std::string usage{"McSimA+ backend\n"};
   usage += argv[0];
@@ -158,6 +172,8 @@ int main(int argc, char * argv[]) {
   for (uint32_t i = 0; i < pd->pts_processes.size(); i++) {
     pid_t pID = fork();
     CHECK(pID >= 0) << "failed to fork" << std::endl;
+
+    setupSignalHandlers();
 
     if (pID == 0) {
       // child process
