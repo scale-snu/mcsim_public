@@ -116,7 +116,7 @@ LOCALFUN VOID Fini(int code, VOID * v)
 }
 
 #ifdef DEBUG
-LOCALFUN VOID record_inst (PTSInstrTrace instrs, ADDRINT addr, string op)
+static void record_inst (PTSInstrTrace instrs, ADDRINT addr, string op)
 {
   InstTraceFile << instrs.ip << ": " 
     << setw(2) << op << " " 
@@ -197,9 +197,6 @@ VOID ProcessMemIns(
     }
 #endif
     
-    cout << curr_instr.ip << ", " << curr_instr.isbranch <<  ", " 
-      << curr_instr.waddr << ", " << curr_instr.raddr << endl;
-
     num_instrs++;
     if ((num_instrs % instr_group_size) == 0) {
       *slice_count += 1;
@@ -368,7 +365,7 @@ GLOBALFUN int main(int argc, char *argv[])
 
 #ifdef DEBUG
   InstTraceFile.open(KnobOutputFile.Value().c_str());
-  InstTraceFile.write(trace_header.c_str(),trace_header.size());
+  InstTraceFile.write(trace_header.c_str(), trace_header.size());
   InstTraceFile.setf(ios::showbase);
 #endif
 
