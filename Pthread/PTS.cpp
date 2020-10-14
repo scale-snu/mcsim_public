@@ -63,7 +63,7 @@ PthreadTimingSimulator::PthreadTimingSimulator(uint32_t _pid, uint32_t _total_nu
   string trace_header = string("#\n"
                                "# Instruction Trace Transfered By McSimA+ Frontend\n"
                                "#\n");
-  InstTraceFile.open("fe_transfered_inst.out");
+  InstTraceFile.open("/tmp/fe_transfered_inst.out");
   InstTraceFile.write(trace_header.c_str(), trace_header.size());
   InstTraceFile.setf(ios::showbase);
 #endif

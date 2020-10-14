@@ -11,7 +11,7 @@ using namespace std;
 #ifdef LOG_TRACE
   ofstream InstTraceFile;
   KNOB<string> KnobOutputFile(KNOB_MODE_WRITEONCE, "pintool",
-      "o", "fe_instructions.out", "specify trace file name");
+      "o", "/tmp/fe_instructions.out", "specify trace file name");
   KNOB<BOOL> KnobValues(KNOB_MODE_WRITEONCE, "pintool",
       "values", "1", "Output memory values reads and written");
 #endif
