@@ -398,6 +398,9 @@ int main(int argc, char * argv[]) {
             //   pts->mcsim->resume_simulation(false);
             // }
           }
+#ifdef LOG_TRACE
+          InstTraceFile << setw(12) << num_instrs << "                    transfer complete !!!" << std::endl;
+#endif
           if (num_instrs_per_th > 0) {
             if (num_fetched_instrs[curr_p->tid_to_htid + pts_m->val.instr[0].hthreadid_] < num_instrs_per_th &&
                 num_fetched_instrs[curr_p->tid_to_htid + pts_m->val.instr[0].hthreadid_] + num_instrs >= num_instrs_per_th) {

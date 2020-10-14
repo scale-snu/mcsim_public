@@ -47,6 +47,10 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <iostream>
+#include <ostream>
+#include <fstream>
+#include <iomanip>
 #include "pin.H"
 #include "PthreadUtil.h"
 #include "snappy.h"
@@ -129,14 +133,16 @@ class PthreadTimingSimulator {
   char          * tmp_shared;
   PTSMessage    * ptsmessage;
   volatile bool * mmap_flag;
+
 #ifdef LOG_TRACE
-  ofstream InstTraceFile;
+  std::ofstream InstTraceFile;
 #endif
 
   void send_instr_batch();
   inline void sync_with_mcsim();
 #ifdef LOG_TRACE
   inline void record_inst(ADDRINT ip, ADDRINT addr, string op);
+  inline void record_transfer(uint32_t num_inst);
 #endif
 };
 }  // namespace PinPthread

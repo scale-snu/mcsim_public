@@ -44,15 +44,6 @@ namespace PinPthread {
 PthreadTimingSimulator::PthreadTimingSimulator(uint32_t _pid, uint32_t _total_num, char * _tmp_shared):
   num_piled_instr(0), pid(_pid), total_num(_total_num), tmp_shared(_tmp_shared) {
 
-#ifdef LOG_TRACE
-  string trace_header = string("#\n"
-                               "# Instruction Trace Transfered By McSimA+ Frontend\n"
-                               "#\n");
-  InstTraceFile.open("fe_transfered_inst.out");
-  InstTraceFile.write(trace_header.c_str(), trace_header.size());
-  InstTraceFile.setf(ios::showbase);
-#endif
-
   // Shared memory
   if ((mmapfd = open(tmp_shared, O_RDWR, 0666)) < 0) {
     perror("open");
@@ -67,6 +58,15 @@ PthreadTimingSimulator::PthreadTimingSimulator(uint32_t _pid, uint32_t _total_nu
 
   ptsmessage = new (maped) PTSMessage;
   mmap_flag = reinterpret_cast<bool *>(maped + sizeof(PTSMessage));
+
+#ifdef LOG_TRACE
+  string trace_header = string("#\n"
+                               "# Instruction Trace Transfered By McSimA+ Frontend\n"
+                               "#\n");
+  InstTraceFile.open("fe_transfered_inst.out");
+  InstTraceFile.write(trace_header.c_str(), trace_header.size());
+  InstTraceFile.setf(ios::showbase);
+#endif
 
   num_hthreads = get_num_hthreads();
   num_available_slot = new uint32_t[num_hthreads];
@@ -116,6 +116,10 @@ void PthreadTimingSimulator::record_inst (ADDRINT ip, ADDRINT addr, string op) {
   InstTraceFile << hex << ip << ": "
     << setw(2) << op << " "
     << setw(2+2*sizeof(uint64_t)) << hex << addr << dec << endl;
+}
+
+void PthreadTimingSimulator::record_transfer (uint32_t num_inst) {
+  InstTraceFile << setw(12) << num_piled_instr << "                    transfer complete !!!" << endl;
 }
 #endif
 
@@ -192,7 +196,11 @@ bool PthreadTimingSimulator::add_instruction(
 
   if (can_be_piled == false || num_piled_instr >= instr_batch_size ||
     num_piled_instr >= num_available_slot[hthreadid_]/* || isbarrier == true*/) {
+
     sync_with_mcsim();
+#ifdef LOG_TRACE
+    record_transfer(ptsmessage->uint32_t_val);
+#endif
 
     num_piled_instr    = 0;
     // return value -- how many more available slots to put instructions,
@@ -278,6 +286,9 @@ void PthreadTimingSimulator::send_instr_batch() {
   assert(ptsmessage->type == pts_add_instruction);
 
   sync_with_mcsim();
+#ifdef LOG_TRACE
+  record_transfer(ptsmessage->uint32_t_val);
+#endif
 
   // return value -- how many more available slots to put instructions,
   // 0 means that that we have to resume simulation
