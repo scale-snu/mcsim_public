@@ -64,7 +64,7 @@ namespace PinPthread
 #ifdef LOG_TRACE
   static VOID record_inst (ADDRINT ip, ADDRINT addr, string op)
   {
-    InstTraceFile << ip << ": "
+    InstTraceFile << hex << ip << ": "
       << setw(2) << op << " "
       << setw(2+2*sizeof(ADDRINT)) << hex << addr << dec << endl;
   }

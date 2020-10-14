@@ -76,7 +76,7 @@ DEFINE_bool(run_manually, false, "Whether to run the McSimA+ frontend manually o
 #ifdef LOG_TRACE
 static void record_inst (PTSInstr *instrs, uint64_t addr, std::string op)
 {
-  InstTraceFile << instrs->ip << ": "
+  InstTraceFile << hex << instrs->ip << ": "
     << setw(2) << op << " "
     << setw(2+2*sizeof(uint64_t)) << hex << addr << dec << std::endl;
 }
@@ -342,7 +342,7 @@ int main(int argc, char * argv[]) {
           pts_m->uint32_t_val = htid_to_tid[ret.first];
           pts_m->uint64_t_val = ret.second;
 #ifdef LOG_TRACE
-          record_switch (ret.first, curr_pid);
+          // record_switch (ret.first, curr_pid);
 #endif
           // if (ret.second >= 12100000)
           //   std::cout << "resume  tid = " << ret.first << ", pid = " << curr_pid << ", curr_time = " << ret.second << std::endl;

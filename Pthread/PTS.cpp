@@ -43,6 +43,16 @@ namespace PinPthread {
 
 PthreadTimingSimulator::PthreadTimingSimulator(uint32_t _pid, uint32_t _total_num, char * _tmp_shared):
   num_piled_instr(0), pid(_pid), total_num(_total_num), tmp_shared(_tmp_shared) {
+
+#ifdef LOG_TRACE
+  string trace_header = string("#\n"
+                               "# Instruction Trace Transfered By McSimA+ Frontend\n"
+                               "#\n");
+  InstTraceFile.open("fe_transfered_inst.out");
+  InstTraceFile.write(trace_header.c_str(), trace_header.size());
+  InstTraceFile.setf(ios::showbase);
+#endif
+
   // Shared memory
   if ((mmapfd = open(tmp_shared, O_RDWR, 0666)) < 0) {
     perror("open");
@@ -75,6 +85,10 @@ PthreadTimingSimulator::~PthreadTimingSimulator() {
   munmap(maped, sizeof(PTSMessage)+2);
 
   delete[] num_available_slot;
+
+#ifdef LOG_TRACE
+  InstTraceFile.close();
+#endif
 }
 
 
@@ -97,6 +111,13 @@ void PthreadTimingSimulator::sync_with_mcsim() {
   mmap_flag[1] = true;
 }
 
+#ifdef LOG_TRACE
+void PthreadTimingSimulator::record_inst (ADDRINT ip, ADDRINT addr, string op) {
+  InstTraceFile << hex << ip << ": "
+    << setw(2) << op << " "
+    << setw(2+2*sizeof(uint64_t)) << hex << addr << dec << endl;
+}
+#endif
 
 bool PthreadTimingSimulator::add_instruction(
     uint32_t hthreadid_,
@@ -142,6 +163,23 @@ bool PthreadTimingSimulator::add_instruction(
   ptsinstr->rw1        = rw1;
   ptsinstr->rw2        = rw2;
   ptsinstr->rw3        = rw3;
+
+#ifdef LOG_TRACE
+  if (wlen != 0 && rlen != 0) {
+    record_inst(ip, waddr, "RW");
+  } else if (wlen == 0 && rlen !=0) {
+    if (raddr2 != 0)
+      record_inst(ip, raddr2, "R2");
+    else
+      record_inst(ip, raddr, "R1");
+  } else if (wlen != 0 && rlen == 0) {
+    record_inst(ip, waddr, "W");
+  } else if (wlen == 0 && rlen == 0 && isbranch !=0) {
+    record_inst(ip, 0, "B");
+  } else {
+    record_inst(ip, 0, "E");
+  }
+#endif
 
   if (num_piled_instr > 0 && (ptsmessage->val.instr[num_piled_instr-1]).hthreadid_ != hthreadid_) {
     cout << "  ++ [" << std::setw(12) << curr_time_ << "]:  " 

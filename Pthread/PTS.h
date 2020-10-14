@@ -129,9 +129,15 @@ class PthreadTimingSimulator {
   char          * tmp_shared;
   PTSMessage    * ptsmessage;
   volatile bool * mmap_flag;
+#ifdef LOG_TRACE
+  ofstream InstTraceFile;
+#endif
 
   void send_instr_batch();
   inline void sync_with_mcsim();
+#ifdef LOG_TRACE
+  inline void record_inst(ADDRINT ip, ADDRINT addr, string op);
+#endif
 };
 }  // namespace PinPthread
 
