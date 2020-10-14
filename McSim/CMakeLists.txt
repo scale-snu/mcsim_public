@@ -13,6 +13,8 @@ if(CMAKE_BUILD_TYPE MATCHES Debug)
   message(STATUS "Build type: Debug")
 elseif(CMAKE_BUILD_TYPE MATCHES Release)
   message(STATUS "Build type: Release")
+elseif(CMAKE_BUILD_TYPE MATCHES Trace)
+  message(STATUS "Build type: Trace")
 else()
   message(STATUS "Invalid build type: ${CMAKE_BUILD_TYPE}")
   message(STATUS "Default to : Release")
@@ -61,7 +63,11 @@ add_compile_options( -Wno-unknown-pragmas -DTARGET_IA32E -Wall )
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O3 -g")
 
 # flags for debug build
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -DDEBUG -ggdb -Og -g3 -fPIC")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -DDEBUG -DLOG_TRACE -ggdb -Og -g3 -fPIC")
+
+# flags for trace build
+set(CMAKE_CXX_FLAGS_TRACE "${CMAKE_CXX_FLAGS} -O3 -g -DLOG_TRACE")
+
 
 link_directories(../build/lib)
 include_directories(../build/include)
