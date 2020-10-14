@@ -97,8 +97,11 @@ void PthreadScheduler::PlayTraces(const string & trace_name, uint64_t trace_skip
     size_t * compressed_length = new size_t;
     (*compressed_length) = 0;
     char * compressed = new char[maxCompressedLength];
+    size_t *slice_count = new size_t;
+    size_t prev_count, curr_count = 0;
 
-    while (trace_file.eof() == false) {
+    trace_file.read(reinterpret_cast<char *>(slice_count), sizeof(size_t));
+    do {
       trace_file.read(reinterpret_cast<char *>(compressed_length), sizeof(size_t));
       trace_file.read(compressed, *compressed_length);
       if (snappy::RawUncompress(compressed, *compressed_length, reinterpret_cast<char *>(instrs)) == false) {
@@ -131,10 +134,15 @@ void PthreadScheduler::PlayTraces(const string & trace_name, uint64_t trace_skip
               curr_instr.rw3);
         }
       }
-    }
+
+      prev_count = curr_count;
+      trace_file.read(reinterpret_cast<char *>(slice_count), sizeof(size_t));
+      curr_count = *slice_count;
+    } while (prev_count < curr_count);
 
     delete[] instrs;
     delete[] compressed;
+    delete[] slice_count;
   } while (repeat_playing == true);
 }
 
@@ -159,17 +167,19 @@ void PthreadScheduler::AddThread(
 
   // create a mapping between pthread and hthread
   // currently, it is assumed that #(pthread) == #(hthread)
-  hth_to_pth[pthreads.size()-1] = pthreads.find(thread);
-  pth_to_hth[pthreads[thread]]  = pthreads.size()-1;
-  pts->set_stack_n_size(pthreads.size()-1,
+  auto pthread_num = pthreads.size()-1;
+  hth_to_pth.insert(hth_to_pth.begin()+pthread_num, pthreads.find(thread));
+  pth_to_hth[pthreads[thread]] = pthread_num;
+
+  pts->set_stack_n_size(pthread_num,
       (ADDRINT)pthreads.find(thread)->second->stack,
       (ADDRINT)pthreads.find(thread)->second->stacksize);
-  pts->set_active(pthreads.size()-1, pthreads.find(thread)->second->active);
+  pts->set_active(pthread_num, pthreads.find(thread)->second->active);
 
   cout << "  ++ [" << std::setw(12) << pts->get_curr_time() << "]: {"
     << setw(2) << pid << "} thread " << pth_to_hth[pthreads[thread]] << " is created" << std::endl;
 
-  if (pthreads.size() > 1) {
+  if (pthread_num) {
     // instead of switching context, let the method resume_simulation()
     // find the newly added thread at the next time the method is called.
     pts->add_instruction(pthreads.size()-1, curr_time, 0, 0, 0, 0, 0, 0, 0,
@@ -358,11 +368,11 @@ void PthreadScheduler::resume_simulation(bool must_switch, bool killed) {
   ret_val   = pts->resume_simulation(must_switch, killed);
   curr_time = ret_val.second;
 
-  if (hth_to_pth[ret_val.first] == current && HasStarted(current)) {
+  if (hth_to_pth.at(ret_val.first) == current && HasStarted(current)) {
     current->second->executed = true;
     return;
   }
-  current   = hth_to_pth[ret_val.first];
+  current   = hth_to_pth.at(ret_val.first);
 
   if (nactive > 1 || must_switch) {
     if (!HasStarted(current)) {

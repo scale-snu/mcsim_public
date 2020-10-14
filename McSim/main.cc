@@ -268,7 +268,6 @@ int main(int argc, char * argv[]) {
         }
       } else {
         argp[curr_argc++] = const_cast<char *>("-skip_first");
-        // argp[curr_argc++] = (char *)curr_process.num_skip_first_instrs.c_str();
         argp[curr_argc++] = const_cast<char *>(std::to_string(curr_process.num_instrs_to_skip_first).c_str());
       }
       argp[curr_argc++] = const_cast<char *>("--");
@@ -436,8 +435,6 @@ int main(int argc, char * argv[]) {
             curr_p->tid_to_htid + pts_m->uint32_t_val,
             pts_m->stack_val + (((uint64_t)curr_pid) << addr_offset_lsb) + (((uint64_t)curr_pid) << interleave_base_bit),
             pts_m->stacksize_val);
-        break;
-      case pts_constructor:
         break;
       case pts_destructor: {
           std::pair<uint32_t, uint64_t> ret = pts->resume_simulation(true);  // <thread_id, time>
