@@ -56,15 +56,7 @@ PthreadTimingSimulator::PthreadTimingSimulator(uint32_t _pid, uint32_t _total_nu
   }
 
   ptsmessage = new (maped) PTSMessage;
-  mmap_flag = reinterpret_cast<bool*>(maped + sizeof(PTSMessage));
-
-  // TODO(gajh): Not sure about the meaning of the below code snippet.
-  // Well, this prevents pintools from a weird seg fault error (not always
-  // though.)  I resurrect this for now and visit this issue later.
-  if (pid != 0)
-    sleep(1*pid);
-
-  sync_with_mcsim();
+  mmap_flag = reinterpret_cast<bool *>(maped + sizeof(PTSMessage));
 
   num_hthreads = get_num_hthreads();
   num_available_slot = new uint32_t[num_hthreads];
@@ -150,6 +142,7 @@ bool PthreadTimingSimulator::add_instruction(
   ptsinstr->rw1        = rw1;
   ptsinstr->rw2        = rw2;
   ptsinstr->rw3        = rw3;
+
   if (num_piled_instr > 0 && (ptsmessage->val.instr[num_piled_instr-1]).hthreadid_ != hthreadid_) {
     cout << "  ++ [" << std::setw(12) << curr_time_ << "]:  " 
       << (ptsmessage->val.instr[num_piled_instr-1]).hthreadid_ << "  " << hthreadid_ << endl;
