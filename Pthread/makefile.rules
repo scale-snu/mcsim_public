@@ -94,6 +94,10 @@ SANITY_SUBSET := $(TEST_TOOL_ROOTS) $(TEST_ROOTS)
 # Build the intermediate object file.
 SNAPPY_FLAGS    += $(TOOL_CXXFLAGS) -Wno-unused-variable
 TOOL_CXXFLAGS   += -std=c++11 -D_REENTRANT -Wl,--as-needed -I$(SNAPPY_DIR) -I$(SNAPPY_DIR)/build -I..
+ifeq ($(DEBUG),1)
+  TOOL_CXXFLAGS += -ggdb -DDEBUG -DLOG_TRACE
+endif
+
 TOOL_LIBS       += -pthread
 
 # Add the required library path to McSimA+

@@ -42,7 +42,9 @@ void PthreadMalloc::Analyze(pthread_t _current, bool iscall, bool istailcall,
   else if (rtn_name->find("pthread") == string::npos || rtn_name->find("_pthread") != string::npos)
   {
     ASSERTX(depth > 0);
-    ASSERT(current == _current, "current = " + decstr((unsigned int)current) + ", _current = " + decstr((unsigned int)_current) + "\n");
+    ASSERT(current == _current, "current = " + decstr((unsigned int)current)
+        + ", _current = " + decstr((unsigned int)_current) + "\n");
+
     if (iscall && !istailcall) 
     {
       depth++;
@@ -115,9 +117,9 @@ bool PthreadMalloc::IsMalloc(const string * rtn_name)
         (rtn_name->find("printf") != string::npos) ||
         (rtn_name->find("malloc") != string::npos) ||
         (rtn_name->find("mmap") != string::npos)/* ||
-                                                   (rtn_name->find(".plt") != string::npos)*/) &&
-      rtn_name->find("g_") == string::npos &&
-      rtn_name->find("iostream") == string::npos)  // don't simulate libc functions  
+        (rtn_name->find(".plt") != string::npos)*/) &&
+        rtn_name->find("g_") == string::npos &&
+        rtn_name->find("iostream") == string::npos)  // don't simulate libc functions  
   {
     return true;
   }
