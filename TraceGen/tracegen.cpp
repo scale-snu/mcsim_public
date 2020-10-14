@@ -23,6 +23,10 @@ KNOB<BOOL> KnobValues(KNOB_MODE_WRITEONCE, "pintool",
 #endif
 
 uint64_t num_instrs;
+uint64_t num_ins_mem_rd;
+uint64_t num_ins_mem_wr;
+uint64_t num_ins_2nd_mem_rd;
+
 uint64_t slice_size;
 string   prefix_name;
 set<uint64_t> slice_index;
@@ -63,9 +67,12 @@ size_t * compressed_length;
 size_t * slice_count;
 
 
-static VOID Init(uint32_t argc, char ** argv)
+VOID Init(uint32_t argc, char ** argv)
 {
   tracing    = false;
+  num_ins_mem_rd = 0;
+  num_ins_mem_wr = 0;
+  num_ins_2nd_mem_rd = 0;
   num_instrs = 0;
   curr_index = 0;
   slice_index.clear();
@@ -107,18 +114,23 @@ static VOID Init(uint32_t argc, char ** argv)
 }
 
 
-LOCALFUN VOID Fini(int code, VOID * v)
+VOID Fini(INT32 code, VOID* v)
 {
 #ifdef DEBUG
-  InstTraceFile << "Total Instructions: " << num_instrs << endl;
   InstTraceFile.close();
 #endif
+
+  cout << "  ++ num_ins : (mem_rd, mem_wr, 2nd_mem_rd, all)=";
+  cout << "( "  << dec << setw(10)  << num_ins_mem_rd << ", "
+    << setw(10) << num_ins_mem_wr   << ", "
+    << setw(8)  << num_ins_2nd_mem_rd << ", "
+    << setw(10) << num_instrs << ")"  << endl;
 }
 
 #ifdef DEBUG
 static void record_inst (PTSInstrTrace instrs, ADDRINT addr, string op)
 {
-  InstTraceFile << instrs.ip << ": " 
+  InstTraceFile << hex << instrs.ip << ": " 
     << setw(2) << op << " " 
     << setw(2+2*sizeof(ADDRINT)) << hex << addr << dec << endl;
 }
@@ -180,6 +192,11 @@ VOID ProcessMemIns(
     curr_instr.rw2 = rw2;
     curr_instr.rw3 = rw3;
 
+    num_ins_mem_rd     += (raddr)  ? 1 : 0;
+    num_ins_mem_wr     += (waddr)  ? 1 : 0;
+    num_ins_2nd_mem_rd += (raddr2) ? 1 : 0;
+    num_instrs++;
+
 #ifdef DEBUG
     if (wlen != 0 && rlen != 0) {
       record_inst(curr_instr, waddr, "RW");
@@ -197,7 +214,6 @@ VOID ProcessMemIns(
     }
 #endif
     
-    num_instrs++;
     if ((num_instrs % instr_group_size) == 0) {
       *slice_count += 1;
       snappy::RawCompress(reinterpret_cast<char *>(instrs), sizeof(PTSInstrTrace) * instr_group_size, 
@@ -211,7 +227,16 @@ VOID ProcessMemIns(
       tracing = false;
       curr_file.close();
       if (slice_index_iter == slice_index.end())
-        exit(1);
+#ifdef DEBUG
+        InstTraceFile.close();
+#endif
+
+      cout << "  ++ num_ins : (mem_rd, mem_wr, 2nd_mem_rd, all)=";
+      cout << "( " << dec << setw(10) << num_ins_mem_rd << ", "
+        << setw(10) << num_ins_mem_wr << ", "
+        << setw(8) << num_ins_2nd_mem_rd << ", "
+        << setw(10) << num_instrs << ")" << endl;
+      exit(1);
     }
   }
   else
@@ -221,7 +246,7 @@ VOID ProcessMemIns(
 }
 
 
-LOCALFUN VOID Instruction(INS ins, VOID *v)
+VOID Instruction(INS ins, VOID *v)
 {
   bool is_mem_wr   = INS_IsMemoryWrite(ins);
   bool is_mem_rd   = INS_IsMemoryRead(ins);
@@ -351,7 +376,7 @@ LOCALFUN VOID Instruction(INS ins, VOID *v)
 }
 
 
-GLOBALFUN int main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
 #ifdef DEBUG
   string trace_header = string("#\n"
