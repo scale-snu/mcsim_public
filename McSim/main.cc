@@ -115,6 +115,8 @@ void setupSignalHandlers(void) {
   signal(SIGHUP, sig_handler);  // Hangup detected on controlling terminal
   signal(SIGQUIT, sig_handler);  // Quit from keyboard
   signal(SIGSEGV, sig_handler);  // Invalid memory reference
+  signal(SIGABRT, sig_handler);  // Quit from abort
+  signal(SIGCHLD, sig_handler);  // Child exit/stop
 }
 
 int main(int argc, char * argv[]) {
@@ -477,7 +479,6 @@ int main(int argc, char * argv[]) {
 #ifdef LOG_TRACE
   InstTraceFile.close();
 #endif
-  for (auto && curr_process : pd->pts_processes) {
     munmap(curr_process.pmmap, sizeof(PTSMessage)+2);
     remove(curr_process.tmp_shared_name.c_str());
   }
