@@ -479,6 +479,7 @@ int main(int argc, char * argv[]) {
 #ifdef LOG_TRACE
   InstTraceFile.close();
 #endif
+  for (auto && curr_process : pd->pts_processes) {
     munmap(curr_process.pmmap, sizeof(PTSMessage)+2);
     remove(curr_process.tmp_shared_name.c_str());
   }
