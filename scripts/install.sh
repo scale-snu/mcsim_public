@@ -53,8 +53,7 @@ install_mcsim_frontend()
   cd "$ROOT"/Pthread
 
   make clean PIN_ROOT="$ROOT"/pin
-  make PIN_ROOT="$ROOT"/pin obj-intel64/mypthreadtool.so -j4
-  make PIN_ROOT="$ROOT"/pin obj-intel64/libmypthread.a
+  make PIN_ROOT="$(pwd)"/../pin -j
 }
 
 install_mcsim_frontend_debug()
@@ -62,8 +61,7 @@ install_mcsim_frontend_debug()
   cd "$ROOT"/Pthread
 
   make clean PIN_ROOT="$ROOT"/pin
-  make DEBUG=1 PIN_ROOT="$ROOT"/pin obj-intel64/mypthreadtool.so -j4
-  make DEBUG=1 PIN_ROOT="$ROOT"/pin obj-intel64/libmypthread.a
+  make DEBUG=1 PIN_ROOT="$(pwd)"/../pin -j
 }
 
 install_mcsim_backend()
@@ -107,7 +105,6 @@ thisdir=`dirname "$0"`
 trap "" TSTP # Disable Ctrl-Z
 trap "" 6
 
-alias cmake=/scale/cal/home/djoh0967/library/common/bin/cmake
 unset LD_LIBRARY_PATH
 unset CPLUS_INCLUDE_PATH 
 unset C_INCLUDE_PATH

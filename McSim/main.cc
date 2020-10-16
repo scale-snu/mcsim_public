@@ -105,9 +105,13 @@ static void remove_tmpfile() {
 static void sig_handler(const int sig) {
   pid_t pid = getpid();
   remove_tmpfile();
-  int ret = kill(0, SIGKILL/*SIGTERM*/);
-  if (ret == 0)
-    LOG(INFO) << "[" << strsignal(sig) << "] Frontend process (" << pid << ") killed" << std::endl;
+  if (sig != SIGCHLD) {
+    int ret = kill(0, SIGKILL/*SIGTERM*/);
+    if (ret == 0)
+      LOG(INFO) << "[" << strsignal(sig) << "] Frontend process (" << pid << ") killed" << std::endl;
+  } else {
+    LOG(INFO) << "[" << strsignal(sig) << "] Frontend process (" << pid << ") Exit/Stop" << std::endl;
+  }
 }
 
 void setupSignalHandlers(void) {
