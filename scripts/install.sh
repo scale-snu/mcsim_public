@@ -19,7 +19,7 @@ install_third_party() {
   # 1. gflags:
   cd gflags
   mkdir -p build && cd build
-  cmake .. -DCMAKE_INSTALL_PREFIX=$DEP_BUILD_DIR -DGFLAGS_NAMESPACE=gflags -DBUILD_SHARED_LIBS=ON
+  cmake .. -DCMAKE_INSTALL_PREFIX=$DEP_BUILD_DIR -DBUILD_SHARED_LIBS=ON
   make -j2
   make install
   cd $THIRD_PARTY_DIR
@@ -27,7 +27,7 @@ install_third_party() {
   # 2. glog:
   cd glog
   mkdir build; cd build
-  cmake .. -DCMAKE_INSTALL_PREFIX=$DEP_BUILD_DIR -DBUILD_SHARED_LIBS=ON
+  cmake .. -DCMAKE_INSTALL_PREFIX=$DEP_BUILD_DIR -DBUILD_SHARED_LIBS=ON -Dgflags_DIR=$DEP_BUILD_DIR
   make -j2
   make install
   cd $THIRD_PARTY_DIR
@@ -113,9 +113,9 @@ unset CPLUS_INCLUDE_PATH
 unset C_INCLUDE_PATH
 unset PKG_CONFIG_PATH
 
-#install_third_party
+install_third_party
 
-#download_intel_pin
+download_intel_pin
 
 install_mcsim_frontend
 

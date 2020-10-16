@@ -123,8 +123,8 @@ int main(int argc, char * argv[]) {
   std::string usage{"McSimA+ backend\n"};
   usage += argv[0];
   usage += " -mdfile mdfile -runfile runfile -run_manually";
-  gflags::SetUsageMessage(usage);
-  gflags::ParseCommandLineFlags(&argc, &argv, true);
+  google::SetUsageMessage(usage);
+  google::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
 
 #ifdef LOG_TRACE

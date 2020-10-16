@@ -31,9 +31,9 @@ the required packages with the following commands:
   ```bash
   $ cd third-party/gflags
   $ mkdir -p build && cd build
-  $ cmake .. -DCMAKE_INSTALL_PREFIX="$(pwd)"/../../../build -DGFLAGS_NAMESPACE=gflags -DBUILD_SHARED_LIBS=ON
+  $ cmake .. -DCMAKE_INSTALL_PREFIX="$(pwd)"/../../../build -DBUILD_SHARED_LIBS=ON
   $ make
-  $ sudo make install
+  $ make install
   ```
 
 [gflags]: https://gflags.github.io/gflags/
@@ -42,9 +42,9 @@ the required packages with the following commands:
   ```bash
   $ cd third-party/glog
   $ mkdir build; cd build
-  $ cmake .. -DCMAKE_INSTALL_PREFIX="$(pwd)"/../../../build -DBUILD_SHARED_LIBS=ON
+  $ cmake .. -DCMAKE_INSTALL_PREFIX="$(pwd)"/../../../build -DBUILD_SHARED_LIBS=ON -Dgflags_DIR="$(pwd)"/../../../build
   $ make -j
-  $ sudo make install
+  $ make install
   ```
 
 [glog]: https://github.com/google/glog/
@@ -167,6 +167,9 @@ snappy files and play traces, try the following example:
 
 ```bash
 $ ./pin/pin -t TraceGen/obj-intel64/tracegen.so -prefix test -slice_size 100000 0 -- /bin/ls /
+
+[     0] here
+  ++ num_ins : (mem_rd, mem_wr, 2nd_mem_rd, all)=(      23290,       9140,        0,     100000)
 ```
 
 2. Generate a runfile for the trace file to `Apps/list` in the following format.
@@ -175,10 +178,13 @@ $ mv test.0.snappy /tmp
 $ vim Apps/list/run-trace.toml
 ```
 
-```
-# 'run_trace.py' file is written as follows.
-# format: 0 (abs. path of trace file) (abs. path of dummy program) (dummy program)
-0 /tmp/test.0.snappy /bin/ ls
+```toml
+[[run]]
+type = "trace"
+num_instrs_to_skip_first = 0
+trace_file = "/tmp/test.0.snappy"
+path = "/home/gajh/repository/mcsim_private/Pthread/obj-intel64"
+arg  = "bin.exe"
 ```
 
 3. To play the trace file, Type the following command:
