@@ -105,13 +105,9 @@ static void remove_tmpfile() {
 static void sig_handler(const int sig) {
   pid_t pid = getpid();
   remove_tmpfile();
-  if (sig != SIGCHLD) {
-    int ret = kill(0, SIGKILL/*SIGTERM*/);
-    if (ret == 0)
-      LOG(INFO) << "[" << strsignal(sig) << "] Frontend process (" << pid << ") killed" << std::endl;
-  } else {
-    LOG(INFO) << "[" << strsignal(sig) << "] Frontend process (" << pid << ") Exit/Stop" << std::endl;
-  }
+  int ret = kill(0, SIGKILL/*SIGTERM*/);
+  if (ret == 0)
+    LOG(INFO) << "[" << strsignal(sig) << "] Frontend process (" << pid << ") killed" << std::endl;
 }
 
 void setupSignalHandlers(void) {
@@ -120,7 +116,7 @@ void setupSignalHandlers(void) {
   signal(SIGQUIT, sig_handler);  // Quit from keyboard
   signal(SIGSEGV, sig_handler);  // Invalid memory reference
   signal(SIGABRT, sig_handler);  // Quit from abort
-  signal(SIGCHLD, sig_handler);  // Child exit/stop
+  // signal(SIGCHLD, sig_handler);  // Child exit/stop
 }
 
 int main(int argc, char * argv[]) {
