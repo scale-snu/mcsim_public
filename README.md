@@ -24,8 +24,13 @@ McSimA+ was tested under the following system.
 + Compiler: gcc version 7.5.0
 + Tool: Intel Pin 3.16
 
-To build the McSimA+ simulator on Linux, first install
-the required packages with the following commands:
+To build the McSimA+ simulator on Linux, first clone the github repository,
+which includes the required packages as git submodules:
+
++ McSimA+
+```bash
+$ git clone https://github.com/scale-snu/mcsim_private.git --recursive
+```
 
 + [gflags][gflags]
   ```bash
@@ -65,24 +70,19 @@ the required packages with the following commands:
 
 ## How to compile the simulator?
 
-1. Download the McSimA+ simulator at [Scalable Computer Architecture Laboratory](http://scale.snu.ac.kr/). The URL to the repository might be different from the example command below:
-```bash
-$ git clone https://github.com/scale-snu/mcsim_private.git --recursive
-```
-
-2. Download the Pin at [Pin - A Binary Instrumentation Tool](https://software.intel.com/en-us/articles/pin-a-binary-instrumentation-tool-downloads).
+1. Download the Pin at [Pin - A Binary Instrumentation Tool](https://software.intel.com/en-us/articles/pin-a-binary-instrumentation-tool-downloads).
 ```bash
 $ cd third-party
 $ wget http://software.intel.com/sites/landingpage/pintool/downloads/pin-3.16-98275-ge0db48c31-gcc-linux.tar.gz
 $ tar -xvf pin-3.16-98275-ge0db48c31-gcc-linux.tar.gz 
 ```
 
-3. Create a `Pin` symbolic link in the `mcsim_private` directory.
+2. Create a `Pin` symbolic link in the `mcsim_private` directory.
 ```bash
 $ ln -s "$(pwd)"/pin-3.16-98275-ge0db48c31-gcc-linux "$(pwd)"/../pin
 ```
 
-4. Go to `McSim` and compile McSim. (To build the back-end, the 
+3. Go to `McSim` and compile McSim. (To build the back-end, the 
   absolute path of `pin` header is required)
 ```bash
 $ cd ../McSim
@@ -91,7 +91,7 @@ $ cmake ..
 $ cmake --build .  -- -j
 ```
 
-5. Go to `Pthread` and compile the user-level thread library pin 
+4. Go to `Pthread` and compile the user-level thread library pin 
   tool [2] (called `mypthreadtool`) as a dynamic library. (To build the front-end, 
   the absolute path of `pin` root directory should be provided)
 ```bash
@@ -99,7 +99,7 @@ $ cd ../../Pthread
 $ make PIN_ROOT="$(pwd)"/../pin -j
 ```
 
-6. Go to `TraceGen` and compile the trace generator pin tool.
+5. Go to `TraceGen` and compile the trace generator pin tool.
 ```bash
 $ cd ../TraceGen
 $ make PIN_ROOT="$(pwd)"/../pin obj-intel64/tracegen.so -j
@@ -131,8 +131,6 @@ BASE="$(pwd)"
 export PIN=${BASE}/pin/pin
 export PINTOOL=${BASE}/Pthread/obj-intel64/mypthreadtool.so
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${BASE}/build/lib
-export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:${BASE}/build/include
-export C_INCLUDE_PATH=$C_INCLUDE_PATH:${BASE}/build/include
 ```
 
 3. Add the absolute path of `stream` directory to `Apps/list/run-stream.toml`
@@ -212,18 +210,3 @@ the meaning of parameters that are not clear.
 [2] H. Pan, K. Asanovic, R. Cohn and C. K. Luk, "Controlling Program
     Execution through Binary Instrumentation," Computer Architecture
     News, vol.33, no.5, 2005.
-
-
-## Frequently Asked Questions (FAQ)
-
-Q: While compiling McSimA+, I have the following error message. How can I solve it?
-```bash
-/usr/local/bin/ld: unrecognized option '--hash-style=both' 
-/usr/local/bin/ld: use the --help option for usage information
-collect2: ld returned 1 exit status
-```
-
-A: Type the following command and recompile 'McSimA+'
-```bash
-$ export COMPILER_PATH=/usr/bin
-```
