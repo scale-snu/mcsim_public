@@ -61,7 +61,7 @@ PthreadTimingSimulator::PthreadTimingSimulator(uint32_t _pid, uint32_t _total_nu
 
 #ifdef LOG_TRACE
   string trace_header = string("#\n"
-                               "# Instruction Trace Transfered By McSimA+ Frontend\n"
+                               "# Instruction Trace Transferred By McSimA+ Frontend\n"
                                "#\n");
   InstTraceFile.open("/tmp/fe_transfered_inst.out");
   InstTraceFile.write(trace_header.c_str(), trace_header.size());
