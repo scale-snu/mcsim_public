@@ -98,7 +98,7 @@ void PthreadScheduler::PlayTraces(const string & trace_name, uint64_t trace_skip
     (*compressed_length) = 0;
     char * compressed = new char[maxCompressedLength];
     size_t *slice_count = new size_t;
-    size_t prev_count, curr_count = 0;
+    size_t prev_count = 0;
 
     trace_file.read(reinterpret_cast<char *>(slice_count), sizeof(size_t));
     do {
@@ -135,10 +135,9 @@ void PthreadScheduler::PlayTraces(const string & trace_name, uint64_t trace_skip
         }
       }
 
-      prev_count = curr_count;
+      prev_count = *slice_count;
       trace_file.read(reinterpret_cast<char *>(slice_count), sizeof(size_t));
-      curr_count = *slice_count;
-    } while (prev_count < curr_count);
+    } while (prev_count < *slice_count);
 
     delete[] instrs;
     delete[] compressed;

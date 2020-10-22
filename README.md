@@ -181,8 +181,8 @@ $ vim Apps/list/run-trace.toml
 type = "trace"
 num_instrs_to_skip_first = 0
 trace_file = "/tmp/test.0.snappy"
-path = "/home/gajh/repository/mcsim_private/Pthread/obj-intel64"
-arg  = "bin.exe"
+path = "/home/gajh/repository/mcsim_private/McSim/stream"
+arg  = "STREAM"
 ```
 
 3. To play the trace file, Type the following command:

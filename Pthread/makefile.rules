@@ -35,7 +35,7 @@ TOOL_ROOTS :=
 SA_TOOL_ROOTS :=
 
 # This defines all the applications that will be run during the tests.
-APP_ROOTS := bin
+APP_ROOTS :=
 
 # This defines any additional object files that need to be compiled.
 SNAPPY_DIR  = ../third-party/snappy
@@ -181,9 +181,3 @@ $(OBJDIR)mypthread$(OBJ_SUFFIX): mypthread.cpp
 
 $(OBJDIR)libmypthread$(LIB_SUFFIX): $(OBJDIR)mypthread$(OBJ_SUFFIX)
 	$(ARCHIVER) $(OBJDIR)libmypthread$(LIB_SUFFIX) $<
-
-
-###### Special applications' build rules ######
-
-$(OBJDIR)bin$(EXE_SUFFIX): bin.cpp
-	$(CXX) $(APP_CXXFLAGS_NOOPT) $(COMP_EXE)$@ $< $(APP_LDFLAGS_NOOPT) $(APP_LIBS)
