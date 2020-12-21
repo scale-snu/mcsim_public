@@ -29,6 +29,10 @@ which includes the required packages as git submodules:
 
 + McSimA+
 ```bash
+git clone git@github.com:scale-snu/mcsim_private.git --recursive
+```
+or
+```bash
 $ git clone https://github.com/scale-snu/mcsim_private.git --recursive
 ```
 
