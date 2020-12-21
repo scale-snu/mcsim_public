@@ -50,7 +50,7 @@ $ git clone https://github.com/scale-snu/mcsim_private.git --recursive
 + [glog][glog]
   ```bash
   $ cd third-party/glog
-  $ mkdir build; cd build
+  $ mkdir -p build && cd build
   $ cmake .. -DCMAKE_INSTALL_PREFIX="$(pwd)"/../../../build -DBUILD_SHARED_LIBS=ON -Dgflags_DIR="$(pwd)"/../../../build
   $ make -j
   $ make install
@@ -61,7 +61,7 @@ $ git clone https://github.com/scale-snu/mcsim_private.git --recursive
 + [snappy][snappy]
   ```bash
   $ cd third-party/snappy
-  $ mkdir build; cd build
+  $ mkdir -p build && cd build
   $ cmake ..
   ```
 
@@ -90,7 +90,7 @@ $ ln -s "$(pwd)"/pin-3.16-98275-ge0db48c31-gcc-linux "$(pwd)"/../pin
   absolute path of `pin` header is required)
 ```bash
 $ cd ../McSim
-$ mkdir build; cd build
+$ mkdir -p build && cd build
 $ cmake ..
 $ cmake --build .  -- -j
 ```

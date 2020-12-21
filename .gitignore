@@ -10,4 +10,4 @@ TraceGen/obj-intel64
 third-party/*
 build
 pin
-toml11
+snappy
