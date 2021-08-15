@@ -28,20 +28,23 @@
  * Authors: Jung Ho Ahn
  */
 
-#ifndef __PTS_H__
-#define __PTS_H__
+#ifndef PTS_H_
+#define PTS_H_
 
 
+#include <stdint.h>
+#include <stdlib.h>
 #include <list>
 #include <map>
 #include <queue>
 #include <stack>
+#include <utility>
 #include <vector>
 #include <string>
-#include <stdlib.h>
-#include <stdint.h>
 
-typedef uint8_t  UINT8;   //LINUX HOSTS
+#include "toml.hpp"
+
+typedef uint8_t  UINT8;   // LINUX HOSTS
 typedef uint16_t UINT16;
 typedef uint32_t UINT32;
 typedef uint64_t UINT64;
@@ -69,119 +72,61 @@ typedef INT64 ADDRDELTA;
 #endif
 
 // please refer to 'xed-category-enu.h'.
-//const uint32_t XED_CATEGORY_X87_ALU = 36;
-//const uint32_t XED_CATEGORY_CALL    = 5;
+// const uint32_t XED_CATEGORY_X87_ALU = 36;
+// const uint32_t XED_CATEGORY_CALL    = 5;
 
+#include "PTSInterface.h"
 
-const uint32_t instr_batch_size = 32;
+namespace PinPthread  {
+class McSim;
 
-enum pts_msg_type
-{
-  pts_constructor,
-  pts_destructor,
-  pts_resume_simulation,
-  pts_add_instruction,
-  pts_set_stack_n_size,
-  pts_set_active,
-  pts_get_num_hthreads,
-  pts_get_param_uint64,
-  pts_get_param_bool,
-  pts_get_curr_time,
-  pts_invalid,
+class PthreadTimingSimulator {
+ public:
+  explicit PthreadTimingSimulator(const std::string & mdfile);
+  explicit PthreadTimingSimulator(int port_num) { }
+  ~PthreadTimingSimulator();
+
+  std::pair<uint32_t, uint64_t> resume_simulation(bool must_switch);
+  // return value -- whether we have to resume simulation
+  bool add_instruction(
+      uint32_t hthreadid_,
+      uint64_t curr_time_,
+      uint64_t waddr,
+      UINT32   wlen,
+      uint64_t raddr,
+      uint64_t raddr2,
+      UINT32   rlen,
+      uint64_t ip,
+      uint32_t category,
+      bool     isbranch,
+      bool     isbranchtaken,
+      bool     islock,
+      bool     isunlock,
+      bool     isbarrier,
+      uint32_t rr0, uint32_t rr1, uint32_t rr2, uint32_t rr3,
+      uint32_t rw0, uint32_t rw1, uint32_t rw2, uint32_t rw3);
+  void set_stack_n_size(int32_t pth_id, ADDRINT stack, ADDRINT stacksize);
+  void set_active(int32_t pth_id, bool is_active);
+
+  uint32_t get_num_hthreads() const;
+  uint64_t get_param_uint64(const std::string & idx_, uint64_t def_value) const;
+  bool     get_param_bool(const std::string & idx_, bool def_value) const;
+  std::string   get_param_str(const std::string & idx_) const;
+  uint64_t get_curr_time() const;
+
+ private:
+  // std::map<string, string> params;
+  std::map<std::string, bool> params_bool;
+  std::map<std::string, uint64_t> params_uint64_t;
+  std::map<std::string, std::string> params_string;
+
+  void md_table_decoding(const toml::table & table, const std::string & prefix);
+
+ public:
+  std::vector<std::string>      trace_files;
+
+  McSim * mcsim;
 };
+}  // namespace PinPthread
 
-
-struct PTSInstr
-{
-  uint32_t hthreadid_;
-  uint64_t curr_time_;
-  uint64_t waddr;
-  UINT32   wlen;
-  uint64_t raddr;
-  uint64_t raddr2;
-  UINT32   rlen;
-  uint64_t ip;
-  uint32_t category;
-  bool     isbranch;
-  bool     isbranchtaken;
-  bool     islock;
-  bool     isunlock;
-  bool     isbarrier;
-  uint32_t rr0;
-  uint32_t rr1;
-  uint32_t rr2;
-  uint32_t rr3;
-  uint32_t rw0;
-  uint32_t rw1;
-  uint32_t rw2;
-  uint32_t rw3;
-};
-
-typedef union
-{
-  PTSInstr   instr[instr_batch_size];
-  char       str[1024];
-} instr_n_str;
-
-struct PTSMessage
-{
-  pts_msg_type type;
-  bool         bool_val;
-  bool         killed;
-  uint32_t     uint32_t_val;
-  uint64_t     uint64_t_val;
-  ADDRINT      stack_val;
-  ADDRINT      stacksize_val;
-  instr_n_str  val;
-};
-
-
-using namespace std;
-
-namespace PinPthread 
-{
-  class McSim;
-
-  class PthreadTimingSimulator
-  {
-    public:
-      PthreadTimingSimulator(const string & mdfile);
-      PthreadTimingSimulator(int port_num) { }
-      ~PthreadTimingSimulator();
-
-      pair<uint32_t, uint64_t> resume_simulation(bool must_switch);
-      bool add_instruction(
-          uint32_t hthreadid_,
-          uint64_t curr_time_,
-          uint64_t waddr,
-          UINT32   wlen,
-          uint64_t raddr,
-          uint64_t raddr2,
-          UINT32   rlen,
-          uint64_t ip,
-          uint32_t category,
-          bool     isbranch,
-          bool     isbranchtaken,
-          bool     islock,
-          bool     isunlock,
-          bool     isbarrier,
-          uint32_t rr0, uint32_t rr1, uint32_t rr2, uint32_t rr3,
-          uint32_t rw0, uint32_t rw1, uint32_t rw2, uint32_t rw3
-          );  // return value -- whether we have to resume simulation
-      void set_stack_n_size(int32_t pth_id, ADDRINT stack, ADDRINT stacksize);
-      void set_active(int32_t pth_id, bool is_active);
-
-      uint32_t get_num_hthreads() const;
-      uint64_t get_param_uint64(const string & idx_, uint64_t def_value) const;
-      bool     get_param_bool(const string & idx_, bool def_value) const;
-      string   get_param_str(const string & idx_) const;
-      uint64_t get_curr_time() const;
-
-      std::map<string, string> params;
-      std::vector<string>      trace_files;
-
-      McSim * mcsim;
-  };
-}
-
-#endif  //__PTS_H__
+#endif  // PTS_H_

@@ -1,1 +1,13 @@
+**/cscope.out
+**/pin.log
+**/pintool.log
+**/tags
 McSim/build
+McSim/stream/*.o
+McSim/stream/STREAM
+Pthread/obj-intel64
+TraceGen/obj-intel64
+third-party/*
+build
+pin
+snappy

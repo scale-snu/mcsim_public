@@ -34,29 +34,37 @@ END_LEGAL */
 /* provides the context switching mechanism                                    */
 /* --------------------------------------------------------------------------- */
 
-#ifndef EE_PTHREAD_SCHEDULER_H
-#define EE_PTHREAD_SCHEDULER_H
+#ifndef EEPTHREADSCHEDULER_H_
+#define EEPTHREADSCHEDULER_H_
 
+#include <iomanip>
+#include <list>
+#include <map>
+#include <queue>
+#include <stack>
+#include <string>
+#include <vector>
 #include "PthreadUtil.h"
 #include "PTS.h"
-#include <list>
-#include <stack>
-#include <queue>
-#include <vector>
-#include <map>
-#include <iomanip>
 
-const static uint32_t def_stack_sz = 0x800000;
+constexpr uint32_t def_stack_sz = 0x800000;
 
 
-namespace PinPthread 
-{
-  class Pthread
-  {
+namespace PinPthread {
+
+  class PthreadScheduler;
+  class PthreadSim;
+
+  class Pthread {
     public:
-      Pthread(pthread_attr_t*, CONTEXT*, ADDRINT, ADDRINT, uint64_t curr_time_, PthreadTimingSimulator * const pts);
+      explicit Pthread(pthread_attr_t*, CONTEXT*, ADDRINT, ADDRINT, uint64_t curr_time_, 
+          PthreadTimingSimulator * const pts);
       ~Pthread();
-    public:
+
+      friend class PthreadScheduler;
+      friend class PthreadSim;
+
+    private:
       bool active;           // whether the thread can be scheduled to run
       bool started;          // whether the thread has begun execution
       bool executed;
@@ -80,11 +88,9 @@ namespace PinPthread
 
   typedef std::map<pthread_t, Pthread*> pthread_queue_t;
 
-
-  class PthreadScheduler
-  {
+  class PthreadScheduler {
     public:
-      PthreadScheduler(uint32_t pid, uint32_t total_num, char * tmp_shared);
+      explicit PthreadScheduler(uint32_t pid, uint32_t total_num, char * tmp_shared);
       ~PthreadScheduler();
 
       void AddThread(pthread_t, pthread_attr_t*, CONTEXT*, ADDRINT, ADDRINT);
@@ -97,8 +103,10 @@ namespace PinPthread
       UINT32 GetNumActiveThreads();
 
       void PlayTraces(const string & trace_name, uint64_t trace_skip_first);
+
+      friend class PthreadSim;
+
     private:
-      uint64_t GetPhysicalAddr(uint64_t vaddr);
       inline pthread_queue_t::iterator GetThreadPtr(pthread_t);
       inline Pthread* GetThread(pthread_queue_t::iterator);
       inline bool IsActive(pthread_t);
@@ -106,14 +114,13 @@ namespace PinPthread
       inline void SetActiveState(pthread_t, bool);
       inline bool HasStarted(pthread_queue_t::iterator);
       inline void StartThread(pthread_queue_t::iterator);
-    public:
       inline CONTEXT* GetCurrentContext();
       inline CONTEXT* GetCurrentStartCtxt();
-    public:
-      pthread_queue_t pthreads;          // list of thread state
-      pthread_queue_t pthreads_dummy;    // list of thread state
-      pthread_queue_t::iterator current; // pointer to the current thread running
-      UINT32 nactive;                    // number of active threads
+
+      pthread_queue_t pthreads;           // list of thread state
+      pthread_queue_t pthreads_dummy;     // list of thread state
+      pthread_queue_t::iterator current;  // pointer to the current thread running
+      UINT32 nactive;                     // number of active threads
 
     public:
       uint64_t curr_time;  // current time of the scheduler
@@ -125,13 +132,15 @@ namespace PinPthread
           uint32_t rr0, uint32_t rr1, uint32_t rr2, uint32_t rr3,
           uint32_t rw0, uint32_t rw1, uint32_t rw2, uint32_t rw3);
       void resume_simulation(bool must_switch = false, bool killed = false);
-      void add_synch_instruction(pthread_t thread, bool islock, bool isunlock, uint64_t isbarrier = 0, uint32_t n_part = 0);
+      void add_synch_instruction(pthread_t thread, bool islock, bool isunlock, 
+          uint64_t isbarrier = 0, uint32_t n_part = 0);
+
+    private:
       PthreadTimingSimulator * pts;
 
       std::map<Pthread *, uint32_t> pth_to_hth;
       std::vector<pthread_queue_t::iterator> hth_to_pth;
       std::map<uint64_t, uint64_t> v_to_p;
-      uint32_t page_sz_log2;
       uint64_t num_page_allocated;
 
       uint64_t total_instrs;
@@ -139,6 +148,7 @@ namespace PinPthread
       uint64_t total_discarded_mem_rd;
       uint64_t total_discarded_mem_wr;
       uint64_t total_discarded_2nd_mem_rd;
+
       void mcsim_skip_instrs_begin() { current->second->skip_instrs++; }
       void mcsim_skip_instrs_end()   { current->second->skip_instrs--; }
       void mcsim_spinning_begin()    { current->second->spinning++; }
@@ -151,16 +161,16 @@ namespace PinPthread
       uint64_t num_barrier_wait;
 
       bool      ignore_skip_instrs;
-      int	      pid,total_num;
+      int       pid;
+      int       total_num;
       char *    tmp_shared;
       uint64_t  skip_first;
       uint64_t  first_instrs;
-      double    agile_bank_th;
       bool      repeat_playing;
-      map<uint64_t, double> addr_perc;
+      std::map<uint64_t, double> addr_perc;
   };
 
-} // namespace PinPthread
+}  // namespace PinPthread
 
-#endif  // #ifndef EE_PTHREAD_SCHEDULER_H
+#endif  // EEPTHREADSCHEDULER_H_
 

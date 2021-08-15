@@ -1,503 +1,363 @@
+/*
+ * Copyright (c) 2010 The Hewlett-Packard Development Company
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met: redistributions of source code must retain the above copyright
+ * notice, this list of conditions and the following disclaimer;
+ * redistributions in binary form must reproduce the above copyright
+ * notice, this list of conditions and the following disclaimer in the
+ * documentation and/or other materials provided with the distribution;
+ * neither the name of the copyright holders nor the names of its
+ * contributors may be used to endorse or promote products derived from
+ * this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Authors: Jung Ho Ahn
+ */
+
+#include <fcntl.h>
+#include <signal.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <unistd.h>
+#include <wait.h>
+#include <arpa/inet.h>
+#include <gflags/gflags.h>
+#include <glog/logging.h>
+#include <netinet/in.h>
+#include <sys/mman.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/time.h>
+
+#include <experimental/filesystem>
+#include <fstream>
 #include <iostream>
 #include <iomanip>
-#include <fstream>
-#include <string>
+#include <memory>
 #include <sstream>
-#include "PTS.h"
+#include <string>
+#include <typeinfo>
+
 #include "McSim.h"
-#include <unistd.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <arpa/inet.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <sys/types.h>
-#include <signal.h>
-#include <wait.h>
-#include <sys/time.h>
-#include <fcntl.h>
-#include <sys/mman.h>
+#include "PTS.h"
+#include "PTSProcessDescription.h"
 
-#include <gflags/gflags.h>
+#ifdef LOG_TRACE
+using std::hex;
+using std::dec;
+using std::setw;
+using std::ios;
+std::ofstream InstTraceFile;
+#endif
 
-using namespace std;
-using namespace PinPthread;
+namespace fs = std::experimental::filesystem;
 
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/mman.h>
-
-struct Programs
-{
-  int32_t num_threads;
-  int32_t agile_bank_th_perc;
-  string num_skip_first_instrs;
-  uint32_t tid_to_htid;  // id offset
-  string trace_name;
-  string directory;
-  string agile_page_list_file_name;
-  vector<string> prog_n_argv;
-  char * buffer;
-  int pid;
-};
 
 DEFINE_string(mdfile, "md.toml", "Machine Description file: TOML format is used.");
 DEFINE_string(runfile, "run.toml", "How to run applications: TOML format is used.");
-DEFINE_string(instrs_skip, "0", "Number of instructions to skip before timing simulation starts.");
+DEFINE_string(instrs_skip, "0", "# of instructions to skip before timing simulation starts.");
 DEFINE_bool(run_manually, false, "Whether to run the McSimA+ frontend manually or not.");
-DEFINE_string(remapfile, "remap.toml", "Mapping between apps and cores: TOML format used.");
-DEFINE_uint64(remap_interval, 0, "When positive, this specifies the number of instructions \
-after which a remapping between apps and cores are conducted.");
 
-int main(int argc, char * argv[])
+
+#ifdef LOG_TRACE
+static void record_inst (PTSInstr *instrs, uint64_t addr, std::string op)
 {
-  string usage{"McSimA+ backend\n"};
-  usage += string{argv[0]} + " -mdfile mdfile -runfile runfile -run_manually -remapfile remapfile -remap_interval instrs";
-  gflags::SetUsageMessage(usage);
-  gflags::ParseCommandLineFlags(&argc, &argv, true);
+  InstTraceFile << hex << instrs->ip << ": "
+    << setw(2) << op << " "
+    << setw(2+2*sizeof(uint64_t)) << hex << addr << dec << std::endl;
+}
 
-  string line, temp;
-  istringstream sline;
+static void record_switch (uint32_t core_id, int pid)
+{
+  InstTraceFile << "CORE" << setw(3) << core_id << ": "
+    << "PID" << setw(18) << pid << " resume_simulation" << std::endl;
+}
+#endif
+
+static void remove_tmpfile() {
+  std::stringstream ss;
+  ss << getpid() << "_mcsim.tmp";
+  std::string tmp_s = ss.str();
+  auto tmp_dir = fs::temp_directory_path();
+
+  for (const auto & entry : fs::directory_iterator(tmp_dir)) {
+    auto item = entry.path().filename().string();
+    if (item.compare(0, item.size()-1, tmp_s) == 0) {
+      remove(entry.path());
+    }
+  }
+}
+
+static void sig_handler(const int sig) {
+  pid_t pid = getpid();
+  remove_tmpfile();
+  int ret = kill(0, SIGKILL/*SIGTERM*/);
+  if (ret == 0)
+    LOG(INFO) << "[" << strsignal(sig) << "] Frontend process (" << pid << ") killed" << std::endl;
+}
+
+void setupSignalHandlers(void) {
+  signal(SIGINT, sig_handler);  // Interrupt from keyboard
+  signal(SIGHUP, sig_handler);  // Hangup detected on controlling terminal
+  signal(SIGQUIT, sig_handler);  // Quit from keyboard
+  signal(SIGSEGV, sig_handler);  // Invalid memory reference
+  signal(SIGABRT, sig_handler);  // Quit from abort
+  // signal(SIGCHLD, sig_handler);  // Child exit/stop
+}
+
+int main(int argc, char * argv[]) {
+  std::string usage{"McSimA+ backend\n"};
+  usage += argv[0];
+  usage += " -mdfile mdfile -runfile runfile -run_manually";
+  google::SetUsageMessage(usage);
+  google::ParseCommandLineFlags(&argc, &argv, true);
+  google::InitGoogleLogging(argv[0]);
+
+#ifdef LOG_TRACE
+  std::string trace_header = std::string("#\n"
+                                         "# Instruction Trace Generated By McSimA+ Backend\n"
+                                         "#\n");
+  InstTraceFile.open("/tmp/be_instructions.out");
+  InstTraceFile.write(trace_header.c_str(), trace_header.size());
+  InstTraceFile.setf(ios::showbase);
+#endif
+
   uint32_t nactive = 0;
   struct timeval start, finish;
   gettimeofday(&start, NULL);
 
-  PthreadTimingSimulator * pts = new PthreadTimingSimulator(FLAGS_mdfile);
-  string pin_name;
-  string pintool_name;
-  string ld_library_path_full;
-  vector<Programs>  programs;
-  vector<uint32_t>  htid_to_tid;
-  vector<uint32_t>  htid_to_pid;
-  int32_t           addr_offset_lsb = pts->get_param_uint64("addr_offset_lsb", 48);
-  uint64_t          max_total_instrs = pts->get_param_uint64("max_total_instrs", 1000000000);
-  uint64_t          num_instrs_per_th = pts->get_param_uint64("num_instrs_per_th", 0);
-  int32_t           interleave_base_bit = pts->get_param_uint64("pts.mc.interleave_base_bit", 14);
-  bool              kill_with_sigint = pts->get_param_str("kill_with_sigint") == "true" ? true : false;
+  auto pts{ std::make_unique<PinPthread::PthreadTimingSimulator>(FLAGS_mdfile) };
+  std::string ld_library_path_full{ "LD_LIBRARY_PATH=" };
+  std::vector<uint32_t>  htid_to_tid;
+  std::vector<uint32_t>  htid_to_pid;
+  int32_t  addr_offset_lsb     = pts->get_param_uint64("addr_offset_lsb", 48);
+  uint64_t max_total_instrs    = pts->get_param_uint64("max_total_instrs", 1000000000);
+  uint64_t num_instrs_per_th   = pts->get_param_uint64("num_instrs_per_th", 0);
+  int32_t  interleave_base_bit = pts->get_param_uint64("pts.mc.interleave_base_bit", 14);
 
-  ifstream fin(FLAGS_runfile.c_str());
-  if (fin.good() == false)
-  {
-    cout << "failed to open the runfile " << FLAGS_runfile << endl;
-    exit(1);
-  }
+  auto pd{ std::make_unique<PinPthread::ProcessDescription>(FLAGS_runfile) }; 
 
   // it is assumed that pin and pintool names are listed in the first two lines
   char * pin_ptr     = getenv("PIN");
   char * pintool_ptr = getenv("PINTOOL");
   char * ld_library_path = getenv("LD_LIBRARY_PATH");
-  pin_name           = (pin_ptr == NULL) ? "pinbin" : pin_ptr;
-  pintool_name       = (pintool_ptr == NULL) ? "mypthreadtool" : pintool_ptr;
-  uint32_t idx    = 0;
-  uint32_t offset = 0;
-  uint32_t num_th_passed_instr_count = 0;
-  //uint32_t num_hthreads = pts->get_num_hthreads();
+  pin_ptr     = (pin_ptr == nullptr) ? const_cast<char *>("pinbin") : pin_ptr;
+  pintool_ptr = (pintool_ptr == nullptr) ? const_cast<char *>("mypthreadtool") : pintool_ptr;
+  CHECK(fs::exists(pin_ptr)) << "PIN should be an existing filename." << std::endl;
+  CHECK(fs::exists(pintool_ptr)) << "PINTOOL should be an existing filename." << std::endl;
+  ld_library_path_full +=ld_library_path;
+  uint32_t offset = pd->num_hthreads;
+  // uint32_t num_hthreads = pts->get_num_hthreads();
 
-  while (getline(fin, line))
-  {
-    // #_threads #_skip_1st_instrs dir prog_n_argv
-    // if #_threads is 0, trace file is specified at the location of #_skip_1st_instrs
-    if (line.empty() == true || line[0] == '#') continue;
-    programs.push_back(Programs());
-    sline.clear();
-    if (line[0] == 'A')
-    {
-      sline.str(line);
-      sline >> temp >> programs[idx].num_threads >> programs[idx].agile_bank_th_perc
-        >> programs[idx].agile_page_list_file_name
-        >> programs[idx].num_skip_first_instrs
-        >> programs[idx].directory;
-    }
-    else
-    {
-      sline.str(line);
-      sline >> programs[idx].num_threads;
-      if (programs[idx].num_threads < -100)
-      {
-        programs[idx].agile_bank_th_perc = 100;
-        programs[idx].num_threads = programs[idx].num_threads/(-100);
-        programs[idx].trace_name = string();
-        sline >> programs[idx].num_skip_first_instrs >> programs[idx].directory;
-        nactive += programs[idx].num_threads;
-      }
-      else if (programs[idx].num_threads <= 0)
-      {
-        programs[idx].agile_bank_th_perc = 0 - programs[idx].num_threads;
-        programs[idx].num_threads = 1;
-        sline >>  programs[idx].trace_name >> programs[idx].directory;
-        nactive++;
-      }
-      else
-      {
-        programs[idx].trace_name = string();
-        sline >> programs[idx].num_skip_first_instrs >> programs[idx].directory;
-        nactive += programs[idx].num_threads;
-      }
-    }
+  nactive      = offset;
+  uint32_t idx = 0;
 
-    //programs[idx].directory = string("PATH=")+programs[idx].directory+":"+string(getenv("PATH"));
-    programs[idx].tid_to_htid = offset;
-    for (int32_t j = 0; j < programs[idx].num_threads; j++)
-    {
+  for (auto && curr_process : pd->pts_processes) {
+    for (int32_t j = 0; j < curr_process.num_threads; j++) {
       htid_to_tid.push_back(j);
       htid_to_pid.push_back(idx);
     }
-    while (sline.eof() == false)
-    {
-      sline >> temp;
-      programs[idx].prog_n_argv.push_back(temp);
-    }
 
-    // Shared memory buffer
-    programs[idx].buffer = new char[sizeof(PTSMessage)];
-
-    if (idx > 0)
-    {
-      pts->add_instruction(offset, 0, 0, 0, 0, 0, 0, 0, 0,
+    if (idx > 0) {
+      pts->add_instruction(curr_process.tid_to_htid, 0, 0, 0, 0, 0, 0, 0, 0,
           false, false, false, false, false,
           0, 0, 0, 0, 0, 0, 0, 0);
-      pts->set_active(offset, true);
+      pts->set_active(curr_process.tid_to_htid, true);
     }
-
-    offset += programs[idx].num_threads;
     idx++;
-  }
-  fin.close();
 
-  // Shared memory variable
-  char **pmmap = (char **)malloc(sizeof(char *)*programs.size());
-  volatile bool **mmap_flag = (volatile bool **)malloc(sizeof(bool *) * programs.size()); 
-  int mmap_fd[programs.size()];
-  char *temp_path     = "/tmp/";
-  char *temp_filename = "_mcsim.tmp"; 
-  char **tmp_shared    = (char **)malloc(sizeof(char *) * programs.size());
+    auto temp_file = fs::temp_directory_path();
+    std::stringstream ss;
+    ss << getpid() << "_mcsim.tmp" << curr_process.tid_to_htid;
+    temp_file /= ss.str();
+    curr_process.tmp_shared_name = temp_file.string();
 
-  for (uint32_t i=0; i<programs.size(); i++){
-    tmp_shared[i] = (char *)malloc(sizeof(char) * 30);
-    char tmp_pid[10];
-    char ppid[4];
-    sprintf(tmp_pid, "%d", getpid());
-    sprintf(ppid, "%d", i);
-    strcpy (tmp_shared[i], temp_path);
-    strcat (tmp_shared[i], tmp_pid); 
-    strcat (tmp_shared[i], temp_filename);
-    strcat (tmp_shared[i], ppid);
-  
-    // Shared memory setup
-    if ((mmap_fd[i] = open(tmp_shared[i], O_RDWR | O_CREAT, 0666)) < 0) {
-      perror("ERROR: open syscall");
+    // shared memory setup
+    curr_process.mmap_fd = open(curr_process.tmp_shared_name.c_str(), O_RDWR | O_CREAT, 0666);
+    CHECK(curr_process.mmap_fd >= 0) << "ERROR: open syscall" << std::endl;
+    CHECK_EQ(ftruncate(curr_process.mmap_fd, sizeof(PTSMessage) + 2), 0) << "ftruncate failed\n";
 
-      exit(1);
-    }
+    curr_process.pmmap = reinterpret_cast<char *>(mmap(0, sizeof(PTSMessage) + 2,
+            PROT_READ | PROT_WRITE, MAP_SHARED, curr_process.mmap_fd, 0));
+    CHECK_NE(curr_process.pmmap, MAP_FAILED) << "ERROR: mmap syscall" << std::endl;
 
-    ftruncate(mmap_fd[i], sizeof(PTSMessage)+2);
+    close(curr_process.mmap_fd);
 
-    if((pmmap[i] = (char *)mmap(0, sizeof(PTSMessage)+2,
-            PROT_READ | PROT_WRITE, MAP_SHARED, mmap_fd[i], 0)) == MAP_FAILED){
-      perror("ERROR: mmap syscall");
-      exit(1);
-    }
-
-    close(mmap_fd[i]);
-
-    mmap_flag[i] = (bool*) pmmap[i] + sizeof(PTSMessage);
-    mmap_flag[i][0] = true;
-    mmap_flag[i][1] = true;
+    curr_process.mmap_flag = reinterpret_cast<bool*>(curr_process.pmmap) + sizeof(PTSMessage);
+    (curr_process.mmap_flag)[0] = true;
+    (curr_process.mmap_flag)[1] = true;
   }
 
   // error checkings
-  if (offset > pts->get_num_hthreads())
-  {
-    cout << "more threads (" << offset << ") than the number of threads (" 
-      << pts->get_num_hthreads() << ") specified in " << FLAGS_mdfile << endl;
-    exit(1);
+  if (offset > pts->get_num_hthreads()) {
+    LOG(FATAL) << "more threads (" << offset << ") than the number of threads ("
+               << pts->get_num_hthreads() << ") specified in " << FLAGS_mdfile << std::endl;
   }
 
-  if (programs.size() <= 0)
-  {
-    cout << "we need at least one program to run" << endl;
-    exit(1);
-  }
+  CHECK(pd->pts_processes.size()) << "we need at least one process to run" << std::endl;
 
-  if (FLAGS_run_manually == false)
-  {
-    cout << "in case when the program exits with an error, please run the following command" << endl;
-    cout << "kill -9 ";
+  std::stringstream ss;
+  if (FLAGS_run_manually == false) {
+    LOG(INFO) << "if the program exits with an error, run the following command" << std::endl;
+    ss << "kill -9 ";
   }
 
   // fork n execute
-  for (uint32_t i = 0; i < programs.size(); i++)
-  {
+  for (uint32_t i = 0; i < pd->pts_processes.size(); i++) {
     pid_t pID = fork();
-    if (pID < 0)
-    {
-      cout << "failed to fork" << endl;
-      exit(1);
-    }
-    else if (pID == 0)
-    {
+    CHECK(pID >= 0) << "failed to fork" << std::endl;
+
+    setupSignalHandlers();
+
+    if (pID == 0) {
       // child process
-      chdir(programs[i].directory.c_str());
-      char * envp[3];
-      envp [0] = NULL;
-      envp [1] = NULL;
-      envp [2] = NULL;
+      auto & curr_process = pd->pts_processes[i];
+      CHECK(chdir(curr_process.directory.c_str()) == 0) << "chdir failed" << std::endl;
+      char * envp[3] = {nullptr, nullptr, nullptr};
 
-      ld_library_path_full = string("LD_LIBRARY_PATH=")+ld_library_path;
+      // envp[0] = (char *)curr_process.directory.c_str();
+      envp[0] = const_cast<char *>("PATH=::$PATH:");
+      envp[1] = const_cast<char *>(ld_library_path_full.c_str());
+      // std::string ld_path = std::string("LD_LIBRARY_PATH=")+ld_library_path;
+      // envp[1] = (char *)(ld_path.c_str());
+      // envp[2] = NULL;
 
-      //envp[0] = (char *)programs[i].directory.c_str();
-      envp[0] = (char *)"PATH=::$PATH:";
-
-      if (ld_library_path == NULL)
-      {
-        envp[1] = (char *)"LD_LIBRARY_PATH=";
-      }
-      else
-      {
-        envp[1] = (char *)(ld_library_path_full.c_str());
-        //envp[1] = (char *)(string("LD_LIBRARY_PATH=")+string(ld_library_path)).c_str();
-      }
-      //string ld_path = string("LD_LIBRARY_PATH=")+ld_library_path;
-      //envp[1] = (char *)(ld_path.c_str());
-      //envp[2] = NULL;
-
-      char ** argp = new char * [programs[i].prog_n_argv.size() + 17];
+      char ** argp = new char * [curr_process.prog_n_argv.size() + 17];
       int  curr_argc = 0;
-      char perc_str[10];
-      argp[curr_argc++] = (char *)pin_name.c_str();
-      //argp[curr_argc++] = (char *)"-separate_memory";
-      //argp[curr_argc++] = (char *)"-pause_tool";
-      //argp[curr_argc++] = (char *)"30";
-      //argp[curr_argc++] = (char *)"-appdebug";
-      argp[curr_argc++] = (char *)"-t";
-      argp[curr_argc++] = (char *)pintool_name.c_str();
+      argp[curr_argc++] = pin_ptr;
+      // argp[curr_argc++] = (char *)"-separate_memory";
+#ifdef DEBUG
+      argp[curr_argc++] = const_cast<char *>("-pause_tool");
+      argp[curr_argc++] = const_cast<char *>("30");
+      // argp[curr_argc++] = const_cast<char *>("-appdebug");
+#endif // DEBUG
+      argp[curr_argc++] = const_cast<char *>("-t");
+      argp[curr_argc++] = const_cast<char *>(pintool_ptr);
 
-      char pid_str[10];
-      char total_num_str[10];
-      sprintf(pid_str, "%d", i);
-      sprintf(total_num_str, "%d", (int)programs.size());
-      argp[curr_argc++] = (char *)"-pid";
-      argp[curr_argc++] = pid_str;
-      argp[curr_argc++] = (char *)"-total_num";
-      argp[curr_argc++] = total_num_str;
-      
+      argp[curr_argc++] = const_cast<char *>("-pid");
+      argp[curr_argc++] = const_cast<char *>(std::to_string(i).c_str());
+      argp[curr_argc++] = const_cast<char *>("-total_num");
+      argp[curr_argc++] = const_cast<char *>(std::to_string(pd->pts_processes.size()).c_str());
+
       // Shared memory tmp_file
-      argp[curr_argc++] = (char *)"-tmp_shared";
-      argp[curr_argc++] = tmp_shared[i];
+      argp[curr_argc++] = const_cast<char *>("-tmp_shared");
+      argp[curr_argc++] = const_cast<char *>(curr_process.tmp_shared_name.c_str());
 
-      if (programs[i].trace_name.size() > 0)
-      {
-        argp[curr_argc++] = (char *)"-trace_name";
-        argp[curr_argc++] = (char *)programs[i].trace_name.c_str();
-        argp[curr_argc++] = (char *)"-trace_skip_first";
-        argp[curr_argc++] = (char *)FLAGS_instrs_skip.c_str();
+      if (curr_process.trace_name.size() > 0) {
+        argp[curr_argc++] = const_cast<char *>("-trace_name");
+        argp[curr_argc++] = const_cast<char *>(curr_process.trace_name.c_str());
+        argp[curr_argc++] = const_cast<char *>("-trace_skip_first");
+        argp[curr_argc++] = const_cast<char *>(FLAGS_instrs_skip.c_str());
 
-        if (programs[i].prog_n_argv.size() > 1)
-        {
-          argp[curr_argc++] = (char *)"-trace_skip_first";
-          argp[curr_argc++] = (char *)programs[i].prog_n_argv[programs[i].prog_n_argv.size() - 1].c_str();
+        // TODO(gajh): something weird here.
+        if (curr_process.prog_n_argv.size() > 1) {
+          argp[curr_argc++] = const_cast<char *>("-trace_skip_first");
+          argp[curr_argc++] = const_cast<char *>(curr_process.prog_n_argv.back().c_str());
         }
+      } else {
+        argp[curr_argc++] = const_cast<char *>("-skip_first");
+        argp[curr_argc++] = const_cast<char *>(std::to_string(curr_process.num_instrs_to_skip_first).c_str());
       }
-      else
-      {
-        argp[curr_argc++] = (char *)"-skip_first";
-        argp[curr_argc++] = (char *)programs[i].num_skip_first_instrs.c_str();
-      }
-      if (programs[i].agile_bank_th_perc > 0)
-      {
-        sprintf(perc_str, "%d", programs[i].agile_bank_th_perc);
-        argp[curr_argc++] = (char *)"-agile_bank_th_perc";
-        argp[curr_argc++] = perc_str;
-      }
-      if (programs[i].agile_page_list_file_name.empty() == false)
-      {
-        argp[curr_argc++] = (char *)"-agile_page_list_file_name";
-        argp[curr_argc++] = (char *)programs[i].agile_page_list_file_name.c_str();
-      }
-      argp[curr_argc++] = (char *)"--";
-      for (uint32_t j = 0; j < programs[i].prog_n_argv.size(); j++)
-      {
-        argp[curr_argc++] = (char *)programs[i].prog_n_argv[j].c_str();
+      argp[curr_argc++] = const_cast<char *>("--");
+      for (uint32_t j = 0; j < curr_process.prog_n_argv.size(); j++) {
+        argp[curr_argc++] = const_cast<char *>(curr_process.prog_n_argv[j].c_str());
       }
       argp[curr_argc++] = NULL;
 
-      if (FLAGS_run_manually == true)
-      {
+      if (FLAGS_run_manually == true) {
         int jdx = 0;
-        while (argp[jdx] != NULL)
-        {
-          cout << argp[jdx] << " ";
+        while (argp[jdx] != NULL) {
+          ss << argp[jdx] << " ";
           jdx++;
         }
-        cout << endl;
+        LOG(INFO) << ss.str() << std::endl;
         exit(1);
+      } else {
+        execve(pin_ptr, argp, envp);
       }
-      else
-      {
-        execve(pin_name.c_str(), argp, envp);
+      delete[] argp;
+    } else {
+      if (FLAGS_run_manually == false) {
+        ss << pID << " ";
       }
-    }
-    else 
-    {
-      if (FLAGS_run_manually == false)
-      {
-        cout << pID << " ";
-      }
-      programs[i].pid = pID;
-    }
-  }
-  if (FLAGS_run_manually == false)
-  {
-    cout << endl << flush;
-  }
-
-  if (FLAGS_remap_interval != 0)
-  {
-    fin.open(FLAGS_remapfile.c_str());
-    if (fin.good() == false)
-    {
-      cout << "failed to open the remapfile " << FLAGS_remapfile << endl;
-      exit(1);
+      pd->pts_processes[i].pid = pID;
     }
   }
 
-  uint64_t * num_fetched_instrs = new uint64_t[htid_to_pid.size()];
-  for (uint32_t i = 0; i < htid_to_pid.size(); i++)
-  {
-    num_fetched_instrs[i] = 0;
-  }
-  int32_t * old_mapping = new int32_t [htid_to_pid.size()];
-  int32_t * old_mapping_inv = new int32_t [htid_to_pid.size()];
-  int32_t * new_mapping = new int32_t [htid_to_pid.size()];
-
-  for (uint32_t i = 0; i < htid_to_pid.size(); i++)
-  {
-    old_mapping[i] = i;
-    old_mapping_inv[i] = i;
+  if (FLAGS_run_manually == false) {
+    LOG(INFO) << ss.str() << std::endl;
   }
 
-  uint64_t old_total_instrs = 0;
+  std::vector<uint64_t> num_fetched_instrs(htid_to_pid.size(), 0);
 
   int  curr_pid   = 0;
   bool any_thread = true;
-  bool sig_int    = false;
+  uint32_t num_th_passed_instr_count = 0;
 
-  while (any_thread)
-  {
-    Programs * curr_p = &(programs[curr_pid]);
+  while (any_thread) {
+    PinPthread::PTSProcess * curr_p = &(pd->pts_processes[curr_pid]);
     // recvfrom => shared recv
-    while(mmap_flag[curr_pid][0]){}
-    mmap_flag[curr_pid][0] = true;
-    memcpy((PTSMessage *)curr_p->buffer, (PTSMessage *)pmmap[curr_pid], sizeof(PTSMessage));
-    PTSMessage * pts_m = (PTSMessage *)curr_p->buffer;
+    while ((curr_p->mmap_flag)[0]) {}
+    (curr_p->mmap_flag)[0] = true;
+    memcpy(curr_p->buffer, reinterpret_cast<PTSMessage *>(curr_p->pmmap), sizeof(PTSMessage));
+    PTSMessage * pts_m = curr_p->buffer;
 
     if (pts->mcsim->num_fetched_instrs >= max_total_instrs ||
-        num_th_passed_instr_count >= offset)
-    {
-      for (uint32_t i = 0; i < programs.size() && !sig_int; i++)
-      {
-        if (kill_with_sigint == false) 
-        {
-          kill(programs[i].pid, SIGKILL/*SIGTERM*/);
-        } 
-        else 
-        {
-          kill(programs[i].pid, SIGINT/*SIGTERM*/);
-          sig_int = true;
-        }
+        num_th_passed_instr_count >= offset) {
+      for (auto && curr_process : pd->pts_processes) {
+        kill(curr_process.pid, SIGKILL/*SIGTERM*/);
       }
-      if (kill_with_sigint == false)
-        break;
+      break;
     }
     // terminate mcsim when there is no active thread
-    if (pts_m->killed && pts_m->type == pts_resume_simulation)
-    { 
-      if ((--nactive) == 0 || sig_int == true) {
-        for (uint32_t i = 0; i < programs.size(); i++)
-        {
-          kill(programs[i].pid, SIGKILL/*SIGTERM*/);
+    if (pts_m->killed && pts_m->type == pts_resume_simulation) {
+      if ((--nactive) == 0) {
+        for (auto && curr_process : pd->pts_processes) {
+          kill(curr_process.pid, SIGINT/*SIGTERM*/);
         }
-        break;
+        // break;
       }
     }
 
-    if (FLAGS_remap_interval > 0 && 
-        pts_m->type == pts_resume_simulation &&
-        pts->mcsim->num_fetched_instrs/FLAGS_remap_interval > old_total_instrs/FLAGS_remap_interval)
-    {
-      old_total_instrs = pts->mcsim->num_fetched_instrs;
-
-      if (!getline(fin, line))
-      {
-        for (uint32_t i = 0; i < programs.size(); i++)
-        {
-          kill(programs[i].pid, SIGKILL/*SIGTERM*/);
-        }
-        break;
-      }
-      else
-      {
-        sline.clear();
-        sline.str(line);
-        for (uint32_t i = 0; i < htid_to_pid.size(); i++)
-        {
-          sline >> new_mapping[i];
-
-          if (curr_pid == old_mapping[i])
-          {
-            curr_pid = new_mapping[i];
-          }
-        }
-      }
-
-      for (uint32_t i = 0; i < htid_to_pid.size(); i++)
-      {
-        if (old_mapping[i] == new_mapping[i]) continue;
-        pts->mcsim->add_instruction(old_mapping[i], pts->get_curr_time(), 0, 0, 0, 0, 0, 0, 0,
-            false, false, true, true, false, 
-            0, 0, 0, 0, new_mapping[i], 0, 0, 0);
-      }
-      for (uint32_t i = 0; i < htid_to_pid.size(); i++)
-      {
-        if (old_mapping[i] == new_mapping[i]) continue;
-        pts->mcsim->add_instruction(new_mapping[i], pts->get_curr_time(), 0, 0, 0, 0, 0, 0, 0,
-            false, false, true, true, true, 
-            0, 0, 0, 0, old_mapping[i], 0, 0, 0);
-      }
-      for (uint32_t i = 0; i < htid_to_pid.size(); i++)
-      {
-        old_mapping[i] = new_mapping[i];
-        old_mapping_inv[new_mapping[i]] = i;
-      }
-    }
-
-    //if (pts->get_curr_time() >= 12100000) cout << " ** " << pts_m->type << endl;
-    switch (pts_m->type)
-    {
-      case pts_resume_simulation:
-        {
-          pair<uint32_t, uint64_t> ret = pts->mcsim->resume_simulation(pts_m->bool_val);  // <thread_id, time>
-          curr_pid = old_mapping[htid_to_pid[ret.first]];
-          curr_p = &(programs[curr_pid]);
-          pts_m  = (PTSMessage *)curr_p->buffer;
+    // if (pts->get_curr_time() >= 12100000) std::cout << " ** " << pts_m->type << std::endl;
+    switch (pts_m->type) {
+      case pts_resume_simulation: {
+          std::pair<uint32_t, uint64_t> ret = pts->mcsim->resume_simulation(pts_m->bool_val);  // <thread_id, time>
+          curr_pid = htid_to_pid[ret.first];
+          curr_p = &(pd->pts_processes[curr_pid]);
+          pts_m  = curr_p->buffer;
           pts_m->type         = pts_resume_simulation;
           pts_m->uint32_t_val = htid_to_tid[ret.first];
           pts_m->uint64_t_val = ret.second;
-          //if (ret.second >= 12100000)
-          //  cout << "resume  tid = " << ret.first << ", pid = " << curr_pid << ", curr_time = " << ret.second << endl;
+#ifdef LOG_TRACE
+          // record_switch (ret.first, curr_pid);
+#endif
+          // if (ret.second >= 12100000)
+          //   std::cout << "resume  tid = " << ret.first << ", pid = " << curr_pid << ", curr_time = " << ret.second << std::endl;
           break;
         }
-      case pts_add_instruction:
-        {
+      case pts_add_instruction: {
           uint32_t num_instrs = pts_m->uint32_t_val;
           uint32_t num_available_slot = 0;
           assert(num_instrs > 0);
-          for (uint32_t i = 0; i < num_instrs && !sig_int; i++)
-          {
+          for (uint32_t i = 0; i < num_instrs; i++) {
             PTSInstr * ptsinstr = &(pts_m->val.instr[i]);
             num_available_slot = pts->mcsim->add_instruction(
-                old_mapping_inv[curr_p->tid_to_htid + ptsinstr->hthreadid_],
+                curr_p->tid_to_htid + ptsinstr->hthreadid_,
                 ptsinstr->curr_time_,
                 ptsinstr->waddr + (ptsinstr->waddr  == 0 ? 0 : ((((uint64_t)curr_pid) << addr_offset_lsb) + (((uint64_t)curr_pid) << interleave_base_bit))),
                 ptsinstr->wlen,
@@ -519,29 +379,45 @@ int main(int argc, char * argv[])
                 ptsinstr->rw1,
                 ptsinstr->rw2,
                 ptsinstr->rw3);
-            //if (ptsinstr->isbarrier == true)
-            //{
-            //  pts->mcsim->resume_simulation(false);
-            //}
+#ifdef LOG_TRACE
+            if (ptsinstr->wlen != 0 && ptsinstr->rlen != 0) {
+              record_inst(ptsinstr, ptsinstr->waddr, "RW");
+            } else if (ptsinstr->wlen == 0 && ptsinstr->rlen !=0) {
+              if (ptsinstr->raddr2 != 0)
+                record_inst(ptsinstr, ptsinstr->raddr2, "R2");
+              else
+                record_inst(ptsinstr, ptsinstr->raddr, "R1");
+            } else if (ptsinstr->wlen != 0 && ptsinstr->rlen == 0) {
+              record_inst(ptsinstr, ptsinstr->waddr, "W");
+            } else if (ptsinstr->wlen == 0 && ptsinstr->rlen == 0 && ptsinstr->isbranch !=0) {
+              record_inst(ptsinstr, 0, "B");
+            } else {
+              record_inst(ptsinstr, 0, "E");
+            }
+#endif
+            // if (ptsinstr->isbarrier == true)
+            // {
+            //   pts->mcsim->resume_simulation(false);
+            // }
           }
-          if (num_instrs_per_th > 0)
-          {
+#ifdef LOG_TRACE
+          InstTraceFile << setw(12) << num_instrs << "                    transfer complete !!!" << std::endl;
+#endif
+          if (num_instrs_per_th > 0) {
             if (num_fetched_instrs[curr_p->tid_to_htid + pts_m->val.instr[0].hthreadid_] < num_instrs_per_th &&
-                num_fetched_instrs[curr_p->tid_to_htid + pts_m->val.instr[0].hthreadid_] + num_instrs >= num_instrs_per_th)
-            {
+                num_fetched_instrs[curr_p->tid_to_htid + pts_m->val.instr[0].hthreadid_] + num_instrs >= num_instrs_per_th) {
               num_th_passed_instr_count++;
-              cout << "  -- hthread " << curr_p->tid_to_htid + pts_m->val.instr[0].hthreadid_ << " executed " << num_instrs_per_th
-                << " instrs at cycle " << pts_m->val.instr[0].curr_time_ << endl;
+              LOG(INFO) << "  -- hthread " << curr_p->tid_to_htid + pts_m->val.instr[0].hthreadid_ << " executed " 
+                << num_instrs_per_th << " instrs at cycle " << pts_m->val.instr[0].curr_time_ << std::endl;
             }
           }
-          if (sig_int == false) 
-            num_fetched_instrs[curr_p->tid_to_htid + pts_m->val.instr[0].hthreadid_] += num_instrs;
-          //PTSInstr * ptsinstr = &(pts_m->val.instr[0]);
-          //if (ptsinstr->curr_time_ >= 12100000)
-          //  cout << "add  tid = " << curr_p->tid_to_htid + ptsinstr->hthreadid_ << ", pid = " << curr_pid
-          //       << ", curr_time = " << ptsinstr->curr_time_ << ", num_instr = " << num_instrs
-          //       << ", num_avilable_slot = " << num_available_slot << endl;
-          pts_m->uint32_t_val = (sig_int) ? 128 : num_available_slot;
+          num_fetched_instrs[curr_p->tid_to_htid + pts_m->val.instr[0].hthreadid_] += num_instrs;
+          // PTSInstr * ptsinstr = &(pts_m->val.instr[0]);
+          // if (ptsinstr->curr_time_ >= 12100000)
+          //   std::cout << "add  tid = " << curr_p->tid_to_htid + ptsinstr->hthreadid_ << ", pid = " << curr_pid
+          //        << ", curr_time = " << ptsinstr->curr_time_ << ", num_instr = " << num_instrs
+          //        << ", num_avilable_slot = " << num_available_slot << std::endl;
+          pts_m->uint32_t_val = num_available_slot;
           break;
         }
       case pts_get_num_hthreads:
@@ -557,62 +433,56 @@ int main(int argc, char * argv[])
         pts_m->uint64_t_val = pts->get_curr_time();
         break;
       case pts_set_active:
-        pts->set_active(old_mapping_inv[curr_p->tid_to_htid + pts_m->uint32_t_val], pts_m->bool_val);
+        pts->set_active(curr_p->tid_to_htid + pts_m->uint32_t_val, pts_m->bool_val);
         break;
       case pts_set_stack_n_size:
         pts->set_stack_n_size(
-            old_mapping_inv[curr_p->tid_to_htid + pts_m->uint32_t_val],
-            pts_m->stack_val       + ((((uint64_t)curr_pid) << addr_offset_lsb) + (((uint64_t)curr_pid) << interleave_base_bit)),
+            curr_p->tid_to_htid + pts_m->uint32_t_val,
+            pts_m->stack_val + (((uint64_t)curr_pid) << addr_offset_lsb) + (((uint64_t)curr_pid) << interleave_base_bit),
             pts_m->stacksize_val);
         break;
-      case pts_constructor:
-        break;
-      case pts_destructor:
-        {
-          pair<uint32_t, uint64_t> ret = pts->resume_simulation(true);  // <thread_id, time>
-          if (ret.first == pts->get_num_hthreads())
-          {
+      case pts_destructor: {
+          std::pair<uint32_t, uint64_t> ret = pts->resume_simulation(true);  // <thread_id, time>
+          if (ret.first == pts->get_num_hthreads()) {
             any_thread = false;
             break;
           }
           pts_m->uint32_t_val = pts->get_num_hthreads();
-          curr_pid            = old_mapping[htid_to_pid[ret.first]];
-          curr_p              = &(programs[curr_pid]);
-          pts_m               = (PTSMessage *)curr_p->buffer;
+          curr_pid            = htid_to_pid[ret.first];
+          curr_p              = &(pd->pts_processes[curr_pid]);
+          pts_m               = curr_p->buffer;
           pts_m->type         = pts_resume_simulation;
           pts_m->uint32_t_val = htid_to_tid[ret.first];
           pts_m->uint64_t_val = ret.second;
-          //cout << curr_pid << "   " << pts_m->uint32_t_val << "   " << pts_m->uint64_t_val << endl;
           break;
         }
       default:
-        cout << "type " << pts_m->type << " is not supported" << endl;
-        assert(0);
+        LOG(FATAL) << "type " << pts_m->type << " is not supported" << std::endl;
         break;
     }
 
-    memcpy((PTSMessage *)pmmap[curr_pid], (PTSMessage *)curr_p->buffer, sizeof(PTSMessage)-sizeof(instr_n_str));
-    mmap_flag[curr_pid][1] = false;
+    memcpy(reinterpret_cast<PTSMessage *>(curr_p->pmmap), curr_p->buffer, sizeof(PTSMessage)-sizeof(instr_n_str));
+    (curr_p->mmap_flag)[1] = false;
   }
 
-  for (uint32_t i = 0; i < htid_to_pid.size(); i++)
-  {
-    cout << "  -- th[" << setw(3) << i << "] fetched " << num_fetched_instrs[i] << " instrs" << endl;
-  }
-  delete pts;
+  // {gajh}: comment out the for loop below because cores display
+  // the same information when they are deleted (as a part of delete pts;).
+  // for (uint32_t i = 0; i < htid_to_pid.size(); i++) {
+  //   std::cout << "  -- {" << std::setw(2) << htid_to_pid[i] << "} thread "
+  //     << htid_to_tid[i] << " fetched " << num_fetched_instrs[i] << " instrs" << std::endl;
+  // }
 
   gettimeofday(&finish, NULL);
   double msec = (finish.tv_sec*1000 + finish.tv_usec/1000) - (start.tv_sec*1000 + start.tv_usec/1000);
-  cout << "simulation time(sec) = " << msec/1000 << endl;
+  LOG(INFO) << "simulation time(sec) = " << msec/1000 << std::endl;
 
-  for (uint32_t i=0; i<programs.size(); i++){
-    munmap(pmmap[i], sizeof(PTSMessage)+2);
-    free (tmp_shared[i]);
-    remove(tmp_shared[i]);
+#ifdef LOG_TRACE
+  InstTraceFile.close();
+#endif
+  for (auto && curr_process : pd->pts_processes) {
+    munmap(curr_process.pmmap, sizeof(PTSMessage)+2);
+    remove(curr_process.tmp_shared_name.c_str());
   }
-  free (pmmap);
-  free (mmap_flag);
-  free (tmp_shared);
- 
+
   return 0;
 }

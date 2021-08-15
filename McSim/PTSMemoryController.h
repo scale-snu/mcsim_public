@@ -28,189 +28,169 @@
  * Authors: Jung Ho Ahn
  */
 
-#ifndef PTS_MEMORYCONTROLLER_H
-#define PTS_MEMORYCONTROLLER_H
+#ifndef PTSMEMORYCONTROLLER_H_
+#define PTSMEMORYCONTROLLER_H_
 
-#include "McSim.h"
 #include <list>
+#include <map>
 #include <stack>
 #include <queue>
+#include <utility>
 #include <vector>
 #include <set>
 
+#include "McSim.h"
 
 // some of the acronyms used here
 // ------------------------------
-//  pd : powerdown
+//  pd  : powerdown
 //  vmd : virtual memory device
 
-using namespace std;
 
-namespace PinPthread
-{
-  enum mc_bank_action
-  {
-    mc_bank_activate,
-    mc_bank_read,
-    mc_bank_write,
-    mc_bank_precharge,
-    mc_bank_idle,
+namespace PinPthread {
+
+enum mc_bank_action {
+  mc_bank_activate,
+  mc_bank_read,
+  mc_bank_write,
+  mc_bank_precharge,
+  mc_bank_idle,
+};
+
+enum mc_scheduling_policy {
+  mc_scheduling_open,
+  mc_scheduling_closed,
+  mc_scheduling_pred,
+};
+
+
+class MemoryController : public Component {
+ public:
+  class BankStatus {
+   public:
+    uint64_t action_time;
+    uint64_t page_num;
+    mc_bank_action action_type;
+    uint64_t last_activate_time;
+
+    explicit BankStatus(uint32_t num_entries): action_time(0), page_num(0), action_type(mc_bank_idle),
+      last_activate_time(0) {
+    }
   };
 
-  enum mc_scheduling_policy
-  {
-    mc_scheduling_open,
-    mc_scheduling_closed,
-    mc_scheduling_pred,
-  };
+  explicit MemoryController(component_type type_, uint32_t num_, McSim * mcsim_);
+  ~MemoryController();
 
-  class MemoryController : public Component
-  {
-    public:
-      class BankStatus
-      {
-        public:
-          uint64_t action_time;
-          uint64_t page_num;
-          mc_bank_action action_type;
-          uint64_t last_activate_time;
-          list< pair<uint64_t, bool> > cached_pages;  // page number, dirty
-          vector<uint32_t> bimodal_entry;             // 0 -- strongly open
+  void add_req_event(uint64_t, LocalQueueElement *, Component * from = NULL);
+  void add_rep_event(uint64_t, LocalQueueElement *, Component * from = NULL);
+  uint32_t process_event(uint64_t curr_time);
 
-          BankStatus(uint32_t num_entries) :action_time(0), page_num(0), action_type(mc_bank_idle),
-              last_activate_time(0), cached_pages(), bimodal_entry(num_entries, 0)
-          {
-          }
-      };
+  // Directory * directory;  // uplink
+  Component * directory;  // uplink
+  std::vector<LocalQueueElement *> req_l;
+  int32_t curr_batch_last;
 
-      MemoryController(component_type type_, uint32_t num_, McSim * mcsim_);
-      ~MemoryController();
+  uint32_t mc_to_dir_t;
+  uint32_t num_ranks_per_mc;
+  uint32_t num_banks_per_rank;
 
-      void add_req_event(uint64_t, LocalQueueElement *, Component * from = NULL);
-      void add_rep_event(uint64_t, LocalQueueElement *, Component * from = NULL);
-      uint32_t process_event(uint64_t curr_time);
+ private:
+  // The unit of each t* value is "process_interval"
+  // assume that RL = WL (in terms of DDRx)
+  uint32_t tRCD;
+  uint32_t tRR;
+  uint32_t tRP;
+  uint32_t tCL;           // CAS latency
+  uint32_t tBL;           // burst length
+  uint32_t tBBL;          // bank burst length
+  uint32_t tRAS;          // activate to precharge
+  // send multiple column level commands
+  uint32_t tWRBUB;        // WR->RD bubble between any ranks
+  uint32_t tRWBUB;        // RD->WR bubble between any ranks
+  uint32_t tRRBUB;        // RD->RD bubble between two different ranks
+  uint32_t tWTR;          // WR->RD time in the same rank
+  uint32_t req_window_sz;  // up to how many requests can be considered during scheduling
+  uint32_t interleave_xor_base_bit;
 
-      //Directory * directory;  // uplink
-      Component * directory;  // uplink
-      vector<LocalQueueElement *> req_l;
-      int32_t curr_batch_last;
+ public:
+  const uint32_t rank_interleave_base_bit;
+  const uint32_t bank_interleave_base_bit;
+  const uint64_t page_sz_base_bit;   // byte addressing
+  const uint32_t mc_interleave_base_bit;
+  const uint32_t num_mcs;
 
-      uint32_t mc_to_dir_t;
-      uint32_t num_ranks_per_mc;
-      uint32_t num_banks_per_rank;
+ private:
+  mc_scheduling_policy policy;
+  bool           par_bs;  // parallelism-aware batch-scheduling
+  uint64_t      refresh_interval;
+  uint64_t      curr_refresh_page;
+  uint64_t      curr_refresh_bank;
+  uint64_t      num_pages_per_bank;
+  uint64_t      num_cached_pages_per_bank;
+  bool          full_duplex;
+  bool          is_fixed_latency;       // infinite BW
+  bool          is_fixed_bw_n_latency;  // take care of BW as well
+  uint64_t * pred_history;              // size : num_hthreads
+  uint32_t addr_offset_lsb;
 
-    private:
-      // The unit of each t* value is "process_interval"
-      // assume that RL = WL (in terms of DDRx)
-      uint32_t tRCD;
-      uint32_t tRR;
-      uint32_t tRP;
-      uint32_t tCL;           // CAS latency
-      uint32_t tBL;           // burst length
-      uint32_t tBBL;          // bank burst length
-      uint32_t tRAS;          // activate to precharge
-      // send multiple column level commands
-      uint32_t tWRBUB;        // WR->RD bubble between any ranks
-      uint32_t tRWBUB;        // RD->WR bubble between any ranks
-      uint32_t tRRBUB;        // RD->RD bubble between two different ranks
-      uint32_t tWTR;          // WR->RD time in the same rank
-      uint32_t req_window_sz; // up to how many requests can be considered during scheduling
-      uint32_t interleave_xor_base_bit;
+  uint64_t num_read;
+  uint64_t num_write;
+  uint64_t num_activate;
+  uint64_t num_precharge;
+  uint64_t num_write_to_read_switch;
+  uint64_t num_refresh;  // a refresh command is applied to all VMD/BANK in a rank
+  uint64_t num_pred_miss;
+  uint64_t num_pred_hit;
+  uint64_t num_global_pred_miss;
+  uint64_t num_global_pred_hit;
+  uint32_t num_pred_entries;
 
-      uint32_t mc_to_dir_t_ab;
-      uint32_t tRCD_ab;
-      uint32_t tRAS_ab;
-      uint32_t tRP_ab;
-      uint32_t tCL_ab;
-      bool     last_time_from_ab;
-      uint32_t num_banks_with_agile_row;
-      uint32_t reciprocal_of_agile_row_portion;
-    public:
-      const uint32_t rank_interleave_base_bit;
-      const uint32_t bank_interleave_base_bit;
-      const uint64_t page_sz_base_bit;   // byte addressing
-      const uint32_t mc_interleave_base_bit;
-      const uint32_t num_mcs;
-    private:
-      mc_scheduling_policy policy;
-      bool           mini_rank;
-      bool           par_bs;  // parallelism-aware batch-scheduling
-      uint64_t      refresh_interval;
-      uint64_t      curr_refresh_page;
-      uint64_t      curr_refresh_bank;
-      uint64_t      num_pages_per_bank;
-      uint64_t      num_cached_pages_per_bank;
-      bool          full_duplex;
-      bool          is_fixed_latency;       // infinite BW
-      bool          is_fixed_bw_n_latency;  // take care of BW as well
-      uint32_t bimodal_entry;               // global predictor : 0 -- strongly open
-      uint64_t * pred_history;              // size : num_hthreads
-      uint32_t addr_offset_lsb;
+  uint32_t base0, base1, base2;
+  uint32_t width0, width1, width2;
 
-      uint64_t num_read;
-      uint64_t num_write;
-      uint64_t num_activate;
-      uint64_t num_precharge;
-      uint64_t num_ab_read;
-      uint64_t num_ab_write;
-      uint64_t num_ab_activate;
-      uint64_t num_write_to_read_switch;
-      uint64_t num_refresh;  // a refresh command is applied to all VMD/BANK in a rank
-      uint64_t num_pred_miss;
-      uint64_t num_pred_hit;
-      uint64_t num_global_pred_miss;
-      uint64_t num_global_pred_hit;
-      uint32_t num_pred_entries;
+  uint64_t num_rw_interval;
+  uint64_t num_conflict_interval;
+  uint64_t num_pre_interval;
 
-      uint32_t base0, base1, base2;
-      uint32_t width0, width1, width2;
+  uint64_t last_process_time;
+  uint64_t packet_time_in_mc_acc;
 
-      uint64_t num_rw_interval;
-      uint64_t num_conflict_interval;
-      uint64_t num_pre_interval;
+  std::vector<std::vector<BankStatus>> bank_status;  // [rank][bank]
+  std::vector<uint64_t> last_activate_time;          // [rank]
+  std::vector<uint64_t> last_write_time;             // [rank]
+  std::pair<uint32_t, uint64_t> last_read_time;      // <rank, tick>
+  std::vector<uint64_t> last_read_time_rank;         // [rank]
+  std::vector<bool>     is_last_time_write;          // [rank]
+  std::map<uint64_t, mc_bank_action> dp_status;      // reuse (RD,WR,IDLE) BankStatus
+  std::map<uint64_t, mc_bank_action> rd_dp_status;   // reuse (RD,WR,IDLE) BankStatus
+  std::map<uint64_t, mc_bank_action> wr_dp_status;   // reuse (RD,WR,IDLE) BankStatus
 
-      uint64_t last_process_time;
-      uint64_t packet_time_in_mc_acc;
+ public:
+  std::map<uint64_t, uint64_t> os_page_acc_dist;       // os page access distribution
+  std::map<uint64_t, uint64_t> os_page_acc_dist_curr;  // os page access distribution
+  bool     display_os_page_usage_summary;
+  bool     display_os_page_usage;
+  uint64_t num_reqs;
 
-      vector< vector<BankStatus> > bank_status;       // [rank][bank]
-      vector< uint64_t > last_activate_time;          // [rank]
-      vector< uint64_t > last_write_time;             // [rank]
-      pair< uint32_t, uint64_t > last_read_time;      // <rank, tick>
-      vector< uint64_t > last_read_time_rank;         // [rank]
-      vector< bool >     is_last_time_write;          // [rank]
-      map<uint64_t, mc_bank_action> dp_status;    // reuse (RD,WR,IDLE) BankStatus
-      map<uint64_t, mc_bank_action> rd_dp_status; // reuse (RD,WR,IDLE) BankStatus
-      map<uint64_t, mc_bank_action> wr_dp_status; // reuse (RD,WR,IDLE) BankStatus
+  void     update_acc_dist();
 
-    public:
-      map<uint64_t, uint64_t> os_page_acc_dist;       // os page access distribution
-      map<uint64_t, uint64_t> os_page_acc_dist_curr;  // os page access distribution
-      bool     display_os_page_usage_summary;
-      bool     display_os_page_usage;
-      uint64_t num_reqs;
+ private:
+  uint64_t get_page_num(uint64_t addr);
+  void show_state(uint64_t curr_time);
 
-      void     update_acc_dist();
+  void pre_processing(uint64_t curr_time);
+  void check_bank_status(LocalQueueElement * local_event);
 
-    private:
-      uint64_t get_page_num(uint64_t addr);
-      void show_state(uint64_t curr_time);
+  uint32_t num_hthreads;
+  int32_t * num_req_from_a_th;
 
-      bool     pre_processing(uint64_t curr_time);  // returns if the command was already sent or not.
-      void     check_bank_status(LocalQueueElement * local_event);
+  inline uint32_t get_rank_num(uint64_t addr) { return ((addr >> rank_interleave_base_bit) ^ (addr >> interleave_xor_base_bit)) % num_ranks_per_mc; }
+  inline uint32_t get_bank_num(uint64_t addr) {
+    uint32_t bank_num = ((addr >> bank_interleave_base_bit) ^ (addr >> interleave_xor_base_bit)) % num_banks_per_rank;
+    return bank_num;
+  }
+};
 
-      uint32_t num_hthreads;
-      int32_t * num_req_from_a_th;
+}  // namespace PinPthread
 
-      inline uint32_t get_rank_num(uint64_t addr) { return ((addr >> rank_interleave_base_bit) ^ (addr >> interleave_xor_base_bit)) % num_ranks_per_mc; }
-      inline uint32_t get_bank_num(uint64_t addr) {
-        uint32_t num_banks_per_rank_curr = (addr >> 63 != 0 && reciprocal_of_agile_row_portion == 0 ? num_banks_with_agile_row : num_banks_per_rank); 
-        uint32_t bank_num = ((addr >> bank_interleave_base_bit) ^ (addr >> interleave_xor_base_bit)) % num_banks_per_rank_curr;
-        return bank_num;
-      }
-  };
-
-
-}
-
-#endif
-
+#endif  // PTSMEMORYCONTROLLER_H_

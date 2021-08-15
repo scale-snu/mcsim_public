@@ -35,10 +35,10 @@ TOOL_ROOTS :=
 SA_TOOL_ROOTS :=
 
 # This defines all the applications that will be run during the tests.
-APP_ROOTS := 
+APP_ROOTS :=
 
 # This defines any additional object files that need to be compiled.
-SNAPPY_DIR  = ../snappy
+SNAPPY_DIR  = ../third-party/snappy
 
 OBJECT_ROOTS := mypthreadtool \
   PthreadUtil \
@@ -92,8 +92,12 @@ SANITY_SUBSET := $(TEST_TOOL_ROOTS) $(TEST_ROOTS)
 #
 ##############################################################
 # Build the intermediate object file.
-SNAPPY_FLAGS    += $(TOOL_CXXFLAGS) -std=c++11 -Wno-unused-variable
-TOOL_CXXFLAGS   += -D_REENTRANT -Wl,--as-needed
+SNAPPY_FLAGS    += $(TOOL_CXXFLAGS) -Wno-unused-variable
+TOOL_CXXFLAGS   += -std=c++11 -D_REENTRANT -Wl,--as-needed -I$(SNAPPY_DIR) -I$(SNAPPY_DIR)/build -I..
+ifeq ($(DEBUG),1)
+  TOOL_CXXFLAGS += -ggdb -DDEBUG -DLOG_TRACE
+endif
+
 TOOL_LIBS       += -pthread
 
 # Add the required library path to McSimA+
@@ -133,19 +137,16 @@ $(OBJDIR)PthreadCond$(OBJ_SUFFIX): PthreadCond.cpp
 $(OBJDIR)PthreadCleanup$(OBJ_SUFFIX): PthreadCleanup.cpp
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
-$(OBJDIR)PthreadCondAttr$(OBJ_SUFFIX): PthreadCondAttr.cpp
-	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
-
 $(OBJDIR)PthreadMalloc$(OBJ_SUFFIX): PthreadMalloc.cpp
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
 $(OBJDIR)EEPthreadSim$(OBJ_SUFFIX): EEPthreadSim.cpp
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
-$(OBJDIR)EEPthreadScheduler$(OBJ_SUFFIX): EEPthreadScheduler.cpp
+$(OBJDIR)EEPthreadScheduler$(OBJ_SUFFIX): EEPthreadScheduler.cpp EEPthreadScheduler.h PTS.h
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
-$(OBJDIR)PTS$(OBJ_SUFFIX): PTS.cpp
+$(OBJDIR)PTS$(OBJ_SUFFIX): PTS.cpp PTS.h
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
 $(OBJDIR)mcsim_snappy$(OBJ_SUFFIX): mcsim_snappy.cpp
@@ -179,4 +180,4 @@ $(OBJDIR)mypthread$(OBJ_SUFFIX): mypthread.cpp
 	$(CXX) $(COMP_OBJ)$@ $<
 
 $(OBJDIR)libmypthread$(LIB_SUFFIX): $(OBJDIR)mypthread$(OBJ_SUFFIX)
-	$(ARCHIVER)$(OBJDIR)libmypthread$(LIB_SUFFIX) $<
+	$(ARCHIVER) $(OBJDIR)libmypthread$(LIB_SUFFIX) $<

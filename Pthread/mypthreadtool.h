@@ -44,6 +44,8 @@ END_LEGAL */
 #include "PthreadOnce.h"
 #include "PthreadAttr.h"
 
+using namespace std;
+
 namespace PinPthread
 {
 
@@ -62,7 +64,7 @@ namespace PinPthread
   /* Function Declarations                                          */
   /* -------------------------------------------------------------- */
 
-  VOID  Init(UINT32, char**);
+  VOID  Init(INT32, char**);
   VOID  Fini(INT32, VOID*);
   VOID  FlagImgUnload(IMG, VOID*);
   VOID  FlagImg(IMG, VOID*);
