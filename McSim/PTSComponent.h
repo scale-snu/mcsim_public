@@ -163,6 +163,7 @@ class GlobalEventQueue {
   ~GlobalEventQueue();
   void add_event(uint64_t event_time, Component *);
   uint32_t process_event();
+  uint32_t process_event_isolateTEST(component_type target);
   void display();
 
   uint32_t num_hthreads;

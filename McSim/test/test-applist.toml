@@ -1,0 +1,16 @@
+# Each [[run]] corresponds to either pintool or trace process.
+
+[[run]]
+type = "pintool"
+num_threads = 2
+num_instrs_to_skip_first = 0
+path = "/scale/cal/home/wjdoh/mcsim_private/McSim/stream"
+arg  = "hello"
+
+# [[run]]
+# type = "trace"
+# num_instrs_to_skip_first = 0
+# trace_file = ""
+# path = "/"
+# arg  = "/bin/ls"
+

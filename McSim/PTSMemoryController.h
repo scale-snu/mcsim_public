@@ -41,6 +41,7 @@
 
 #include "McSim.h"
 
+#include <gtest/gtest_prod.h>
 // some of the acronyms used here
 // ------------------------------
 //  pd  : powerdown
@@ -48,6 +49,14 @@
 
 
 namespace PinPthread {
+
+// forward declaration of Google Test
+class MCSchedTest;
+
+class CheckBuild;
+class MCRequests;
+class MCProcessEvent;
+class MCSchedulingOpen;
 
 enum mc_bank_action {
   mc_bank_activate,
@@ -110,7 +119,7 @@ class MemoryController : public Component {
   uint32_t tRRBUB;        // RD->RD bubble between two different ranks
   uint32_t tWTR;          // WR->RD time in the same rank
   uint32_t req_window_sz;  // up to how many requests can be considered during scheduling
-  uint32_t interleave_xor_base_bit;
+  // uint32_t interleave_xor_base_bit;
 
  public:
   const uint32_t rank_interleave_base_bit;
@@ -118,6 +127,9 @@ class MemoryController : public Component {
   const uint64_t page_sz_base_bit;   // byte addressing
   const uint32_t mc_interleave_base_bit;
   const uint32_t num_mcs;
+  uint64_t      num_pages_per_bank; // set to public for MC unit test for a while
+  uint64_t      num_cached_pages_per_bank;
+  uint32_t      interleave_xor_base_bit;
 
  private:
   mc_scheduling_policy policy;
@@ -125,8 +137,8 @@ class MemoryController : public Component {
   uint64_t      refresh_interval;
   uint64_t      curr_refresh_page;
   uint64_t      curr_refresh_bank;
-  uint64_t      num_pages_per_bank;
-  uint64_t      num_cached_pages_per_bank;
+  // uint64_t      num_pages_per_bank;
+  // uint64_t      num_cached_pages_per_bank;
   bool          full_duplex;
   bool          is_fixed_latency;       // infinite BW
   bool          is_fixed_bw_n_latency;  // take care of BW as well
@@ -189,6 +201,12 @@ class MemoryController : public Component {
     uint32_t bank_num = ((addr >> bank_interleave_base_bit) ^ (addr >> interleave_xor_base_bit)) % num_banks_per_rank;
     return bank_num;
   }
+
+ protected:
+  FRIEND_TEST(MCSchedTest, CheckBuild);
+  FRIEND_TEST(MCSchedTest, MCRequests);
+  FRIEND_TEST(MCSchedTest, MCProcessEvent);
+  FRIEND_TEST(MCSchedTest, MCSchedulingOpen);
 };
 
 }  // namespace PinPthread

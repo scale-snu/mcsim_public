@@ -76,3 +76,7 @@ add_executable(mcsim ${SRC_FILES})
 target_link_libraries(mcsim gflags)
 target_link_libraries(mcsim glog)
 target_link_libraries(mcsim stdc++fs)
+
+# Unit Test
+add_subdirectory(test)
+add_custom_target(check COMMAND mcsim-unittest)

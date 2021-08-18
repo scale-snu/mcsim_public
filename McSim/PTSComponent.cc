@@ -216,6 +216,65 @@ uint32_t GlobalEventQueue::process_event() {
   }
 }
 
+uint32_t GlobalEventQueue::process_event_isolateTEST(component_type target) {
+  uint32_t ret_val = 0;
+  Component * p_comp;
+
+  while (true) {
+    auto event_queue_iter = event_queue.begin();
+
+    if (event_queue_iter != event_queue.end()) {
+      curr_time = event_queue_iter->first; // event driven simulator
+      auto comp_iter = event_queue_iter->second.begin();
+      if (comp_iter == event_queue_iter->second.end()) {
+        display();  ASSERTX(0);
+      }
+
+      switch ((*comp_iter)->type) {
+        case ct_core:
+        case ct_o3core:
+          p_comp = *comp_iter;
+
+          event_queue_iter->second.erase(comp_iter);
+          if (event_queue_iter->second.empty() == true) {
+            event_queue.erase(event_queue_iter);
+          }
+          if ((*comp_iter)->type == target)
+            ret_val = p_comp->process_event(curr_time);
+          if (ret_val < num_hthreads) {
+            return ret_val;
+          }
+          break;
+        case ct_cachel1d:
+        case ct_cachel1i:
+        case ct_cachel2:
+        case ct_directory:
+        case ct_memory_controller:
+        case ct_crossbar:
+        case ct_tlbl1d:
+        case ct_tlbl1i:
+          p_comp = *comp_iter;
+          if ((*comp_iter)->type == target)
+            p_comp->process_event(curr_time);
+          event_queue.begin()->second.erase(comp_iter);
+          if (event_queue_iter->second.empty() == true) {
+            event_queue.erase(event_queue_iter);
+          }
+          break;
+        default:
+          LOG(ERROR) << "  -- unsupported component type " << (*comp_iter)->type << std::endl;
+          exit(1);
+          break;
+      }
+    } else {
+      LOG(INFO) << "  -- event became empty at cycle = " << curr_time << std::endl;
+      return curr_time;
+      //return num_hthreads;
+      // ASSERTX(0);
+    }
+  }
+}
+
 
 void GlobalEventQueue::display() {
   LOG(WARNING) << *this;
