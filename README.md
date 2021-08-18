@@ -37,51 +37,46 @@ $ git clone https://github.com/scale-snu/mcsim_private.git --recursive
 ```
 
 + [gflags][gflags]
-  ```bash
-  $ cd third-party/gflags
-  $ mkdir -p build && cd build
-  $ cmake .. -DCMAKE_INSTALL_PREFIX="$(pwd)"/../../../build -DBUILD_SHARED_LIBS=ON
-  $ make -j2
-  $ make install
-  $ ldconfig
-  ```
-
+```bash
+$ cd third-party/gflags
+$ mkdir -p build && cd build
+$ cmake .. -DCMAKE_INSTALL_PREFIX="$(pwd)"/../../../build -DBUILD_SHARED_LIBS=ON
+$ make -j2
+$ make install
+$ ldconfig
+```
 [gflags]: https://gflags.github.io/gflags/
 
 + [glog][glog]
-  ```bash
-  $ cd third-party/glog
-  $ mkdir -p build && cd build
-  $ cmake .. -DCMAKE_INSTALL_PREFIX="$(pwd)"/../../../build -DBUILD_SHARED_LIBS=ON -Dgflags_DIR="$(pwd)"/../../../build
-  $ make -j2
-  $ make install
-  ```
-
+```bash
+$ cd third-party/glog
+$ mkdir -p build && cd build
+$ cmake .. -DCMAKE_INSTALL_PREFIX="$(pwd)"/../../../build -DBUILD_SHARED_LIBS=ON -Dgflags_DIR="$(pwd)"/../../../build
+$ make -j2
+$ make install
+```
 [glog]: https://github.com/google/glog/
 
 + [snappy][snappy]
-  ```bash
-  $ cd third-party/snappy
-  $ mkdir -p build && cd build
-  $ cmake ..
-  ```
-
+```bash
+$ cd third-party/snappy
+$ mkdir -p build && cd build
+$ cmake ..
+```
 [snappy]: https://github.com/google/snappy/
 
 
 + [googletest][googletest]
 ```bash
-  $ cd third-party/googletest
-  $ mkdir -p build && cd build
-  $ cmake .. -DCMAKE_INSTALL_PREFIX="$(pwd)"/../../../build -DBUILD_SHARED_LIBS=ON
-  $ make -j
-  $ make install
+$ cd third-party/googletest
+$ mkdir -p build && cd build
+$ cmake .. -DCMAKE_INSTALL_PREFIX="$(pwd)"/../../../build -DBUILD_SHARED_LIBS=ON
+$ make -j
+$ make install
 ```
-
 [googletest]: https://github.com/google/googletest.git
 
 + [toml11][toml11]
-
 [toml11]: https://github.com/ToruNiina/toml11
 
 ## How to compile the simulator?
