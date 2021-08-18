@@ -41,8 +41,9 @@ $ git clone https://github.com/scale-snu/mcsim_private.git --recursive
   $ cd third-party/gflags
   $ mkdir -p build && cd build
   $ cmake .. -DCMAKE_INSTALL_PREFIX="$(pwd)"/../../../build -DBUILD_SHARED_LIBS=ON
-  $ make
+  $ make -j2
   $ make install
+  $ ldconfig
   ```
 
 [gflags]: https://gflags.github.io/gflags/
@@ -52,7 +53,7 @@ $ git clone https://github.com/scale-snu/mcsim_private.git --recursive
   $ cd third-party/glog
   $ mkdir -p build && cd build
   $ cmake .. -DCMAKE_INSTALL_PREFIX="$(pwd)"/../../../build -DBUILD_SHARED_LIBS=ON -Dgflags_DIR="$(pwd)"/../../../build
-  $ make -j
+  $ make -j2
   $ make install
   ```
 
@@ -67,10 +68,21 @@ $ git clone https://github.com/scale-snu/mcsim_private.git --recursive
 
 [snappy]: https://github.com/google/snappy/
 
+
++ [googletest][googletest]
+```bash
+  $ cd third-party/googletest
+  $ mkdir -p build && cd build
+  $ cmake .. -DCMAKE_INSTALL_PREFIX="$(pwd)"/../../../build -DBUILD_SHARED_LIBS=ON
+  $ make -j
+  $ make install
+```
+
+[googletest]: https://github.com/google/googletest.git
+
 + [toml11][toml11]
 
 [toml11]: https://github.com/ToruNiina/toml11
-
 
 ## How to compile the simulator?
 
@@ -78,7 +90,7 @@ $ git clone https://github.com/scale-snu/mcsim_private.git --recursive
 ```bash
 $ cd third-party
 $ wget http://software.intel.com/sites/landingpage/pintool/downloads/pin-3.16-98275-ge0db48c31-gcc-linux.tar.gz
-$ tar -xvf pin-3.16-98275-ge0db48c31-gcc-linux.tar.gz 
+$ tar -xvf pin-3.16-98275-ge0db48c31-gcc-linux.tar.gz
 ```
 
 2. Create a `Pin` symbolic link in the `mcsim_private` directory.
@@ -92,7 +104,7 @@ $ ln -s "$(pwd)"/pin-3.16-98275-ge0db48c31-gcc-linux "$(pwd)"/../pin
 $ cd ../McSim
 $ mkdir -p build && cd build
 $ cmake ..
-$ cmake --build .  -- -j
+$ make -j
 ```
 
 4. Go to `Pthread` and compile the user-level thread library pin 
@@ -100,7 +112,8 @@ $ cmake --build .  -- -j
   the absolute path of `pin` root directory should be provided)
 ```bash
 $ cd ../../Pthread
-$ make PIN_ROOT="$(pwd)"/../pin -j
+$ make PIN_ROOT="$(pwd)"/../pin obj-intel64/mypthreadtool.so -j4
+$ make PIN_ROOT="$(pwd)"/../pin obj-intel64/libmypthread.a
 ```
 
 5. Go to `TraceGen` and compile the trace generator pin tool.
@@ -135,6 +148,8 @@ BASE="$(pwd)"
 export PIN=${BASE}/pin/pin
 export PINTOOL=${BASE}/Pthread/obj-intel64/mypthreadtool.so
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${BASE}/build/lib
+export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:${BASE}/build/include
+export C_INCLUDE_PATH=$C_INCLUDE_PATH:${BASE}/build/include
 ```
 
 3. Add the absolute path of `stream` directory to `Apps/list/run-stream.toml`
@@ -143,6 +158,7 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${BASE}/build/lib
 type = "pintool"
 num_threads = 4
 num_instrs_to_skip_first = 0
+### Add the absolute path of stream directory ###
 path = "/home/gajh/repository/mcsim_private/McSim/stream"
 arg  = "STREAM -p4 -n1048576 -r10 -s512"
 ```
