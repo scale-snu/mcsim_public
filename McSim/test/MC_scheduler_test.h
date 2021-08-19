@@ -28,19 +28,15 @@ class MCSchedTest : public ::testing::Test {
       // Called once per TEST Suite
       test_pts = new PinPthread::PthreadTimingSimulator(FLAGS_mdfile);
       test_mc = test_pts->mcsim->mcs[0];
-      //
       curr_time = 0;
-      //
-      /* addresses found through logging the page_nums (only applies to the test-md.toml configuration)
-      * two addresses are on a same bank[0][0], but to different pages */
 
       AddressGen* addrgen = new AddressGen();
-      // addrgen->generate([mc], [bank], [row])
-      // row_A_addresses: mc[0], bank[0], row[0x100], different column #
+      // addrgen->generate([MC #], [bank], [row])
+      // row_A_addresses: MC(0), bank(0), row(0x10), different column #
       row_A_addresses.push_back(addrgen->generate(0, 0, 0x10) + 0xa);
       row_A_addresses.push_back(addrgen->generate(0, 0, 0x10) + 0xb);
       row_A_addresses.push_back(addrgen->generate(0, 0, 0x10) + 0xc);
-      // row_B_addresses: mc[0], bank[0], row[0x200], different column #
+      // row_B_addresses: MC(0), bank(0), row(0x20), different column #
       row_B_addresses.push_back(addrgen->generate(0, 0, 0x20) + 0xa);
       row_B_addresses.push_back(addrgen->generate(0, 0, 0x20) + 0xb);
       row_B_addresses.push_back(addrgen->generate(0, 0, 0x20) + 0xc);
@@ -48,12 +44,9 @@ class MCSchedTest : public ::testing::Test {
 
     virtual void SetUp() override {
       // Called Right After the Constructor, for each TEST
-
     }
     
-    void clear_geq() {
-      test_mc->geq->event_queue.clear();
-    }
+    void clear_geq() { test_mc->geq->event_queue.clear(); }
     PinPthread::LocalQueueElement * create_read_event(uint64_t _address);
 };
 
