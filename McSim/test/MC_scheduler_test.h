@@ -7,6 +7,7 @@
 #include "../McSim.h"
 #include "../PTS.h"
 #include "../PTSProcessDescription.h"
+
 #include "../PTSMemoryController.h"
 #include "AddressGen.h"
 
@@ -17,18 +18,15 @@ namespace PinPthread {
 class MCSchedTest : public ::testing::Test {
 
   protected:
-    static PinPthread::PthreadTimingSimulator* test_pts;
-    static PinPthread::MemoryController* test_mc;
-    static uint64_t curr_time;
-    //
+    static PthreadTimingSimulator* test_pts;
+    static MemoryController* test_mc;
     static std::vector<uint64_t> row_A_addresses;
     static std::vector<uint64_t> row_B_addresses;
 
     static void SetUpTestSuite() {
       // Called once per TEST Suite
-      test_pts = new PinPthread::PthreadTimingSimulator(FLAGS_mdfile);
+      test_pts = new PthreadTimingSimulator(FLAGS_mdfile);
       test_mc = test_pts->mcsim->mcs[0];
-      curr_time = 0;
 
       AddressGen* addrgen = new AddressGen();
       // addrgen->generate([MC #], [bank], [row])
@@ -41,13 +39,9 @@ class MCSchedTest : public ::testing::Test {
       row_B_addresses.push_back(addrgen->generate(0, 0, 0x20) + 0xb);
       row_B_addresses.push_back(addrgen->generate(0, 0, 0x20) + 0xc);
     }
-
-    virtual void SetUp() override {
-      // Called Right After the Constructor, for each TEST
-    }
     
     void clear_geq() { test_mc->geq->event_queue.clear(); }
-    PinPthread::LocalQueueElement * create_read_event(uint64_t _address);
+    LocalQueueElement * create_read_event(uint64_t _address);
 };
 
 }

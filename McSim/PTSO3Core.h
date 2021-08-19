@@ -36,7 +36,7 @@
 
 #include <queue>
 #include <utility>
-
+#include <gtest/gtest_prod.h>
 
 namespace PinPthread {
 
@@ -197,6 +197,9 @@ class O3Core : public Component {
 
  public:
   friend class McSim;
+
+  FRIEND_TEST(TLBTest, DTLBReqEvent);
+  FRIEND_TEST(TLBTest, DTLBProcessEvent);
 };
 
 }  // namespace PinPthread

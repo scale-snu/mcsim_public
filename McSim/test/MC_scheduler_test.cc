@@ -1,5 +1,6 @@
 #include "MC_scheduler_test.h"
 #include "gtest/gtest.h"
+
 #include <algorithm>
 #include <cstdlib>
 #include <ctime>
@@ -12,7 +13,6 @@ extern std::ostream & operator << (std::ostream & output, mc_bank_action action)
 // static variable of MCSchedTest
 PinPthread::PthreadTimingSimulator* MCSchedTest::test_pts;
 PinPthread::MemoryController* MCSchedTest::test_mc;
-uint64_t MCSchedTest::curr_time;
 std::vector<uint64_t> MCSchedTest::row_A_addresses;
 std::vector<uint64_t> MCSchedTest::row_B_addresses;
 
@@ -37,14 +37,14 @@ TEST_F(MCSchedTest, MCRequests) {
   event_B->type = PinPthread::event_type::et_read;
 
   event_A->address = row_A_addresses[0];
-  EXPECT_EQ(0, test_mc->get_rank_num(event_A->address));
-  EXPECT_EQ(0, test_mc->get_bank_num(event_A->address));
-  EXPECT_EQ(0x10, test_mc->get_page_num(event_A->address)); 
+  EXPECT_EQ((uint32_t)0, test_mc->get_rank_num(event_A->address));
+  EXPECT_EQ((uint32_t)0, test_mc->get_bank_num(event_A->address));
+  EXPECT_EQ((uint64_t)0x10, test_mc->get_page_num(event_A->address)); 
 
   event_B->address = row_B_addresses[0];
-  EXPECT_EQ(0, test_mc->get_rank_num(event_B->address));
-  EXPECT_EQ(0, test_mc->get_bank_num(event_B->address));
-  EXPECT_EQ(0x20, test_mc->get_page_num(event_B->address)); 
+  EXPECT_EQ((uint32_t)0, test_mc->get_rank_num(event_B->address));
+  EXPECT_EQ((uint32_t)0, test_mc->get_bank_num(event_B->address));
+  EXPECT_EQ((uint64_t)0x20, test_mc->get_page_num(event_B->address)); 
 
   //
   /* clearing geq is necessary, because other module's constructor may have pushed to geq. */
@@ -59,13 +59,13 @@ TEST_F(MCSchedTest, MCProcessEvent) {
   test_mc->geq->process_event_isolateTEST(ct_memory_controller);
   
   // whole MC data
-  EXPECT_EQ((long unsigned int)2, test_mc->num_read);
-  EXPECT_EQ((long unsigned int)0, test_mc->num_write);
-  EXPECT_EQ((long unsigned int)2, test_mc->num_activate);
-  EXPECT_EQ((long unsigned int)1, test_mc->num_precharge); // since it is assumed to be "open" policy
+  EXPECT_EQ((uint64_t)2, test_mc->num_read);
+  EXPECT_EQ((uint64_t)0, test_mc->num_write);
+  EXPECT_EQ((uint64_t)2, test_mc->num_activate);
+  EXPECT_EQ((uint64_t)1, test_mc->num_precharge); // since it is assumed to be "open" policy
 
   // single bank[0][0] data
-  EXPECT_EQ(0x20, test_mc->bank_status[0][0].page_num);
+  EXPECT_EQ((uint64_t)0x20, test_mc->bank_status[0][0].page_num);
   EXPECT_EQ(mc_bank_read, test_mc->bank_status[0][0].action_type);
 }
 
@@ -74,30 +74,30 @@ TEST_F(MCSchedTest, MCSchedulingOpen) {
   PinPthread::LocalQueueElement * event_A_1 = create_read_event(row_A_addresses[0]);
   PinPthread::LocalQueueElement * event_A_2 = create_read_event(row_A_addresses[1]);
   PinPthread::LocalQueueElement * event_A_3 = create_read_event(row_A_addresses[2]);
-  EXPECT_EQ(0x10, test_mc->get_page_num(event_A_1->address));
-  EXPECT_EQ(0x10, test_mc->get_page_num(event_A_2->address));
-  EXPECT_EQ(0x10, test_mc->get_page_num(event_A_3->address));
+  EXPECT_EQ((uint64_t)0x10, test_mc->get_page_num(event_A_1->address));
+  EXPECT_EQ((uint64_t)0x10, test_mc->get_page_num(event_A_2->address));
+  EXPECT_EQ((uint64_t)0x10, test_mc->get_page_num(event_A_3->address));
 
-  EXPECT_EQ((unsigned int)0, test_mc->get_rank_num(event_A_1->address));
-  EXPECT_EQ((unsigned int)0, test_mc->get_rank_num(event_A_2->address));
-  EXPECT_EQ((unsigned int)0, test_mc->get_rank_num(event_A_3->address));
-  EXPECT_EQ((unsigned int)0, test_mc->get_bank_num(event_A_1->address));
-  EXPECT_EQ((unsigned int)0, test_mc->get_bank_num(event_A_2->address));
-  EXPECT_EQ((unsigned int)0, test_mc->get_bank_num(event_A_3->address));
+  EXPECT_EQ((uint32_t)0, test_mc->get_rank_num(event_A_1->address));
+  EXPECT_EQ((uint32_t)0, test_mc->get_rank_num(event_A_2->address));
+  EXPECT_EQ((uint32_t)0, test_mc->get_rank_num(event_A_3->address));
+  EXPECT_EQ((uint32_t)0, test_mc->get_bank_num(event_A_1->address));
+  EXPECT_EQ((uint32_t)0, test_mc->get_bank_num(event_A_2->address));
+  EXPECT_EQ((uint32_t)0, test_mc->get_bank_num(event_A_3->address));
 
   PinPthread::LocalQueueElement * event_B_1 = create_read_event(row_B_addresses[0]);
   PinPthread::LocalQueueElement * event_B_2 = create_read_event(row_B_addresses[1]);
   PinPthread::LocalQueueElement * event_B_3 = create_read_event(row_B_addresses[2]);
-  EXPECT_EQ(0x20, test_mc->get_page_num(event_B_1->address));
-  EXPECT_EQ(0x20, test_mc->get_page_num(event_B_2->address));
-  EXPECT_EQ(0x20, test_mc->get_page_num(event_B_3->address));
+  EXPECT_EQ((uint64_t)0x20, test_mc->get_page_num(event_B_1->address));
+  EXPECT_EQ((uint64_t)0x20, test_mc->get_page_num(event_B_2->address));
+  EXPECT_EQ((uint64_t)0x20, test_mc->get_page_num(event_B_3->address));
 
-  EXPECT_EQ((unsigned int)0, test_mc->get_rank_num(event_B_1->address));
-  EXPECT_EQ((unsigned int)0, test_mc->get_rank_num(event_B_2->address));
-  EXPECT_EQ((unsigned int)0, test_mc->get_rank_num(event_B_3->address));
-  EXPECT_EQ((unsigned int)0, test_mc->get_bank_num(event_B_1->address));
-  EXPECT_EQ((unsigned int)0, test_mc->get_bank_num(event_B_2->address));
-  EXPECT_EQ((unsigned int)0, test_mc->get_bank_num(event_B_3->address));
+  EXPECT_EQ((uint32_t)0, test_mc->get_rank_num(event_B_1->address));
+  EXPECT_EQ((uint32_t)0, test_mc->get_rank_num(event_B_2->address));
+  EXPECT_EQ((uint32_t)0, test_mc->get_rank_num(event_B_3->address));
+  EXPECT_EQ((uint32_t)0, test_mc->get_bank_num(event_B_1->address));
+  EXPECT_EQ((uint32_t)0, test_mc->get_bank_num(event_B_2->address));
+  EXPECT_EQ((uint32_t)0, test_mc->get_bank_num(event_B_3->address));
 
   clear_geq();
   test_mc->add_req_event(0, event_A_1, NULL);
@@ -109,10 +109,10 @@ TEST_F(MCSchedTest, MCSchedulingOpen) {
 
   test_mc->geq->process_event_isolateTEST(ct_memory_controller);
   //
-  EXPECT_EQ((long unsigned int)8, test_mc->num_read); // +6
-  EXPECT_EQ((long unsigned int)0, test_mc->num_write);
-  EXPECT_EQ((long unsigned int)3, test_mc->num_activate); // +1, at transition
-  EXPECT_EQ((long unsigned int)2, test_mc->num_precharge); // +1, at transition
+  EXPECT_EQ((uint64_t)8, test_mc->num_read); // +6
+  EXPECT_EQ((uint64_t)0, test_mc->num_write);
+  EXPECT_EQ((uint64_t)3, test_mc->num_activate);  // +1, at transition
+  EXPECT_EQ((uint64_t)2, test_mc->num_precharge); // +1, at transition
   //
   EXPECT_EQ(mc_bank_read, test_mc->bank_status[0][0].action_type);
 }

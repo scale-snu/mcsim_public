@@ -153,7 +153,7 @@ O3Core::O3Core(
     o3rob[i].state = o3irs_invalid;
   }
 
-  CHECK_GE(o3rob_max_size, 4) << "as of now, it is assumed that o3rob_max_size >= 4" << std::endl;
+  CHECK_GE(o3rob_max_size, (uint32_t)4) << "as of now, it is assumed that o3rob_max_size >= 4" << std::endl;
 }
 
 
