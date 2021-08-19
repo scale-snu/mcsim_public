@@ -38,6 +38,7 @@ class MCSchedTest : public ::testing::Test {
       row_B_addresses.push_back(addrgen->generate(0, 0, 0x20) + 0xa);
       row_B_addresses.push_back(addrgen->generate(0, 0, 0x20) + 0xb);
       row_B_addresses.push_back(addrgen->generate(0, 0, 0x20) + 0xc);
+      delete addrgen;
     }
     
     void clear_geq() { test_mc->geq->event_queue.clear(); }

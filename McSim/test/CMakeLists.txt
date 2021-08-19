@@ -1,8 +1,8 @@
 #file(GLOB_RECURSE TEST_SOURCES LIST_DIRECTORIES false *.h *.cc)
 set(TEST_SOURCES
-  MC_scheduler_test.cc
-  TLB_test.cc
-#  O3Core_test.cc
+#  MC_scheduler_test.cc
+#  TLB_test.cc
+  O3Core_test.cc
 #  Cache_test.cc
 #  Coherence_test.cc
   AddressGen.cc

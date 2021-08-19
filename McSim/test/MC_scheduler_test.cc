@@ -51,6 +51,9 @@ TEST_F(MCSchedTest, MCRequests) {
   clear_geq();
   test_mc->add_req_event(0, event_A, NULL);
   test_mc->add_req_event(0, event_B, NULL);
+
+  delete event_A;
+  delete event_B;
 }
 
 // 2.2) Process two requests
@@ -115,6 +118,13 @@ TEST_F(MCSchedTest, MCSchedulingOpen) {
   EXPECT_EQ((uint64_t)2, test_mc->num_precharge); // +1, at transition
   //
   EXPECT_EQ(mc_bank_read, test_mc->bank_status[0][0].action_type);
+
+  delete event_A_1;
+  delete event_A_2;
+  delete event_A_3;
+  delete event_B_1;
+  delete event_B_2;
+  delete event_B_3;
 }
 
 PinPthread::LocalQueueElement * MCSchedTest::create_read_event(uint64_t _address) {

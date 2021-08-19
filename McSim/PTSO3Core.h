@@ -200,6 +200,16 @@ class O3Core : public Component {
 
   FRIEND_TEST(TLBTest, DTLBReqEvent);
   FRIEND_TEST(TLBTest, DTLBProcessEvent);
+
+  friend class O3CoreTest;   // for O3CoreTest::TearDown()
+  FRIEND_TEST(O3CoreTest, CheckBuild);
+  FRIEND_TEST(O3CoreTest, Fetch);
+  FRIEND_TEST(O3CoreTest, Dispatch);
+  FRIEND_TEST(O3CoreTest, Execute);
+  FRIEND_TEST(O3CoreTest, Commit);
+  FRIEND_TEST(O3CoreTest, RepEvent);
+  FRIEND_TEST(O3CoreTest, ReqEvent);
+  FRIEND_TEST(O3CoreTest, Scenario1);
 };
 
 }  // namespace PinPthread
