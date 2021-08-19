@@ -52,10 +52,14 @@ class O3CoreTest : public ::testing::Test {
       test_o3core->o3rob_head = 0;
       test_o3core->o3rob_size = 0;
     }
+
+    static void TearDownTestSuite() {
+      delete test_pts;
+    }
     
     void clear_geq() { test_o3core->geq->event_queue.clear(); }
 };
 
 }
 
-#endif 
+#endif // O3CORE_TEST_H_

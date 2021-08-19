@@ -210,6 +210,17 @@ class O3Core : public Component {
   FRIEND_TEST(O3CoreTest, RepEvent);
   FRIEND_TEST(O3CoreTest, ReqEvent);
   FRIEND_TEST(O3CoreTest, Scenario1);
+
+  FRIEND_TEST(CacheTest, CheckBuild);
+  FRIEND_TEST(CacheTest, IsEmptyInitially);
+  FRIEND_TEST(CacheTest, BasicCase);
+
+  FRIEND_TEST(CoherenceTest, Case1);
+  FRIEND_TEST(CoherenceTest, Case2);
+  FRIEND_TEST(CoherenceTest, Case3);
+  FRIEND_TEST(CoherenceTest, Case4);
+  FRIEND_TEST(CoherenceTest, Case5);
+  FRIEND_TEST(CoherenceTest, Case6);
 };
 
 }  // namespace PinPthread

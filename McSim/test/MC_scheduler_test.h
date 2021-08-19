@@ -40,6 +40,10 @@ class MCSchedTest : public ::testing::Test {
       row_B_addresses.push_back(addrgen->generate(0, 0, 0x20) + 0xc);
       delete addrgen;
     }
+
+    static void TearDownTestSuite() {
+      delete test_pts;
+    }
     
     void clear_geq() { test_mc->geq->event_queue.clear(); }
     LocalQueueElement * create_read_event(uint64_t _address);
@@ -47,4 +51,4 @@ class MCSchedTest : public ::testing::Test {
 
 }
 
-#endif
+#endif // MC_SCHED_H_

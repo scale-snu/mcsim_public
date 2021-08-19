@@ -38,6 +38,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <gtest/gtest_prod.h>
 
 #include "McSim.h"
 
@@ -78,6 +79,15 @@ class Cache : public Component {
 
  public:
   friend class McSim;
+  FRIEND_TEST(CacheTest, CheckBuild);
+  FRIEND_TEST(CacheTest, IsEmptyInitially);
+  FRIEND_TEST(CacheTest, BasicCase);
+  FRIEND_TEST(CoherenceTest, Case1);
+  FRIEND_TEST(CoherenceTest, Case2);
+  FRIEND_TEST(CoherenceTest, Case3);
+  FRIEND_TEST(CoherenceTest, Case4);
+  FRIEND_TEST(CoherenceTest, Case5);
+  FRIEND_TEST(CoherenceTest, Case6);
 };
 
 
@@ -111,6 +121,13 @@ class CacheL1 : public Cache {
 
   uint64_t         num_prefetch_requests;
   uint64_t         num_prefetch_hits;
+
+  FRIEND_TEST(CoherenceTest, Case1);
+  FRIEND_TEST(CoherenceTest, Case2);
+  FRIEND_TEST(CoherenceTest, Case3);
+  FRIEND_TEST(CoherenceTest, Case4);
+  FRIEND_TEST(CoherenceTest, Case5);
+  FRIEND_TEST(CoherenceTest, Case6);
 
  private:
   std::pair< uint64_t, coherence_state_type > *** tags;  // address + coherence state of a set-associative cache

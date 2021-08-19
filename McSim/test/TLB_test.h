@@ -34,6 +34,10 @@ class TLBTest : public ::testing::Test {
       test_tlbl1d = test_pts->mcsim->tlbl1ds[0];
     }
 
+    static void TearDownTestSuite() {
+      delete test_pts;
+    }
+
     void clear_geq() { test_tlbl1i->geq->event_queue.clear(); }
     LocalQueueElement * create_tlb_read_event(uint64_t _address, Component * from); 
     void set_rob_entry(O3ROB & o3rob_entry, uint64_t _ip, uint64_t _memaddr);

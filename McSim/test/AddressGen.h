@@ -20,4 +20,4 @@ class AddressGen {
     uint32_t log2(uint32_t num);
 };
 
-#endif
+#endif // ADDRESS_GEN_H_
