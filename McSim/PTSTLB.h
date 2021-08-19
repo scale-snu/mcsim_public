@@ -46,7 +46,7 @@ class TLBL1 : public Component {
   ~TLBL1();
 
   // currently it is assumed that L1 TLBs are fully-associative
-  std::vector<Component *> lsus;           // uplink
+  std::vector<Component *> lsus;         // uplink
   std::map<uint64_t, uint64_t> entries;  // <page_num, time>
   std::map<uint64_t, std::map<uint64_t, uint64_t>::iterator> LRU;
 

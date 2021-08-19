@@ -24,6 +24,8 @@ class TLBTest : public ::testing::Test {
     static TLBL1* test_tlbl1i;
     static TLBL1* test_tlbl1d;
     static std::vector<LocalQueueElement *> events;
+    static const uint64_t TEST_ADDR_I = 0x401640;       // instruction
+    static const uint64_t TEST_ADDR_D = 0x7FFFFFFFE6D8; // data
 
     static void SetUpTestSuite() {
       test_pts = new PthreadTimingSimulator(FLAGS_mdfile);
