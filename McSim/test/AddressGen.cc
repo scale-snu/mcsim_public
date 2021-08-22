@@ -2,27 +2,17 @@
 #include <cmath>
 #include <iostream>
 
-AddressGen::AddressGen() {
-  // num_ranks_per_mc         = get_param_uint64("num_ranks_per_mc", 1);
-  // num_banks_per_rank       = get_param_uint64("num_banks_per_rank", 8);
-  // rank_interleave_base_bit = get_param_uint64("rank_interleave_base_bit", 14);
-  // bank_interleave_base_bit = get_param_uint64("bank_interleave_base_bit", 14);
-  // mc_interleave_base_bit   = get_param_uint64("interleave_base_bit", 12);
-  // num_mcs                  = get_param_uint64("num_mcs", "pts.", 2);
-  // page_sz_base_bit         = get_param_uint64("page_sz_base_bit", 12);
-  // interleave_xor_base_bit  = get_param_uint64("interleave_xor_base_bit", 20);
-  
-  // TODO(wjdoh) mdfile에서 읽어올 수 있도록 수정하기
-  num_mcs                  = 2;   // width2
-  num_ranks_per_mc         = 1;   // width1
-  num_banks_per_rank       = 8;   // width0
+namespace PinPthread {
 
-  mc_interleave_base_bit   = 12;  // base2
-  rank_interleave_base_bit = 14;  // base1
-  bank_interleave_base_bit = 14;  // base0
-  
-  page_sz_base_bit         = 12;
-  interleave_xor_base_bit  = 18;
+AddressGen::AddressGen(PthreadTimingSimulator * pts) {
+  num_ranks_per_mc         = pts->get_param_uint64("num_ranks_per_mc", 1);
+  num_banks_per_rank       = pts->get_param_uint64("num_banks_per_rank", 8);
+  rank_interleave_base_bit = pts->get_param_uint64("rank_interleave_base_bit", 14);
+  bank_interleave_base_bit = pts->get_param_uint64("bank_interleave_base_bit", 14);
+  mc_interleave_base_bit   = pts->get_param_uint64("interleave_base_bit", 12);
+  num_mcs                  = pts->get_param_uint64("num_mcs", 2);
+  page_sz_base_bit         = pts->get_param_uint64("page_sz_base_bit", 12);
+  interleave_xor_base_bit  = pts->get_param_uint64("interleave_xor_base_bit", 20);
 }
 
 // Only support num_ranks_per_mc = 0 currently
@@ -55,3 +45,6 @@ uint32_t AddressGen::log2(uint32_t num) {
   }
   return log2;
 }
+
+}
+

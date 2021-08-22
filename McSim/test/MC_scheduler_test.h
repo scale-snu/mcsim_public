@@ -28,7 +28,7 @@ class MCSchedTest : public ::testing::Test {
       test_pts = new PthreadTimingSimulator(FLAGS_mdfile);
       test_mc = test_pts->mcsim->mcs[0];
 
-      AddressGen* addrgen = new AddressGen();
+      AddressGen* addrgen = new AddressGen(test_pts);
       // addrgen->generate([MC #], [bank], [row])
       // row_A_addresses: MC(0), bank(0), row(0x10), different column #
       row_A_addresses.push_back(addrgen->generate(0, 0, 0x10) + 0xa);

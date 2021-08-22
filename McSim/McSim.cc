@@ -257,6 +257,8 @@ McSim::~McSim() {
     << std::setw(3) << ipc1000%1000 << std::setfill(' ') << ")" << std::endl;
 
   for (auto && el : o3cores) delete el;
+  for (auto && el : tlbl1is) delete el;
+  for (auto && el : tlbl1ds) delete el;
   for (auto && el : l1is) delete el;
   for (auto && el : l1ds) delete el;
   for (auto && el : l2s) delete el;

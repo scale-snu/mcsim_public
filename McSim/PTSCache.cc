@@ -538,7 +538,7 @@ void CacheL1::do_prefetch(uint64_t curr_time, const LocalQueueElement & req_lqe)
       }
     }
     if (next_addr_exist == true) {
-      LocalQueueElement * lqe = new LocalQueueElement(this, et_read, next_addr, req_lqe.th_id);
+      LocalQueueElement * lqe = new LocalQueueElement(this, et_read, prev_addr, req_lqe.th_id);
       cachel2->add_req_event(curr_time + l1_to_l2_t, lqe);
       // update the prefetch entry
       if (pres[oldest_pre_entry_idx]->addr != 0) {

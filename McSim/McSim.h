@@ -48,7 +48,6 @@ static const ADDRINT search_addr   = 0x800e7fffde77a040;
 static const uint32_t max_hthreads = 1024;
 
 namespace PinPthread {
-class Core;
 class O3Core;
 class CacheL1;
 class CacheL2;
@@ -57,7 +56,6 @@ class Crossbar;
 class MemoryController;
 class BranchPredictor;
 class TLBL1;
-class TLBL2;
 class NoC;
 class McSim;
 

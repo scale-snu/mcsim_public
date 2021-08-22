@@ -3,6 +3,8 @@
 
 #include "../PTS.h"
 
+namespace PinPthread {
+
 class AddressGen {
   private:
     uint32_t num_ranks_per_mc;
@@ -15,9 +17,11 @@ class AddressGen {
     uint32_t interleave_xor_base_bit;
 
   public:
-    AddressGen();
+    AddressGen(PthreadTimingSimulator * pts);
     uint64_t generate(uint32_t mc, uint32_t bank, uint32_t page);
     uint32_t log2(uint32_t num);
 };
+
+}
 
 #endif // ADDRESS_GEN_H_
