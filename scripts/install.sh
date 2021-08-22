@@ -126,4 +126,4 @@ install_tracegen
 
 #install_mcsim_frontend_debug
 #install_mcsim_backend_debug
-#build_stream_example
+build_stream_example
