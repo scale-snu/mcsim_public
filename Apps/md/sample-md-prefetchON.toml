@@ -14,25 +14,25 @@ pts.show_l2_stat_per_interval = false
 
 pts.num_hthreads             = 4
 pts.'num_hthreads_per_l1$'   = 1
-pts.'num_l1$_per_l2$'        = 1 
-pts.num_mcs                  = 4
+pts.'num_l1$_per_l2$'        = 2 
+pts.num_mcs                  = 2
 
 
 #     [core_0]         [core_1]
 #      /   \            /   \
-# [L1I_0] [L1D_0]   [L1I_1] [L1D_1]
-#      \    \          /    / 
-#       [ L2_0 ]      [ L2_1 ]
-#          /    \    /    \
-# [MC_0][DIR_0]  \  /  [DIR_1][MC_1]
-#            \    \/   /  
-#             [  NoC  ]
-#            /    /\   \
-# [MC_2][DIR_2]  /  \  [DIR_3][MC_3]
-#          \    /    \    /
-#       [ L2_2 ]     [ L2_3 ]
-#       /     /       \     \
-# [L1I_2] [L1D_2]   [L1I_3] [L1D_3]
+# [L1I_0] [L1D_0]  [L1I_1] [L1D_1]
+#       \     \      /     / 
+#      [        L2_0        ]
+#              /  |
+#         [DIR_0] |
+#         /    \  |
+#    [MC_0]   [  NoC  ]   [MC_1]
+#                 |  \    /
+#                 | [DIR_1]
+#                 |  /
+#      [        L2_1        ]
+#       /     /      \     \
+# [L1I_2] [L1D_2]  [L1I_3] [L1D_3]
 #      \   /            \   /
 #     [core_2]         [core_3]
 
@@ -87,8 +87,8 @@ pts.'l1d$'.num_sets_per_subarray = 8
 pts.'l1d$'.always_hit         = false
 pts.'l1d$'.use_prefetch       = true
 
-pts.'l2$'.num_sets            = 512
-pts.'l2$'.num_ways            = 4
+pts.'l2$'.num_sets            = 16384
+pts.'l2$'.num_ways            = 16
 pts.'l2$'.set_lsb             = 6
 pts.'l2$'.process_interval    = 10
 pts.'l2$'.to_l1_t             = 40
@@ -120,7 +120,7 @@ pts.xbar.to_l2_t             = 40
 pts.xbar.process_interval    = 10
 pts.noc.num_node             = 2
 
-pts.mc.process_interval         = 30
+pts.mc.process_interval         = 20
 pts.mc.to_dir_t                 = 430
 pts.mc.interleave_base_bit      = 12
 pts.mc.interleave_xor_base_bit  = 20
@@ -147,7 +147,7 @@ pts.mc.bank_interleave_base_bit = 14
 pts.mc.page_sz_base_bit         = 12
 pts.mc.scheduling_policy        = "open"
 pts.mc.refresh_interval         = 720000
-pts.mc.num_pages_per_bank       = 4096
+pts.mc.num_pages_per_bank       = 8192
 pts.mc.par_bs       = true
 pts.mc.full_duplex  = false
 pts.mc.is_fixed_latency         = false

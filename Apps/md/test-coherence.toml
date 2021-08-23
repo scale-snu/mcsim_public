@@ -164,12 +164,4 @@ pts.l1itlb.page_sz_log2         = 12
 pts.l1itlb.miss_penalty         = 80
 pts.l1itlb.speedup              = 4
 
-## RFM & Mithril
-pts.mc.RAAIMT = 4
-pts.mc.tRFM_t = 720000
-pts.mc.Nentry = 5
-pts.mc.is_Mithril_plus = false      # only concerns the Mithril+
-pts.mc.Mithril_plus_diff_param = 1  # energy saving RH refresh is adopted as default. 
-                                    # parameter "0" means no energy saving.
-
 print_md = false

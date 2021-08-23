@@ -3,6 +3,7 @@
 [[run]]
 type = "trace"
 num_instrs_to_skip_first = 0
-trace_file = "/tmp/stream.0.snappy"
+trace_file = "/scale/cal/share/research/benchmarks/spec-cpu2017-snappy-modernize/554.21190.snappy"
 path = "/home/gajh/repository/mcsim_private/McSim/stream"
 arg  = "STREAM"
+

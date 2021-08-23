@@ -5,12 +5,5 @@ type = "pintool"
 num_threads = 4
 num_instrs_to_skip_first = 0
 path = "/home/gajh/repository/mcsim_private/McSim/stream"
-arg  = "STREAM -p4 -n1048576 -r10 -s512"
-
-# [[run]]
-# type = "trace"
-# num_instrs_to_skip_first = 0
-# trace_file = ""
-# path = "/"
-# arg  = "/bin/ls"
+arg  = "STREAM -p4 -n1048576 -r1 -s64"
 
