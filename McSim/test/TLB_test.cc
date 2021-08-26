@@ -4,7 +4,7 @@
 namespace PinPthread {
 
 // static variable of TLBTest
-PthreadTimingSimulator* TLBTest::test_pts;
+std::unique_ptr<PinPthread::PthreadTimingSimulator> TLBTest::test_pts;
 TLBL1* TLBTest::test_tlbl1i;
 TLBL1* TLBTest::test_tlbl1d;
 O3Core* TLBTest::test_o3core;
@@ -21,12 +21,12 @@ TEST_F(TLBTest, CheckBuild) {
 /* 2. START of TLB Testing */
 TEST_F(TLBTest, IsEmptyInitially) {
   EXPECT_TRUE(test_tlbl1i->req_event.empty());
-  EXPECT_TRUE(test_tlbl1i->LRU.empty());
-  EXPECT_TRUE(test_tlbl1i->entries.empty());
+  EXPECT_EQ(0, test_tlbl1i->get_size_of_LRU());
+  EXPECT_EQ(0, test_tlbl1i->get_size_of_entries());
 
   EXPECT_TRUE(test_tlbl1d->req_event.empty());
-  EXPECT_TRUE(test_tlbl1d->LRU.empty());
-  EXPECT_TRUE(test_tlbl1d->entries.empty());
+  EXPECT_EQ(0, test_tlbl1d->get_size_of_LRU());
+  EXPECT_EQ(0, test_tlbl1d->get_size_of_entries());
 
   clear_geq();
   EXPECT_TRUE(test_tlbl1i->geq->event_queue.empty());
@@ -47,13 +47,13 @@ TEST_F(TLBTest, ITLBProcessEvent) {
   test_tlbl1i->geq->process_event_isolateTEST(ct_tlbl1i);
 
   // the # of misses is 1 because the accesses have occured at the same address
-  EXPECT_EQ((uint64_t)1, test_tlbl1i->num_miss);
-  EXPECT_EQ((uint64_t)2, test_tlbl1i->num_access);
-  EXPECT_EQ((uint64_t)1, test_tlbl1i->entries.size());
-  EXPECT_EQ((uint64_t)1, test_tlbl1i->LRU.size());
+  EXPECT_EQ((uint64_t)1, test_tlbl1i->get_num_miss());
+  EXPECT_EQ((uint64_t)2, test_tlbl1i->get_num_access());
+  EXPECT_EQ((uint64_t)1, test_tlbl1i->get_size_of_entries());
+  EXPECT_EQ((uint64_t)1, test_tlbl1i->get_size_of_LRU());
 
   // check whether the LRU entry is updated properly
-  EXPECT_EQ((uint64_t)20, test_tlbl1i->LRU.begin()->first);
+  EXPECT_EQ((uint64_t)20, test_tlbl1i->get_LRU_time());
 
   // make TLB full
   uint64_t address;
@@ -64,13 +64,13 @@ TEST_F(TLBTest, ITLBProcessEvent) {
   }
   test_tlbl1i->geq->process_event_isolateTEST(ct_tlbl1i);
   
-  EXPECT_EQ((uint64_t)65, test_tlbl1i->num_miss);   // 1 + 64
-  EXPECT_EQ((uint64_t)66, test_tlbl1i->num_access); // 2 + 64
-  EXPECT_EQ(test_tlbl1i->num_entries, test_tlbl1i->entries.size()); // TLB full
-  EXPECT_EQ(test_tlbl1i->num_entries, test_tlbl1i->LRU.size());
+  EXPECT_EQ((uint64_t)65, test_tlbl1i->get_num_miss());   // 1 + 64
+  EXPECT_EQ((uint64_t)66, test_tlbl1i->get_num_access()); // 2 + 64
+  EXPECT_EQ(test_tlbl1i->num_entries, test_tlbl1i->get_size_of_entries()); // TLB full
+  EXPECT_EQ(test_tlbl1i->num_entries, test_tlbl1i->get_size_of_LRU());
 
   // one entry (initially accessed one) is evicted, now LRU access time is 30
-  EXPECT_EQ((uint64_t)30, test_tlbl1i->LRU.begin()->first);
+  EXPECT_EQ((uint64_t)30, test_tlbl1i->get_LRU_time());
 
   events.clear();
   clear_geq();
@@ -94,13 +94,13 @@ TEST_F(TLBTest, DTLBProcessEvent) {
   test_tlbl1d->geq->process_event_isolateTEST(ct_tlbl1d);
   
   // the # of misses is 1 because the accesses have occured at the same address
-  EXPECT_EQ((uint64_t)1, test_tlbl1d->num_miss);
-  EXPECT_EQ((uint64_t)2, test_tlbl1d->num_access);
-  EXPECT_EQ((uint64_t)1, test_tlbl1d->entries.size());
-  EXPECT_EQ((uint64_t)1, test_tlbl1d->LRU.size()); 
+  EXPECT_EQ((uint64_t)1, test_tlbl1d->get_num_miss());
+  EXPECT_EQ((uint64_t)2, test_tlbl1d->get_num_access());
+  EXPECT_EQ((uint64_t)1, test_tlbl1d->get_size_of_entries());
+  EXPECT_EQ((uint64_t)1, test_tlbl1d->get_size_of_LRU()); 
 
   // check whether the LRU entry is updated properly
-  EXPECT_EQ((uint64_t)20, test_tlbl1d->LRU.begin()->first);
+  EXPECT_EQ((uint64_t)20, test_tlbl1d->get_LRU_time());
 
   // make TLB full
   for (uint i = 1; i <= test_tlbl1d->num_entries; i++) {
@@ -115,11 +115,11 @@ TEST_F(TLBTest, DTLBProcessEvent) {
   }
   test_tlbl1d->geq->process_event_isolateTEST(ct_tlbl1d);
 
-  EXPECT_EQ((uint64_t)65, test_tlbl1d->num_miss);   // 1 + 64
-  EXPECT_EQ((uint64_t)66, test_tlbl1d->num_access); // 2 + 64
-  EXPECT_EQ(test_tlbl1d->num_entries, test_tlbl1d->entries.size());
-  EXPECT_EQ(test_tlbl1d->num_entries, test_tlbl1d->LRU.size());
-  EXPECT_EQ((uint64_t)30,  test_tlbl1d->LRU.begin()->first);
+  EXPECT_EQ((uint64_t)65, test_tlbl1d->get_num_miss());   // 1 + 64
+  EXPECT_EQ((uint64_t)66, test_tlbl1d->get_num_access()); // 2 + 64
+  EXPECT_EQ(test_tlbl1d->num_entries, test_tlbl1d->get_size_of_entries());
+  EXPECT_EQ(test_tlbl1d->num_entries, test_tlbl1d->get_size_of_LRU());
+  EXPECT_EQ((uint64_t)30,  test_tlbl1d->get_LRU_time());
 
   clear_geq();
 
@@ -132,11 +132,11 @@ TEST_F(TLBTest, DTLBProcessEvent) {
 
   test_tlbl1d->geq->process_event_isolateTEST(ct_tlbl1d);
 
-  EXPECT_EQ((uint64_t)66, test_tlbl1d->num_miss);   // 65 + 1
-  EXPECT_EQ((uint64_t)67, test_tlbl1d->num_access); // 66 + 1
-  EXPECT_EQ(test_tlbl1d->num_entries, test_tlbl1d->entries.size());
-  EXPECT_EQ(test_tlbl1d->num_entries, test_tlbl1d->LRU.size());
-  EXPECT_EQ((uint64_t)40, test_tlbl1d->LRU.begin()->first);
+  EXPECT_EQ((uint64_t)66, test_tlbl1d->get_num_miss());   // 65 + 1
+  EXPECT_EQ((uint64_t)67, test_tlbl1d->get_num_access()); // 66 + 1
+  EXPECT_EQ(test_tlbl1d->num_entries, test_tlbl1d->get_size_of_entries());
+  EXPECT_EQ(test_tlbl1d->num_entries, test_tlbl1d->get_size_of_LRU());
+  EXPECT_EQ((uint64_t)40, test_tlbl1d->get_LRU_time());
 
 }
 

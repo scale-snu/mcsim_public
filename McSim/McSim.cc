@@ -367,7 +367,7 @@ std::pair<uint32_t, uint64_t> McSim::resume_simulation(bool must_switch) {
     curr_time_last = global_q->curr_time;
 
     if (show_l2_stat_per_interval == true) {
-      show_l2_cache_summary();
+      // show_l2_cache_summary();  // wjdoh) removed for a while to make L2$->tags private
     } else {
       std::cout << std::endl;
     }
@@ -477,7 +477,7 @@ void McSim::set_active(int32_t pth_id, bool is_active) {
   o3cores[pth_id]->active    = is_active;
 }
 
-
+/*
 void McSim::show_l2_cache_summary() {
   uint32_t num_cache_lines    = 0;
   uint32_t num_i_cache_lines  = 0;
@@ -519,24 +519,25 @@ void McSim::show_l2_cache_summary() {
     << std::setiosflags(std::ios::fixed) << std::setw(4) << 1000 * num_m_cache_lines  / num_cache_lines << ", "
     << std::setiosflags(std::ios::fixed) << std::setw(4) << 1000 * num_tr_cache_lines / num_cache_lines << "), "
     << std::endl;
-  /*  << "avg L2$ line life = ";
+    // << "avg L2$ line life = ";
 
-      if (num_destroyed_cache_lines == num_destroyed_cache_lines_last_time)
-      {
-      cout << "NaN, avg time bet last acc to L2$ destroy = NaN" << std::endl;
-      }
-      else
-      {
-      cout << setiosflags(ios::fixed) 
-      << (cache_line_life_time - cache_line_life_time_last_time) /
-      ((num_destroyed_cache_lines - num_destroyed_cache_lines_last_time) * l2s[0]->process_interval) << ", "
-      << "avg time bet last acc to $ destroy = "
-      << setiosflags(ios::fixed)
-      << (time_between_last_access_and_cache_destroy - time_between_last_access_and_cache_destroy_last_time) /
-      ((num_destroyed_cache_lines - num_destroyed_cache_lines_last_time) * l2s[0]->process_interval) 
-      << " L2$ cycles" << std::endl;
-      }*/
+    //   if (num_destroyed_cache_lines == num_destroyed_cache_lines_last_time)
+    //   {
+    //   cout << "NaN, avg time bet last acc to L2$ destroy = NaN" << std::endl;
+    //   }
+    //   else
+    //   {
+    //   cout << setiosflags(ios::fixed)
+    //   << (cache_line_life_time - cache_line_life_time_last_time) /
+    //   ((num_destroyed_cache_lines - num_destroyed_cache_lines_last_time) * l2s[0]->process_interval) << ", "
+    //   << "avg time bet last acc to $ destroy = "
+    //   << setiosflags(ios::fixed)
+    //   << (time_between_last_access_and_cache_destroy - time_between_last_access_and_cache_destroy_last_time) /
+    //   ((num_destroyed_cache_lines - num_destroyed_cache_lines_last_time) * l2s[0]->process_interval)
+    //   << " L2$ cycles" << std::endl;
+    //   }
 }
+*/
 
 
 void McSim::update_os_page_req_dist(uint64_t addr) {

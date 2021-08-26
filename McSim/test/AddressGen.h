@@ -17,7 +17,7 @@ class AddressGen {
     uint32_t interleave_xor_base_bit;
 
   public:
-    AddressGen(PthreadTimingSimulator * pts);
+    AddressGen(std::shared_ptr<PthreadTimingSimulator> pts);
     uint64_t generate(uint32_t mc, uint32_t bank, uint32_t page);
     uint32_t log2(uint32_t num);
 };

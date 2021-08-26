@@ -1,16 +1,20 @@
 #include "O3Core_test.h"
 #include "gtest/gtest.h"
-#include <vector>
+
+DECLARE_string(mdfile); // defined in /test/main.cc
 
 namespace PinPthread {
 
 // static variable of O3CoreTest
-PthreadTimingSimulator* O3CoreTest::test_pts;
-O3Core* O3CoreTest::test_o3core;
-TLBL1* O3CoreTest::test_tlbl1i;
-TLBL1* O3CoreTest::test_tlbl1d;
-CacheL1* O3CoreTest::test_cachel1i;
-CacheL1* O3CoreTest::test_cachel1d;
+std::unique_ptr<PinPthread::PthreadTimingSimulator> O3CoreTest::test_pts = std::make_unique<PinPthread::PthreadTimingSimulator>("../Apps/md/test-md.toml");
+O3Core* O3CoreTest::test_o3core = test_pts->mcsim->o3cores[0];
+TLBL1* O3CoreTest::test_tlbl1i = test_pts->mcsim->tlbl1is[0];
+TLBL1* O3CoreTest::test_tlbl1d = test_pts->mcsim->tlbl1ds[0];
+CacheL1* O3CoreTest::test_cachel1i = test_pts->mcsim->l1is[0];
+CacheL1* O3CoreTest::test_cachel1d = test_pts->mcsim->l1ds[0];
+
+std::vector<LocalQueueElement *> O3CoreTest::request_events;
+std::vector<LocalQueueElement *> O3CoreTest::reply_events;
 
 /* 1. START of O3Core Build && Fixture Build Testing */
 TEST_F(O3CoreTest, CheckBuild) {
@@ -284,30 +288,30 @@ TEST_F(O3CoreTest, Commit) {
 
 // reply event from ITLB, L1I cache
 TEST_F(O3CoreTest, ReqEvent) {  
+
   // case 1 - event from ITLB
+  request_events.push_back(new LocalQueueElement(test_tlbl1i, et_tlb_rd, TEST_ADDR_I, 0));
   EXPECT_TRUE(test_cachel1i->req_event.empty());
 
-  LocalQueueElement * req_event1 = new LocalQueueElement(test_tlbl1i, et_tlb_rd, TEST_ADDR_I, 0);
-  test_o3core->add_req_event(10, req_event1, test_tlbl1i);
+  test_o3core->add_req_event(10, request_events[0], test_tlbl1i);
 
-  EXPECT_EQ(et_read, req_event1->type);  // event type changed from TLB read(et_tlb_rd) to cache read(et_read)
+  EXPECT_EQ(et_read, request_events[0]->type);  // event type changed from TLB read(et_tlb_rd) to cache read(et_read)
   EXPECT_EQ((uint32_t)1, test_cachel1i->req_event.size());
-  delete req_event1;
 
   // case 2 - read fail from L1I cache (nack)
+  request_events.push_back(new LocalQueueElement(test_cachel1i, et_nack, TEST_ADDR_I, 0));
   EXPECT_EQ((uint64_t)0, test_o3core->num_consecutive_nacks);
   EXPECT_EQ((uint64_t)0, test_o3core->num_nacks);
 
-  LocalQueueElement * req_event2 = new LocalQueueElement(test_cachel1i, et_nack, TEST_ADDR_I, 0);
-  test_o3core->add_req_event(10, req_event2, test_cachel1i);
+  test_o3core->add_req_event(10, request_events[1], test_cachel1i);
 
   EXPECT_EQ((uint64_t)1, test_o3core->num_consecutive_nacks);
   EXPECT_EQ((uint64_t)1, test_o3core->num_nacks);
-  EXPECT_EQ(et_read, req_event2->type);  // event type changed from nack to cache read
+  EXPECT_EQ(et_read, request_events[1]->type);  // event type changed from nack to cache read
   EXPECT_EQ((uint32_t)2, test_cachel1i->req_event.size());
-  delete req_event2;
   
   // case 3 - successfully read from L1I cache
+  request_events.push_back(new LocalQueueElement(test_cachel1i, et_read, TEST_ADDR_I, 0));
   O3Queue* test_o3queue = test_o3core->o3queue;
   test_o3queue[0].state = o3iqs_being_loaded;
   test_o3queue[1].state = o3iqs_not_in_queue;  // not in queue
@@ -320,8 +324,7 @@ TEST_F(O3CoreTest, ReqEvent) {
   test_o3queue[3].ip = TEST_ADDR_I;
   test_o3core->o3queue_size = 4;
 
-  LocalQueueElement * req_event3 = new LocalQueueElement(test_cachel1i, et_read, TEST_ADDR_I, 0);
-  test_o3core->add_req_event(10, req_event3, test_cachel1i);
+  test_o3core->add_req_event(10, request_events[2], test_cachel1i);
 
   EXPECT_EQ((uint64_t)0, test_o3core->num_consecutive_nacks);
   EXPECT_EQ((uint64_t)1, test_o3core->num_nacks);
@@ -329,18 +332,18 @@ TEST_F(O3CoreTest, ReqEvent) {
   EXPECT_EQ(o3iqs_not_in_queue, test_o3queue[1].state);
   EXPECT_EQ(o3iqs_being_loaded, test_o3queue[2].state);
   EXPECT_EQ(o3iqs_ready, test_o3queue[3].state);  // also loaded
-  delete req_event3;
 }
 
 // reply event from DTLB, L1D cache
 TEST_F(O3CoreTest, RepEvent) {
+
   O3ROB* test_o3rob = test_o3core->o3rob;
 
   // case 1 - event from DTLB
-  LocalQueueElement * rep_event0 = new LocalQueueElement(test_tlbl1d, et_tlb_rd, TEST_ADDR_D, 0);
-  LocalQueueElement * rep_event1 = new LocalQueueElement(test_tlbl1d, et_tlb_rd, TEST_ADDR_D, 0);
-  rep_event0->rob_entry = 0;
-  rep_event1->rob_entry = 1;
+  reply_events.push_back(new LocalQueueElement(test_tlbl1d, et_tlb_rd, TEST_ADDR_D, 0));
+  reply_events.push_back(new LocalQueueElement(test_tlbl1d, et_tlb_rd, TEST_ADDR_D, 0));
+  reply_events[0]->rob_entry = 0;
+  reply_events[1]->rob_entry = 1;
   test_o3rob[0].isread = true;   // read
   test_o3rob[1].isread = false;  // write
 
@@ -348,46 +351,42 @@ TEST_F(O3CoreTest, RepEvent) {
   test_o3core->o3rob_head = 0;
   EXPECT_TRUE(test_cachel1d->req_event.empty());
   
-  test_o3core->add_rep_event(10, rep_event0, test_tlbl1d);  // read event
-  test_o3core->add_rep_event(10, rep_event1, test_tlbl1d);  // write event
+  test_o3core->add_rep_event(10, reply_events[0], test_tlbl1d);  // read event
+  test_o3core->add_rep_event(10, reply_events[1], test_tlbl1d);  // write event
   
-  EXPECT_EQ(et_read,  rep_event0->type);  // event type changed from TLB read(et_tlb_rd) to cache read(et_read)
-  EXPECT_EQ(et_write, rep_event1->type);  // event type changed from TLB read(et_tlb_rd) to cache write(et_write)
+  EXPECT_EQ(et_read,  reply_events[0]->type);  // event type changed from TLB read(et_tlb_rd) to cache read(et_read)
+  EXPECT_EQ(et_write, reply_events[1]->type);  // event type changed from TLB read(et_tlb_rd) to cache write(et_write)
   EXPECT_EQ((uint32_t)2, test_cachel1d->req_event.size());  // now, L1D cache has 2 request events
-  delete rep_event0;
-  delete rep_event1;
 
   // case 2 - read/write fail from L1D cache (nack)
-  LocalQueueElement * rep_event2 = new LocalQueueElement(test_cachel1d, et_nack, TEST_ADDR_D, 0);
-  rep_event2->rob_entry = 2;
+  reply_events.push_back(new LocalQueueElement(test_cachel1d, et_nack, TEST_ADDR_D, 0));
+  reply_events[2]->rob_entry = 2;
   test_o3rob[2].isread = true;   // read
   
   test_o3core->o3rob_size = 3;
   test_o3core->o3rob_head = 0;
 
-  test_o3core->add_rep_event(10, rep_event2, test_cachel1d);
+  test_o3core->add_rep_event(10, reply_events[2], test_cachel1d);
   EXPECT_EQ((uint64_t)1, test_o3core->num_consecutive_nacks);
   EXPECT_EQ((uint64_t)2, test_o3core->num_nacks);  // one for above req event test and one for now
-  EXPECT_EQ(et_read, rep_event2->type);  // event type changed from nack(et_nack) to cache read(et_read)
+  EXPECT_EQ(et_read, reply_events[2]->type);  // event type changed from nack(et_nack) to cache read(et_read)
   EXPECT_EQ((uint32_t)3, test_cachel1d->req_event.size());
-  delete rep_event2;
 
   // case 3 - successfully read from L1D cache
-  LocalQueueElement * rep_event3 = new LocalQueueElement(test_cachel1d, et_read, TEST_ADDR_D, 0);
-  rep_event3->rob_entry = 3;
+  reply_events.push_back(new LocalQueueElement(test_cachel1d, et_read, TEST_ADDR_D, 0));
+  reply_events[3]->rob_entry = 3;
   test_o3rob[3].isread = true;   // read
   test_o3rob[3].state = o3irs_executing;
   test_o3rob[3].branch_miss = false;
   uint64_t temp_tot_mem_rd_time = test_o3core->total_mem_rd_time;
   uint64_t temp_tot_mem_wr_time = test_o3core->total_mem_wr_time;
 
-  test_o3core->add_rep_event(20, rep_event3, test_cachel1d);
+  test_o3core->add_rep_event(20, reply_events[3], test_cachel1d);
   EXPECT_LT(temp_tot_mem_rd_time, test_o3core->total_mem_rd_time);  // updated
   EXPECT_EQ(temp_tot_mem_wr_time, test_o3core->total_mem_wr_time);  // same
   EXPECT_EQ(o3irs_completed, test_o3rob[3].state);
   EXPECT_EQ((uint64_t)0, test_o3core->num_consecutive_nacks);
   EXPECT_EQ((uint64_t)2, test_o3core->num_nacks);
-  delete rep_event3;
 }
 
 TEST_F(O3CoreTest, Scenario1) {

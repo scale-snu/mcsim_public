@@ -122,19 +122,19 @@ class O3Core : public Component {
   void     add_req_event(uint64_t, LocalQueueElement *, Component * from);
   void     add_rep_event(uint64_t, LocalQueueElement *, Component * from);
 
- private:
+  CacheL1 * cachel1d;
+  CacheL1 * cachel1i;
+  TLBL1   * tlbl1d;
+  TLBL1   * tlbl1i;
+  BranchPredictor * bp;
+
+ protected:
   uint32_t num_hthreads;
   bool     is_active;
 
   uint64_t last_time_no_mem_served;
   uint64_t last_time_mem_served;
   uint64_t num_bubbled_slots;
-
-  CacheL1 * cachel1d;
-  CacheL1 * cachel1i;
-  TLBL1   * tlbl1d;
-  TLBL1   * tlbl1i;
-  BranchPredictor * bp;
 
   // pointer to the member variables in the corresponding Pthread object
   bool active;

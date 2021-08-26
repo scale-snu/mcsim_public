@@ -187,7 +187,6 @@ class MemoryController : public Component {
   void     update_acc_dist();
 
  private:
-  uint64_t get_page_num(uint64_t addr);
   void show_state(uint64_t curr_time);
 
   void pre_processing(uint64_t curr_time);
@@ -196,11 +195,13 @@ class MemoryController : public Component {
   uint32_t num_hthreads;
   int32_t * num_req_from_a_th;
 
-  inline uint32_t get_rank_num(uint64_t addr) { return ((addr >> rank_interleave_base_bit) ^ (addr >> interleave_xor_base_bit)) % num_ranks_per_mc; }
-  inline uint32_t get_bank_num(uint64_t addr) {
-    uint32_t bank_num = ((addr >> bank_interleave_base_bit) ^ (addr >> interleave_xor_base_bit)) % num_banks_per_rank;
-    return bank_num;
+  inline uint32_t get_rank_num(uint64_t addr) { 
+    return ((addr >> rank_interleave_base_bit) ^ (addr >> interleave_xor_base_bit)) % num_ranks_per_mc;
   }
+  inline uint32_t get_bank_num(uint64_t addr) { 
+    return ((addr >> bank_interleave_base_bit) ^ (addr >> interleave_xor_base_bit)) % num_banks_per_rank;
+  }
+  uint64_t get_page_num(uint64_t addr);
 
  protected:
   FRIEND_TEST(MCSchedTest, CheckBuild);

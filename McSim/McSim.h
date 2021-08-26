@@ -44,8 +44,8 @@
 #include "PTS.h"
 #include "PTSComponent.h"
 
-static const ADDRINT search_addr   = 0x800e7fffde77a040;
-static const uint32_t max_hthreads = 1024;
+static const ADDRINT search_addr = 0x800e7fffde77a040;
+static const UINT32 max_hthreads = 1024;
 
 namespace PinPthread {
 class O3Core;
@@ -95,41 +95,45 @@ class McSim {
   explicit McSim(PthreadTimingSimulator * pts_);
   ~McSim();
 
-  std::pair<uint32_t, uint64_t> resume_simulation(bool must_switch);
+  std::pair<UINT32, UINT64> resume_simulation(bool must_switch);
   // return value -- whether we have to resume simulation
-  uint32_t add_instruction(
-      uint32_t hthreadid_,
-      uint64_t curr_time_,
-      uint64_t waddr,
-      UINT32   wlen,
-      uint64_t raddr,
-      uint64_t raddr2,
-      UINT32   rlen,
-      uint64_t ip,
-      uint32_t category,
-      bool     isbranch,
-      bool     isbranchtaken,
-      bool     islock,
-      bool     isunlock,
-      bool     isbarrier,
-      uint32_t rr0, uint32_t rr1, uint32_t rr2, uint32_t rr3,
-      uint32_t rw0, uint32_t rw1, uint32_t rw2, uint32_t rw3);
-  void link_thread(int32_t pth_id, bool * active_, int32_t * spinning_,
-      ADDRINT * stack_, ADDRINT * stacksize_);
-  void set_stack_n_size(int32_t pth_id, ADDRINT stack, ADDRINT stacksize);
-  void set_active(int32_t pth_id, bool is_active);
+  
+  UINT32 add_instruction(
+    UINT32 hthreadid_,
+    UINT64 curr_time_,
+    UINT64 waddr,
+    UINT32 wlen,
+    UINT64 raddr,
+    UINT64 raddr2,
+    UINT32 rlen,
+    UINT64 ip,
+    UINT32 category,
+    bool   isbranch,
+    bool   isbranchtaken,
+    bool   islock,
+    bool   isunlock,
+    bool   isbarrier,
+    UINT32 rr0, UINT32 rr1, UINT32 rr2, UINT32 rr3,
+    UINT32 rw0, UINT32 rw1, UINT32 rw2, UINT32 rw3);
 
-  PthreadTimingSimulator   * pts;
-  bool     skip_all_instrs;
-  bool     simulate_only_data_caches;
-  bool     show_l2_stat_per_interval;
-  bool     is_race_free_application;
-  uint32_t max_acc_queue_size;
-  uint32_t num_hthreads;
-  uint64_t print_interval;
+  void link_thread(INT32 pth_id, bool * active_, INT32 * spinning_,
+    ADDRINT * stack_, ADDRINT * stacksize_);
+
+  void set_stack_n_size(INT32 pth_id, ADDRINT stack, ADDRINT stacksize);
+  void set_active(INT32 pth_id, bool is_active);
+
+  PthreadTimingSimulator * pts;
+  bool   skip_all_instrs;
+  bool   simulate_only_data_caches;
+  bool   show_l2_stat_per_interval;
+  bool   is_race_free_application;
+  UINT32 max_acc_queue_size;
+  UINT32 num_hthreads;
+  UINT64 print_interval;
+
+  std::vector<bool>               is_migrate_ready;  // for thread migration
 
   std::vector<O3Core *>           o3cores;
-  std::vector<bool>               is_migrate_ready;  // TODO(gajh): what is this?
   std::vector<CacheL1 *>          l1ds;
   std::vector<CacheL1 *>          l1is;
   std::vector<CacheL2 *>          l2s;
@@ -141,32 +145,32 @@ class McSim {
   std::vector<TLBL1 *>            tlbl1is;
   std::list<Component *>          comps;
 
-  uint32_t get_num_hthreads() const { return num_hthreads; }
-  uint64_t get_curr_time() const    { return global_q->curr_time; }
-  void     show_state(uint64_t);
-  void     show_l2_cache_summary();
+  UINT32 get_num_hthreads() const { return num_hthreads; }
+  UINT64 get_curr_time()    const { return global_q->curr_time; }
+  void   show_state(UINT64);
+  void   show_l2_cache_summary();
 
-  std::map<uint64_t, uint64_t>   os_page_req_dist;
-  void update_os_page_req_dist(uint64_t addr);
-  uint64_t num_fetched_instrs;
+  std::map<UINT64, UINT64>  os_page_req_dist;
+  void update_os_page_req_dist(UINT64 addr);
+  UINT64 num_fetched_instrs;
 
   // some stat info
  private:
-  uint64_t num_instrs_printed_last_time;
+  UINT64 num_instrs_printed_last_time;
 
-  uint64_t num_destroyed_cache_lines_last_time;
-  uint64_t cache_line_life_time_last_time;
-  uint64_t time_between_last_access_and_cache_destroy_last_time;
+  UINT64 num_destroyed_cache_lines_last_time;
+  UINT64 cache_line_life_time_last_time;
+  UINT64 time_between_last_access_and_cache_destroy_last_time;
 
-  uint64_t lsu_process_interval;
-  uint64_t curr_time_last;
-  uint64_t num_fetched_instrs_last;
-  uint64_t num_mem_acc_last;
-  uint64_t num_used_pages_last;
-  uint64_t num_l1_acc_last;
-  uint64_t num_l1_miss_last;
-  uint64_t num_l2_acc_last;
-  uint64_t num_l2_miss_last;
+  UINT64 lsu_process_interval;
+  UINT64 curr_time_last;
+  UINT64 num_fetched_instrs_last;
+  UINT64 num_mem_acc_last;
+  UINT64 num_used_pages_last;
+  UINT64 num_l1_acc_last;
+  UINT64 num_l1_miss_last;
+  UINT64 num_l2_acc_last;
+  UINT64 num_l2_miss_last;
 };
 
 }  // namespace PinPthread

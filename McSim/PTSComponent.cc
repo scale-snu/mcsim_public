@@ -42,9 +42,7 @@ extern std::ostream & operator << (std::ostream & output, component_type ct);
 extern std::ostream & operator << (std::ostream & output, event_type et);
 
 
-void LocalQueueElement::display() {
-  LOG(WARNING) << *this;
-}
+void LocalQueueElement::display() { LOG(WARNING) << *this; }
 
 
 std::ostream & operator<<(std::ostream & out, LocalQueueElement & l) {
@@ -74,9 +72,7 @@ Component::Component(
 }
 
 
-void Component::display() {
-  std::cout << *this;
-}
+void Component::display() { std::cout << *this; }
 
 
 std::ostream & Component::print(std::ostream & out) const {
@@ -276,9 +272,7 @@ uint32_t GlobalEventQueue::process_event_isolateTEST(component_type target) {
 }
 
 
-void GlobalEventQueue::display() {
-  LOG(WARNING) << *this;
-}
+void GlobalEventQueue::display() { LOG(WARNING) << *this; }
 
 
 std::ostream & operator<<(std::ostream & out, GlobalEventQueue & g) {

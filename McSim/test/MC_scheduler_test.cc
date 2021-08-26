@@ -11,7 +11,7 @@ extern std::ostream & operator << (std::ostream & output, mc_scheduling_policy p
 extern std::ostream & operator << (std::ostream & output, mc_bank_action action);
 
 // static variable of MCSchedTest
-PinPthread::PthreadTimingSimulator* MCSchedTest::test_pts;
+std::shared_ptr<PinPthread::PthreadTimingSimulator> MCSchedTest::test_pts;
 PinPthread::MemoryController* MCSchedTest::test_mc;
 std::vector<uint64_t> MCSchedTest::row_A_addresses;
 std::vector<uint64_t> MCSchedTest::row_B_addresses;

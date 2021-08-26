@@ -16,16 +16,15 @@ DECLARE_string(mdfile); // defined in /test/main.cc
 namespace PinPthread {
 
 class MCSchedTest : public ::testing::Test {
-
   protected:
-    static PthreadTimingSimulator* test_pts;
+    static std::shared_ptr<PinPthread::PthreadTimingSimulator> test_pts;
     static MemoryController* test_mc;
     static std::vector<uint64_t> row_A_addresses;
     static std::vector<uint64_t> row_B_addresses;
 
     static void SetUpTestSuite() {
       // Called once per TEST Suite
-      test_pts = new PthreadTimingSimulator(FLAGS_mdfile);
+      test_pts = std::make_shared<PinPthread::PthreadTimingSimulator>(FLAGS_mdfile);
       test_mc = test_pts->mcsim->mcs[0];
 
       AddressGen* addrgen = new AddressGen(test_pts);
@@ -41,10 +40,6 @@ class MCSchedTest : public ::testing::Test {
       delete addrgen;
     }
 
-    static void TearDownTestSuite() {
-      delete test_pts;
-    }
-    
     void clear_geq() { test_mc->geq->event_queue.clear(); }
     LocalQueueElement * create_read_event(uint64_t _address);
 };

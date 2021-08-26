@@ -54,14 +54,17 @@ typedef int16_t INT16;
 typedef int32_t INT32;
 typedef int64_t INT64;
 
-#if defined(TARGET_IA32)
-typedef UINT32 ADDRINT;
-typedef INT32 ADDRDELTA;
-#elif defined(TARGET_IPF) || defined(TARGET_IA32E)
-typedef UINT64 ADDRINT;
-typedef INT64 ADDRDELTA;
+#if defined(TARGET_IA32)  // Intel(R) 32 architectures
+  typedef UINT32 ADDRINT;
+  typedef INT32 ADDRDELTA;
+#elif defined(TARGET_IA32E)  // Intel(R) 64 architectures
+  typedef UINT64 ADDRINT;
+  typedef INT64 ADDRDELTA;
+#elif defined(TARGET_IPF)
+  typedef UINT64 ADDRINT;
+  typedef INT64 ADDRDELTA;
 #else
-#error "xxx"
+  #error "xxx"
 #endif
 
 #include <assert.h>
@@ -86,46 +89,45 @@ class PthreadTimingSimulator {
   explicit PthreadTimingSimulator(int port_num) { }
   ~PthreadTimingSimulator();
 
-  std::pair<uint32_t, uint64_t> resume_simulation(bool must_switch);
+  std::vector<std::string> trace_files;
+  McSim * mcsim;
+
+  std::pair<UINT32, UINT64> resume_simulation(bool must_switch);
   // return value -- whether we have to resume simulation
   bool add_instruction(
-      uint32_t hthreadid_,
-      uint64_t curr_time_,
-      uint64_t waddr,
-      UINT32   wlen,
-      uint64_t raddr,
-      uint64_t raddr2,
-      UINT32   rlen,
-      uint64_t ip,
-      uint32_t category,
-      bool     isbranch,
-      bool     isbranchtaken,
-      bool     islock,
-      bool     isunlock,
-      bool     isbarrier,
-      uint32_t rr0, uint32_t rr1, uint32_t rr2, uint32_t rr3,
-      uint32_t rw0, uint32_t rw1, uint32_t rw2, uint32_t rw3);
-  void set_stack_n_size(int32_t pth_id, ADDRINT stack, ADDRINT stacksize);
-  void set_active(int32_t pth_id, bool is_active);
+      UINT32 hthreadid_,
+      UINT64 curr_time_,
+      UINT64 waddr,
+      UINT32 wlen,
+      UINT64 raddr,
+      UINT64 raddr2,
+      UINT32 rlen,
+      UINT64 ip,
+      UINT32 category,
+      bool   isbranch,
+      bool   isbranchtaken,
+      bool   islock,
+      bool   isunlock,
+      bool   isbarrier,
+      UINT32 rr0, UINT32 rr1, UINT32 rr2, UINT32 rr3,
+      UINT32 rw0, UINT32 rw1, UINT32 rw2, UINT32 rw3);
 
-  uint32_t get_num_hthreads() const;
-  uint64_t get_param_uint64(const std::string & idx_, uint64_t def_value) const;
-  bool     get_param_bool(const std::string & idx_, bool def_value) const;
-  std::string   get_param_str(const std::string & idx_) const;
-  uint64_t get_curr_time() const;
+  UINT64 get_param_uint64(const std::string & idx_, UINT64 def_value) const;
+  bool   get_param_bool(const std::string & idx_, bool def_value) const;
+  std::string get_param_str(const std::string & idx_) const;
+  
+  void set_stack_n_size(INT32 pth_id, ADDRINT stack, ADDRINT stacksize);
+  void set_active(INT32 pth_id, bool is_active);
+
+  UINT32 get_num_hthreads() const;
+  UINT64 get_curr_time() const;
 
  private:
-  // std::map<string, string> params;
   std::map<std::string, bool> params_bool;
-  std::map<std::string, uint64_t> params_uint64_t;
+  std::map<std::string, UINT64> params_uint64_t;
   std::map<std::string, std::string> params_string;
 
   void md_table_decoding(const toml::table & table, const std::string & prefix);
-
- public:
-  std::vector<std::string>      trace_files;
-
-  McSim * mcsim;
 };
 }  // namespace PinPthread
 

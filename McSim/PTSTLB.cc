@@ -45,9 +45,9 @@ TLBL1::TLBL1(
   l1_to_lsu_t(get_param_uint64("to_lsu_t", 0)),
   page_sz_log2(get_param_uint64("page_sz_log2", 13)),  // 8192 bytes
   miss_penalty(get_param_uint64("miss_penalty", 100)),
+  speedup(get_param_uint64("speedup", 1)),
   num_access(0), num_miss(0) {
   process_interval = get_param_uint64("process_interval", 10);
-  speedup          = get_param_uint64("speedup", 1);
 }
 
 

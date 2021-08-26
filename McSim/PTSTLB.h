@@ -37,6 +37,7 @@
 #include <queue>
 #include <stack>
 #include <vector>
+#include <gtest/gtest_prod.h>
 
 namespace PinPthread {
 
@@ -44,23 +45,29 @@ class TLBL1 : public Component {
  public:
   explicit TLBL1(component_type type_, uint32_t num_, McSim * mcsim_);
   ~TLBL1();
-
-  // currently it is assumed that L1 TLBs are fully-associative
+  void add_req_event(uint64_t, LocalQueueElement *, Component * from = NULL);
+  uint32_t process_event(uint64_t curr_time);
   std::vector<Component *> lsus;         // uplink
-  std::map<uint64_t, uint64_t> entries;  // <page_num, time>
-  std::map<uint64_t, std::map<uint64_t, uint64_t>::iterator> LRU;
 
   const uint32_t num_entries;
   const uint32_t l1_to_lsu_t;
   const uint32_t page_sz_log2;
   const uint32_t miss_penalty;
+  const uint32_t speedup;
 
+  uint64_t get_num_access() { return num_access; }
+  uint64_t get_num_miss()   { return num_miss; }
+  uint64_t get_size_of_LRU()   { return entries.size(); }
+  uint64_t get_size_of_entries()   { return LRU.size(); }
+  uint64_t get_LRU_time()   { return LRU.begin()->first; }
+
+ protected:
   uint64_t num_access;
   uint64_t num_miss;
-  uint32_t speedup;
 
-  void add_req_event(uint64_t, LocalQueueElement *, Component * from = NULL);
-  uint32_t process_event(uint64_t curr_time);
+  // currently it is assumed that L1 TLBs are fully-associative
+  std::map<uint64_t, uint64_t> entries;  // <page_num, time>
+  std::map<uint64_t, std::map<uint64_t, uint64_t>::iterator> LRU;
 };
 
 }  // namespace PinPthread

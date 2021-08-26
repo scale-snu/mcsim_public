@@ -1,5 +1,5 @@
 cd ./build
-make -j
+make -j 4
 cd ..
 
-setarch x86_64 -R ./build/test/mcsim-unittest -mdfile ../Apps/md/test-md.toml -runfile ../Apps/list/test-applist.toml
+setarch x86_64 -R ./build/test/mcsim-unittest -mdfile ../Apps/md/test-md.toml

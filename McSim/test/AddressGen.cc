@@ -4,15 +4,15 @@
 
 namespace PinPthread {
 
-AddressGen::AddressGen(PthreadTimingSimulator * pts) {
-  num_ranks_per_mc         = pts->get_param_uint64("num_ranks_per_mc", 1);
-  num_banks_per_rank       = pts->get_param_uint64("num_banks_per_rank", 8);
-  rank_interleave_base_bit = pts->get_param_uint64("rank_interleave_base_bit", 14);
-  bank_interleave_base_bit = pts->get_param_uint64("bank_interleave_base_bit", 14);
-  mc_interleave_base_bit   = pts->get_param_uint64("interleave_base_bit", 12);
-  num_mcs                  = pts->get_param_uint64("num_mcs", 2);
-  page_sz_base_bit         = pts->get_param_uint64("page_sz_base_bit", 12);
-  interleave_xor_base_bit  = pts->get_param_uint64("interleave_xor_base_bit", 20);
+AddressGen::AddressGen(std::shared_ptr<PthreadTimingSimulator> pts) {
+  num_ranks_per_mc         = pts->get_param_uint64("pts.mc.num_ranks_per_mc", 1);
+  num_banks_per_rank       = pts->get_param_uint64("pts.mc.num_banks_per_rank", 8);
+  rank_interleave_base_bit = pts->get_param_uint64("pts.mc.rank_interleave_base_bit", 14);
+  bank_interleave_base_bit = pts->get_param_uint64("pts.mc.bank_interleave_base_bit", 14);
+  mc_interleave_base_bit   = pts->get_param_uint64("pts.mc.interleave_base_bit", 12);
+  num_mcs                  = pts->get_param_uint64("pts.num_mcs", 2);
+  page_sz_base_bit         = pts->get_param_uint64("pts.mc.page_sz_base_bit", 12);
+  interleave_xor_base_bit  = pts->get_param_uint64("pts.mc.interleave_xor_base_bit", 18);
 }
 
 // Only support num_ranks_per_mc = 0 currently
