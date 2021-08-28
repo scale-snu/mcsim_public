@@ -14,6 +14,8 @@
 
 #include <vector>
 
+DECLARE_string(mdfile); // defined in /test/main.cc
+
 namespace PinPthread {
 
 class O3CoreTest : public ::testing::Test {
@@ -28,6 +30,16 @@ class O3CoreTest : public ::testing::Test {
     static const uint64_t TEST_ADDR_D = 0x7FFFFFFFE6D8;
     static std::vector<LocalQueueElement *> request_events;
     static std::vector<LocalQueueElement *> reply_events;
+
+    static void SetUpTestSuite() {
+      test_pts = std::make_unique<PthreadTimingSimulator>(FLAGS_mdfile);
+
+      test_o3core = test_pts->mcsim->o3cores[0];
+      test_tlbl1i = test_pts->mcsim->tlbl1is[0];
+      test_tlbl1d = test_pts->mcsim->tlbl1ds[0];
+      test_cachel1i = test_pts->mcsim->l1is[0];
+      test_cachel1d = test_pts->mcsim->l1ds[0];
+    }
 
     virtual void TearDown() override {
       clear_geq();

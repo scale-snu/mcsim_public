@@ -1,18 +1,15 @@
 #include "O3Core_test.h"
 #include "gtest/gtest.h"
 
-DECLARE_string(mdfile); // defined in /test/main.cc
-
 namespace PinPthread {
 
 // static variable of O3CoreTest
-std::unique_ptr<PinPthread::PthreadTimingSimulator> O3CoreTest::test_pts = std::make_unique<PinPthread::PthreadTimingSimulator>("../Apps/md/test-md.toml");
-O3Core* O3CoreTest::test_o3core = test_pts->mcsim->o3cores[0];
-TLBL1* O3CoreTest::test_tlbl1i = test_pts->mcsim->tlbl1is[0];
-TLBL1* O3CoreTest::test_tlbl1d = test_pts->mcsim->tlbl1ds[0];
-CacheL1* O3CoreTest::test_cachel1i = test_pts->mcsim->l1is[0];
-CacheL1* O3CoreTest::test_cachel1d = test_pts->mcsim->l1ds[0];
-
+std::unique_ptr<PthreadTimingSimulator> O3CoreTest::test_pts;
+TLBL1* O3CoreTest::test_tlbl1i;
+TLBL1* O3CoreTest::test_tlbl1d;
+O3Core* O3CoreTest::test_o3core;
+CacheL1* O3CoreTest::test_cachel1i;
+CacheL1* O3CoreTest::test_cachel1d;
 std::vector<LocalQueueElement *> O3CoreTest::request_events;
 std::vector<LocalQueueElement *> O3CoreTest::reply_events;
 

@@ -4,7 +4,7 @@
 namespace PinPthread {
 
 // static variable of TLBTest
-std::unique_ptr<PinPthread::PthreadTimingSimulator> TLBTest::test_pts;
+std::unique_ptr<PthreadTimingSimulator> TLBTest::test_pts;
 TLBL1* TLBTest::test_tlbl1i;
 TLBL1* TLBTest::test_tlbl1d;
 O3Core* TLBTest::test_o3core;
@@ -21,12 +21,12 @@ TEST_F(TLBTest, CheckBuild) {
 /* 2. START of TLB Testing */
 TEST_F(TLBTest, IsEmptyInitially) {
   EXPECT_TRUE(test_tlbl1i->req_event.empty());
-  EXPECT_EQ(0, test_tlbl1i->get_size_of_LRU());
-  EXPECT_EQ(0, test_tlbl1i->get_size_of_entries());
+  EXPECT_EQ((uint)0, test_tlbl1i->get_size_of_LRU());
+  EXPECT_EQ((uint)0, test_tlbl1i->get_size_of_entries());
 
   EXPECT_TRUE(test_tlbl1d->req_event.empty());
-  EXPECT_EQ(0, test_tlbl1d->get_size_of_LRU());
-  EXPECT_EQ(0, test_tlbl1d->get_size_of_entries());
+  EXPECT_EQ((uint)0, test_tlbl1d->get_size_of_LRU());
+  EXPECT_EQ((uint)0, test_tlbl1d->get_size_of_entries());
 
   clear_geq();
   EXPECT_TRUE(test_tlbl1i->geq->event_queue.empty());

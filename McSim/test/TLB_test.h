@@ -19,7 +19,7 @@ namespace PinPthread {
 
 class TLBTest : public ::testing::Test {
   protected:
-    static std::unique_ptr<PinPthread::PthreadTimingSimulator> test_pts;
+    static std::unique_ptr<PthreadTimingSimulator> test_pts;
     static O3Core* test_o3core;
     static TLBL1* test_tlbl1i;
     static TLBL1* test_tlbl1d;
@@ -28,7 +28,7 @@ class TLBTest : public ::testing::Test {
     static const uint64_t TEST_ADDR_D = 0x7FFFFFFFE6D8; // data
 
     static void SetUpTestSuite() {
-      test_pts = std::make_unique<PinPthread::PthreadTimingSimulator>(FLAGS_mdfile);
+      test_pts = std::make_unique<PthreadTimingSimulator>(FLAGS_mdfile);
 
       test_o3core = test_pts->mcsim->o3cores[0];
       test_tlbl1i = test_pts->mcsim->tlbl1is[0];
