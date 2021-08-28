@@ -5,9 +5,9 @@ namespace PinPthread {
 
 // static variable of O3CoreTest
 std::unique_ptr<PthreadTimingSimulator> O3CoreTest::test_pts;
-TLBL1* O3CoreTest::test_tlbl1i;
-TLBL1* O3CoreTest::test_tlbl1d;
-O3Core* O3CoreTest::test_o3core;
+TLBL1ForTest* O3CoreTest::test_tlbl1i;
+TLBL1ForTest* O3CoreTest::test_tlbl1d;
+O3CoreForTest* O3CoreTest::test_o3core;
 CacheL1* O3CoreTest::test_cachel1i;
 CacheL1* O3CoreTest::test_cachel1d;
 std::vector<LocalQueueElement *> O3CoreTest::request_events;
@@ -23,15 +23,15 @@ TEST_F(O3CoreTest, CheckBuild) {
   EXPECT_NE(nullptr, test_cachel1d) << "wrong McSim L1DCache build";
 
   EXPECT_NE(nullptr, test_o3core->bp);
-  EXPECT_NE(nullptr, test_o3core->o3queue);
-  EXPECT_NE(nullptr, test_o3core->o3rob);
+  EXPECT_NE(nullptr, test_o3core->get_o3queue());
+  EXPECT_NE(nullptr, test_o3core->get_o3rob());
 
-  EXPECT_LT((uint32_t)4, test_o3core->o3rob_max_size) << "as of now, it is assumed that o3rob_max_size >= 4";
+  EXPECT_LT((uint32_t)4, test_o3core->get_o3rob_max_size()) << "as of now, it is assumed that o3rob_max_size >= 4";
 }
 
 /* 2. START of O3Core Testing */
 TEST_F(O3CoreTest, Fetch) {
-  O3Queue* test_o3queue = test_o3core->o3queue;
+  O3Queue* test_o3queue = test_o3core->get_o3queue();
 
   // case 1 - Just one instruction exists in o3queue
   // When the process_event of O3Core is called, 
@@ -42,8 +42,8 @@ TEST_F(O3CoreTest, Fetch) {
   // and an event is placed on req_event of iTLB.
   test_o3queue[0].state = o3iqs_not_in_queue;
   test_o3queue[0].ip = TEST_ADDR_I;
-  test_o3core->o3queue_head = 0;
-  test_o3core->o3queue_size = 1;
+  test_o3core->set_o3queue_size(1);
+  test_o3core->set_o3queue_head(0);
 
   test_o3core->geq->add_event(10, test_o3core);
   test_o3core->geq->process_event_isolateTEST(ct_o3core);
@@ -63,8 +63,8 @@ TEST_F(O3CoreTest, Fetch) {
   test_o3queue[1].ip = TEST_ADDR_I + (1 << test_cachel1i->set_lsb)*1;
   test_o3queue[2].ip = TEST_ADDR_I + (1 << test_cachel1i->set_lsb)*2;
   test_o3queue[3].ip = TEST_ADDR_I;
-  test_o3core->o3queue_head = 0;
-  test_o3core->o3queue_size = 4;
+  test_o3core->set_o3queue_size(4);
+  test_o3core->set_o3queue_head(0);
   
   test_o3core->geq->add_event(10, test_o3core);
   test_o3core->geq->process_event_isolateTEST(ct_o3core);
@@ -76,8 +76,8 @@ TEST_F(O3CoreTest, Fetch) {
 }
 
 TEST_F(O3CoreTest, Dispatch) {
-  O3Queue* test_o3queue = test_o3core->o3queue;
-  O3ROB* test_o3rob = test_o3core->o3rob;
+  O3Queue* test_o3queue = test_o3core->get_o3queue();
+  O3ROB* test_o3rob = test_o3core->get_o3rob();
   
   // case 1 - The o3queue has only one instruction in the state of o3iqs_ready
   // The instruction is not a branch instruction and doesn’t have any branch & memory dependency.
@@ -93,8 +93,8 @@ TEST_F(O3CoreTest, Dispatch) {
   test_o3queue[0].raddr2 = 0;
   test_o3queue[0].waddr = 0;
 
-  test_o3core->o3queue_size = 1;
-  test_o3core->o3queue_head = 0;
+  test_o3core->set_o3queue_size(1);
+  test_o3core->set_o3queue_head(0);
 
   test_o3rob[0].branch_miss = false;
   test_o3rob[0].state = o3irs_executing;
@@ -104,8 +104,8 @@ TEST_F(O3CoreTest, Dispatch) {
   test_o3rob[0].rw2 = -1;
   test_o3rob[0].rw3 = -1;
 
-  test_o3core->o3rob_head = 0;
-  test_o3core->o3rob_size = 1;
+  test_o3core->set_o3rob_head(0);
+  test_o3core->set_o3rob_size(1);
 
   test_o3core->geq->add_event(10, test_o3core);
   test_o3core->geq->process_event_isolateTEST(ct_o3core);
@@ -116,9 +116,9 @@ TEST_F(O3CoreTest, Dispatch) {
   EXPECT_EQ((int32_t)-1, test_o3rob[1].rr2);
   EXPECT_EQ((int32_t)-1, test_o3rob[1].rr3);
 
-  EXPECT_EQ((uint32_t)0, test_o3core->o3queue_size);  // 1 - 1 --> 0
-  EXPECT_EQ((uint32_t)1, test_o3core->o3queue_head);  // 0 + 1 --> 1
-  EXPECT_EQ((uint32_t)2, test_o3core->o3rob_size);    // 1 + 1 --> 2
+  EXPECT_EQ((uint32_t)0, test_o3core->get_o3queue_size());  // 1 - 1 --> 0
+  EXPECT_EQ((uint32_t)1, test_o3core->get_o3queue_head());  // 0 + 1 --> 1
+  EXPECT_EQ((uint32_t)2, test_o3core->get_o3rob_size());    // 1 + 1 --> 2
 
   clear_geq();
 
@@ -134,19 +134,19 @@ TEST_F(O3CoreTest, Dispatch) {
   test_o3queue[1].raddr = TEST_ADDR_D;
   test_o3queue[1].raddr2 = TEST_ADDR_D + (1 << test_cachel1d->set_lsb)*1;
   test_o3queue[1].waddr = TEST_ADDR_D + (1 << test_cachel1d->set_lsb)*2;
-  test_o3core->o3queue_size = 1;
-  test_o3core->o3queue_head = 1;
+  test_o3core->set_o3queue_size(1);
+  test_o3core->set_o3queue_head(1);
 
   test_o3core->geq->add_event(10, test_o3core);
   test_o3core->geq->process_event_isolateTEST(ct_o3core);
 
-  EXPECT_EQ((uint32_t)0, test_o3core->o3queue_size);   // 1 - 1 --> 0
-  EXPECT_EQ((uint32_t)2, test_o3core->o3queue_head);   // 1 + 1 --> 2
-  EXPECT_EQ((uint32_t)5, test_o3core->o3rob_size);     // 2 + 3 --> 5
+  EXPECT_EQ((uint32_t)0, test_o3core->get_o3queue_size());   // 1 - 1 --> 0
+  EXPECT_EQ((uint32_t)2, test_o3core->get_o3queue_head());   // 1 + 1 --> 2
+  EXPECT_EQ((uint32_t)5, test_o3core->get_o3rob_size());     // 2 + 3 --> 5
 }
 
 TEST_F(O3CoreTest, Execute) {
-  O3ROB* test_o3rob = test_o3core->o3rob;
+  O3ROB* test_o3rob = test_o3core->get_o3rob();
 
 // case 1 - 6 non-memory operation
   for (int i = 0; i < 6; i++) {
@@ -165,8 +165,8 @@ TEST_F(O3CoreTest, Execute) {
   }
   test_o3rob[3].type = no_mem;
   test_o3rob[3].branch_miss = true;            // This will get branch_miss penalty
-  test_o3core->o3rob_head = 0;
-  test_o3core->o3rob_size = 6;
+  test_o3core->set_o3rob_head(0);
+  test_o3core->set_o3rob_size(6);
 
   uint64_t curr_time = 0;
   uint64_t process_interval = test_o3core->process_interval;
@@ -182,10 +182,10 @@ TEST_F(O3CoreTest, Execute) {
   EXPECT_EQ(o3irs_issued, test_o3rob[4].state);
   EXPECT_EQ(o3irs_issued, test_o3rob[5].state);
 
-  EXPECT_EQ((uint64_t)curr_time + test_o3core->sse_t, test_o3rob[0].ready_time);
-  EXPECT_EQ((uint64_t)curr_time + test_o3core->sse_t, test_o3rob[1].ready_time);
-  EXPECT_EQ((uint64_t)curr_time + test_o3core->sse_t, test_o3rob[2].ready_time);
-  EXPECT_EQ((uint64_t)curr_time + test_o3core->branch_miss_penalty + test_o3core->process_interval, \
+  EXPECT_EQ((uint64_t)curr_time + test_o3core->get_sse_t(), test_o3rob[0].ready_time);
+  EXPECT_EQ((uint64_t)curr_time + test_o3core->get_sse_t(), test_o3rob[1].ready_time);
+  EXPECT_EQ((uint64_t)curr_time + test_o3core->get_sse_t(), test_o3rob[2].ready_time);
+  EXPECT_EQ((uint64_t)curr_time + test_o3core->get_branch_miss_penalty() + test_o3core->process_interval, \
             test_o3rob[3].ready_time);              // branch miss penalty
   
   curr_time += process_interval;
@@ -209,8 +209,8 @@ TEST_F(O3CoreTest, Execute) {
     test_o3rob[i].branch_dep = -1;
     test_o3rob[i].branch_miss = false;
   }
-  test_o3core->o3rob_head = 0;
-  test_o3core->o3rob_size = 6;
+  test_o3core->set_o3rob_head(0);
+  test_o3core->set_o3rob_size(6);
 
   curr_time = process_interval;
   test_o3core->process_event(curr_time);
@@ -224,7 +224,7 @@ TEST_F(O3CoreTest, Execute) {
 }
 
 TEST_F(O3CoreTest, Commit) {
-  O3ROB* test_o3rob = test_o3core->o3rob;
+  O3ROB* test_o3rob = test_o3core->get_o3rob();
 
   // state: completed 6, executing 1
   test_o3rob[0].state = o3irs_completed;
@@ -244,8 +244,8 @@ TEST_F(O3CoreTest, Commit) {
   test_o3rob[5].ready_time = 0;
   test_o3rob[6].ready_time = 40;
 
-  test_o3core->o3rob_size = 7;
-  test_o3core->o3rob_head = 0;
+  test_o3core->set_o3rob_size(7);
+  test_o3core->set_o3rob_head(0);
 
   // CHECK in-order commit
   test_o3core->geq->add_event(10, test_o3core);
@@ -257,8 +257,8 @@ TEST_F(O3CoreTest, Commit) {
   EXPECT_EQ(o3irs_completed, test_o3rob[3].state);  // Wait for the previous command to commit
   EXPECT_EQ(o3irs_completed, test_o3rob[4].state);
 
-  EXPECT_EQ((uint32_t)5, test_o3core->o3rob_size);
-  EXPECT_EQ((uint32_t)2, test_o3core->o3rob_head);  // only 2 instructions are committed
+  EXPECT_EQ((uint32_t)5, test_o3core->get_o3rob_size());
+  EXPECT_EQ((uint32_t)2, test_o3core->get_o3rob_head());  // only 2 instructions are committed
 
   // CHECK time constraints
   test_o3rob[2].state = o3irs_completed;
@@ -271,16 +271,16 @@ TEST_F(O3CoreTest, Commit) {
   EXPECT_EQ(o3irs_invalid, test_o3rob[5].state);    // commit
   EXPECT_EQ(o3irs_completed, test_o3rob[6].state);  // Not ready yet
 
-  EXPECT_EQ((uint32_t)1, test_o3core->o3rob_size);
-  EXPECT_EQ((uint32_t)6, test_o3core->o3rob_head);  // 6 instructions are committed and one instruction left
+  EXPECT_EQ((uint32_t)1, test_o3core->get_o3rob_size());
+  EXPECT_EQ((uint32_t)6, test_o3core->get_o3rob_head());  // 6 instructions are committed and one instruction left
 
   // CHECK all instructions completed well
   test_o3core->geq->add_event(50, test_o3core);
   test_o3core->geq->process_event_isolateTEST(ct_o3core);
 
   EXPECT_EQ(o3irs_invalid, test_o3rob[6].state);
-  EXPECT_EQ((uint32_t)0, test_o3core->o3rob_size);
-  EXPECT_EQ((uint32_t)7, test_o3core->o3rob_head);  // all instructions are committed
+  EXPECT_EQ((uint32_t)0, test_o3core->get_o3rob_size());
+  EXPECT_EQ((uint32_t)7, test_o3core->get_o3rob_head());  // all instructions are committed
 }
 
 // reply event from ITLB, L1I cache
@@ -297,19 +297,19 @@ TEST_F(O3CoreTest, ReqEvent) {
 
   // case 2 - read fail from L1I cache (nack)
   request_events.push_back(new LocalQueueElement(test_cachel1i, et_nack, TEST_ADDR_I, 0));
-  EXPECT_EQ((uint64_t)0, test_o3core->num_consecutive_nacks);
-  EXPECT_EQ((uint64_t)0, test_o3core->num_nacks);
+  EXPECT_EQ((uint64_t)0, test_o3core->get_num_consecutive_nacks());
+  EXPECT_EQ((uint64_t)0, test_o3core->get_num_nacks());
 
   test_o3core->add_req_event(10, request_events[1], test_cachel1i);
 
-  EXPECT_EQ((uint64_t)1, test_o3core->num_consecutive_nacks);
-  EXPECT_EQ((uint64_t)1, test_o3core->num_nacks);
+  EXPECT_EQ((uint64_t)1, test_o3core->get_num_consecutive_nacks());
+  EXPECT_EQ((uint64_t)1, test_o3core->get_num_nacks());
   EXPECT_EQ(et_read, request_events[1]->type);  // event type changed from nack to cache read
   EXPECT_EQ((uint32_t)2, test_cachel1i->req_event.size());
   
   // case 3 - successfully read from L1I cache
   request_events.push_back(new LocalQueueElement(test_cachel1i, et_read, TEST_ADDR_I, 0));
-  O3Queue* test_o3queue = test_o3core->o3queue;
+  O3Queue* test_o3queue = test_o3core->get_o3queue();
   test_o3queue[0].state = o3iqs_being_loaded;
   test_o3queue[1].state = o3iqs_not_in_queue;  // not in queue
   test_o3queue[2].state = o3iqs_being_loaded;
@@ -319,12 +319,12 @@ TEST_F(O3CoreTest, ReqEvent) {
   test_o3queue[1].ip = TEST_ADDR_I + (1 << test_cachel1i->set_lsb)*1;
   test_o3queue[2].ip = TEST_ADDR_I + (1 << test_cachel1i->set_lsb)*2;
   test_o3queue[3].ip = TEST_ADDR_I;
-  test_o3core->o3queue_size = 4;
+  test_o3core->set_o3queue_size(4);
 
   test_o3core->add_req_event(10, request_events[2], test_cachel1i);
 
-  EXPECT_EQ((uint64_t)0, test_o3core->num_consecutive_nacks);
-  EXPECT_EQ((uint64_t)1, test_o3core->num_nacks);
+  EXPECT_EQ((uint64_t)0, test_o3core->get_num_consecutive_nacks());
+  EXPECT_EQ((uint64_t)1, test_o3core->get_num_nacks());
   EXPECT_EQ(o3iqs_ready, test_o3queue[0].state);  // loaded!
   EXPECT_EQ(o3iqs_not_in_queue, test_o3queue[1].state);
   EXPECT_EQ(o3iqs_being_loaded, test_o3queue[2].state);
@@ -334,7 +334,7 @@ TEST_F(O3CoreTest, ReqEvent) {
 // reply event from DTLB, L1D cache
 TEST_F(O3CoreTest, RepEvent) {
 
-  O3ROB* test_o3rob = test_o3core->o3rob;
+  O3ROB* test_o3rob = test_o3core->get_o3rob();
 
   // case 1 - event from DTLB
   reply_events.push_back(new LocalQueueElement(test_tlbl1d, et_tlb_rd, TEST_ADDR_D, 0));
@@ -344,8 +344,8 @@ TEST_F(O3CoreTest, RepEvent) {
   test_o3rob[0].isread = true;   // read
   test_o3rob[1].isread = false;  // write
 
-  test_o3core->o3rob_size = 2;
-  test_o3core->o3rob_head = 0;
+  test_o3core->set_o3rob_size(2);
+  test_o3core->set_o3rob_head(0);
   EXPECT_TRUE(test_cachel1d->req_event.empty());
   
   test_o3core->add_rep_event(10, reply_events[0], test_tlbl1d);  // read event
@@ -360,12 +360,12 @@ TEST_F(O3CoreTest, RepEvent) {
   reply_events[2]->rob_entry = 2;
   test_o3rob[2].isread = true;   // read
   
-  test_o3core->o3rob_size = 3;
-  test_o3core->o3rob_head = 0;
+  test_o3core->set_o3rob_size(3);
+  test_o3core->set_o3rob_head(0);
 
   test_o3core->add_rep_event(10, reply_events[2], test_cachel1d);
-  EXPECT_EQ((uint64_t)1, test_o3core->num_consecutive_nacks);
-  EXPECT_EQ((uint64_t)2, test_o3core->num_nacks);  // one for above req event test and one for now
+  EXPECT_EQ((uint64_t)1, test_o3core->get_num_consecutive_nacks());
+  EXPECT_EQ((uint64_t)2, test_o3core->get_num_nacks());  // one for above req event test and one for now
   EXPECT_EQ(et_read, reply_events[2]->type);  // event type changed from nack(et_nack) to cache read(et_read)
   EXPECT_EQ((uint32_t)3, test_cachel1d->req_event.size());
 
@@ -375,20 +375,20 @@ TEST_F(O3CoreTest, RepEvent) {
   test_o3rob[3].isread = true;   // read
   test_o3rob[3].state = o3irs_executing;
   test_o3rob[3].branch_miss = false;
-  uint64_t temp_tot_mem_rd_time = test_o3core->total_mem_rd_time;
-  uint64_t temp_tot_mem_wr_time = test_o3core->total_mem_wr_time;
+  uint64_t temp_tot_mem_rd_time = test_o3core->get_total_mem_rd_time();
+  uint64_t temp_tot_mem_wr_time = test_o3core->get_total_mem_wr_time();
 
   test_o3core->add_rep_event(20, reply_events[3], test_cachel1d);
-  EXPECT_LT(temp_tot_mem_rd_time, test_o3core->total_mem_rd_time);  // updated
-  EXPECT_EQ(temp_tot_mem_wr_time, test_o3core->total_mem_wr_time);  // same
+  EXPECT_LT(temp_tot_mem_rd_time, test_o3core->get_total_mem_rd_time());  // updated
+  EXPECT_EQ(temp_tot_mem_wr_time, test_o3core->get_total_mem_wr_time());  // same
   EXPECT_EQ(o3irs_completed, test_o3rob[3].state);
-  EXPECT_EQ((uint64_t)0, test_o3core->num_consecutive_nacks);
-  EXPECT_EQ((uint64_t)2, test_o3core->num_nacks);
+  EXPECT_EQ((uint64_t)0, test_o3core->get_num_consecutive_nacks());
+  EXPECT_EQ((uint64_t)2, test_o3core->get_num_nacks());
 }
 
 TEST_F(O3CoreTest, Scenario1) {
-  O3Queue* test_o3queue = test_o3core->o3queue;
-  O3ROB* test_o3rob = test_o3core->o3rob;
+  O3Queue* test_o3queue = test_o3core->get_o3queue();
+  O3ROB* test_o3rob = test_o3core->get_o3rob();
   
   /*
   LOAD F2 (memaddr)
@@ -429,13 +429,13 @@ TEST_F(O3CoreTest, Scenario1) {
   test_o3queue[3].rw0 = 8;  test_o3queue[3].rw1 = 0;  test_o3queue[3].rw2 = 0;  test_o3queue[3].rw3 = 0;
   test_o3queue[3].raddr = 0;  test_o3queue[3].raddr2 = 0;  test_o3queue[3].waddr = 0;
 
-  test_o3core->o3queue_size = 4;
-  test_o3core->o3queue_head = 0;
+  test_o3core->set_o3queue_size(4);
+  test_o3core->set_o3queue_head(0);
 
-  EXPECT_EQ((uint32_t)4, test_o3core->o3queue_size);
-  EXPECT_EQ((uint32_t)0, test_o3core->o3queue_head);
-  EXPECT_EQ((uint32_t)0, test_o3core->o3rob_size);
-  EXPECT_EQ((uint32_t)0, test_o3core->o3rob_head);
+  EXPECT_EQ((uint32_t)4, test_o3core->get_o3queue_size());
+  EXPECT_EQ((uint32_t)0, test_o3core->get_o3queue_head());
+  EXPECT_EQ((uint32_t)0, test_o3core->get_o3rob_size());
+  EXPECT_EQ((uint32_t)0, test_o3core->get_o3rob_head());
 
   test_o3core->process_event(10);
   // three instructions are issued
@@ -444,10 +444,10 @@ TEST_F(O3CoreTest, Scenario1) {
   EXPECT_EQ(o3irs_issued, test_o3rob[2].state); 
   EXPECT_EQ(o3irs_issued, test_o3rob[3].state); 
   
-  EXPECT_EQ((uint32_t)0, test_o3core->o3queue_size);
-  EXPECT_EQ((uint32_t)4, test_o3core->o3queue_head);
-  EXPECT_EQ((uint32_t)4, test_o3core->o3rob_size);  // all instructions are issued
-  EXPECT_EQ((uint32_t)0, test_o3core->o3rob_head);
+  EXPECT_EQ((uint32_t)0, test_o3core->get_o3queue_size());
+  EXPECT_EQ((uint32_t)4, test_o3core->get_o3queue_head());
+  EXPECT_EQ((uint32_t)4, test_o3core->get_o3rob_size());  // all instructions are issued
+  EXPECT_EQ((uint32_t)0, test_o3core->get_o3rob_head());
 
   EXPECT_EQ((int32_t)0, test_o3rob[1].rr0);   // true dep.: rob[0]
   EXPECT_EQ((int32_t)-1, test_o3rob[1].rr1);  // no dep
@@ -495,8 +495,8 @@ TEST_F(O3CoreTest, Scenario1) {
   // rob[3] commited
   EXPECT_EQ(o3irs_invalid, test_o3rob[3].state);
 
-  EXPECT_EQ((uint32_t)0, test_o3core->o3rob_size);
-  EXPECT_EQ((uint32_t)4, test_o3core->o3rob_head);
+  EXPECT_EQ((uint32_t)0, test_o3core->get_o3rob_size());
+  EXPECT_EQ((uint32_t)4, test_o3core->get_o3rob_head());
 }
 
 }

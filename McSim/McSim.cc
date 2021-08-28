@@ -157,96 +157,18 @@ McSim::McSim(PthreadTimingSimulator * pts_)
   show_l2_stat_per_interval(pts_->get_param_bool("pts.show_l2_stat_per_interval", false)),
   is_race_free_application(pts_->get_param_bool("pts.is_race_free_application", true)),
   max_acc_queue_size(pts_->get_param_uint64("pts.max_acc_queue_size", 1000)),
+  num_hthreads(pts->get_param_uint64("pts.num_hthreads", max_hthreads)),
+  print_interval(pts->get_param_uint64("pts.print_interval", 1000000)),
   l1ds(), l1is(), l2s(), dirs(), mcs(), tlbl1ds(), tlbl1is(), comps(),
   num_fetched_instrs(0), num_instrs_printed_last_time(0),
   num_destroyed_cache_lines_last_time(0), cache_line_life_time_last_time(0),
-  time_between_last_access_and_cache_destroy_last_time(0) {
-  global_q      = new GlobalEventQueue(this);
-  num_hthreads  = pts->get_param_uint64("pts.num_hthreads", max_hthreads);
+  time_between_last_access_and_cache_destroy_last_time(0),
+  curr_time_last(0), num_fetched_instrs_last(0), num_mem_acc_last(0),
+  num_used_pages_last(0), num_l1_acc_last(0), num_l1_miss_last(0),
+  num_l2_acc_last(0), num_l2_miss_last(0) {
 
-  uint32_t num_threads_per_l1_cache   = pts->get_param_uint64("pts.num_hthreads_per_l1$", 4);
-  assert(num_threads_per_l1_cache == 1);
-  uint32_t num_l1_caches_per_l2_cache = pts->get_param_uint64("pts.num_l1$_per_l2$", 2);
-  uint32_t num_mcs                    = pts->get_param_uint64("pts.num_mcs", 2);
-  print_interval                      = pts->get_param_uint64("pts.print_interval", 1000000);
-  std::string   noc_type(pts->get_param_str("pts.noc_type"));
-
-  // for stats
   lsu_process_interval = pts->get_param_uint64("pts.o3core.process_interval", 10);
-  curr_time_last          = 0;
-  num_fetched_instrs_last = 0;
-  num_mem_acc_last        = 0;
-  num_used_pages_last     = 0;
-  num_l1_acc_last         = 0;
-  num_l1_miss_last        = 0;
-  num_l2_acc_last         = 0;
-  num_l2_miss_last        = 0;
-
-  if (num_mcs * num_l1_caches_per_l2_cache * num_threads_per_l1_cache > num_hthreads) {
-    LOG(FATAL) << "the # of memory controllers must not be larger than the # of L2 caches\n";
-  }
-
-  for (uint32_t i = 0; i < num_hthreads; i++) {
-    o3cores.push_back(new O3Core(ct_o3core, i, this));
-    is_migrate_ready.push_back(false);
-  }
-
-  // instantiate L1 caches
-  for (uint32_t i = 0; i < num_hthreads / num_threads_per_l1_cache; i++) {
-    l1is.push_back(new CacheL1(ct_cachel1i, i, this));
-    l1ds.push_back(new CacheL1(ct_cachel1d, i, this));
-    tlbl1ds.push_back(new TLBL1(ct_tlbl1d, i, this));
-    tlbl1is.push_back(new TLBL1(ct_tlbl1i, i, this));
-  }
-  if (num_hthreads % num_threads_per_l1_cache != 0) {
-    l1is.push_back(l1is[0]);
-    l1ds.push_back(l1ds[0]);
-    tlbl1ds.push_back(tlbl1ds[0]);
-    tlbl1is.push_back(tlbl1is[0]);
-  }
-
-  // connect o3core and l1s
-  for (uint32_t i = 0; i < num_hthreads; i++) {
-    o3cores[i]->cachel1i = (l1is[i]);
-    l1is[i]->lsus.push_back(o3cores[i]);
-    o3cores[i]->cachel1d = (l1ds[i]);
-    l1ds[i]->lsus.push_back(o3cores[i]);
-    o3cores[i]->tlbl1d   = (tlbl1ds[i]);
-    tlbl1ds[i]->lsus.push_back(o3cores[i]);
-    o3cores[i]->tlbl1i   = (tlbl1is[i]);
-    tlbl1is[i]->lsus.push_back(o3cores[i]);
-  }
-
-  // instantiate L2 caches
-  for (uint32_t i = 0; i < num_hthreads / num_threads_per_l1_cache / num_l1_caches_per_l2_cache; i++) {
-    l2s.push_back(new CacheL2(ct_cachel2, i, this));
-  }
-
-  // connect l1s and l2s
-  for (uint32_t i = 0; i < num_hthreads / num_threads_per_l1_cache; i++) {
-    l1is[i]->cachel2 = l2s[i/num_l1_caches_per_l2_cache];
-    l1ds[i]->cachel2 = l2s[i/num_l1_caches_per_l2_cache];
-    l2s[i/num_l1_caches_per_l2_cache]->cachel1i.push_back(l1is[i]);
-    l2s[i/num_l1_caches_per_l2_cache]->cachel1d.push_back(l1ds[i]);
-  }
-
-  noc = new Crossbar(ct_crossbar, 0, this, num_hthreads / num_threads_per_l1_cache / num_l1_caches_per_l2_cache);
-
-  // instantiate directories
-  // currently it is assumed that (# of MCs) == (# of L2$s) == (# of directories)
-  for (uint32_t i = 0; i < num_hthreads / num_threads_per_l1_cache / num_l1_caches_per_l2_cache; i++) {
-    mcs.push_back(new MemoryController(ct_memory_controller, i, this));
-    dirs.push_back(new Directory(ct_directory, i, this));
-    dirs[i]->memorycontroller = (mcs[i]);
-    mcs[i]->directory = (dirs[i]);
-
-    l2s[i]->directory = (dirs[i]);
-    l2s[i]->crossbar  = noc;
-    noc->directory.push_back(dirs[i]);
-    noc->cachel2.push_back(l2s[i]);
-    dirs[i]->cachel2  = (l2s[i]);
-    dirs[i]->crossbar = noc;
-  }
+  global_q             = new GlobalEventQueue(this);
 }
 
 
@@ -552,5 +474,100 @@ void McSim::update_os_page_req_dist(uint64_t addr) {
     }
   }
 }
+
+void McSim::create_comps() {
+  uint32_t num_threads_per_l1_cache   = pts->get_param_uint64("pts.num_hthreads_per_l1$", 4);
+  assert(num_threads_per_l1_cache == 1);
+  uint32_t num_l1_caches_per_l2_cache = pts->get_param_uint64("pts.num_l1$_per_l2$", 2);
+
+  for (uint32_t i = 0; i < num_hthreads; i++) {
+    o3cores.push_back(new O3Core(ct_o3core, i, this));
+    is_migrate_ready.push_back(false);
+    l1is.push_back(new CacheL1(ct_cachel1i, i, this));
+    l1ds.push_back(new CacheL1(ct_cachel1d, i, this));
+    tlbl1ds.push_back(new TLBL1(ct_tlbl1d, i, this));
+    tlbl1is.push_back(new TLBL1(ct_tlbl1i, i, this));
+  }
+  for (uint32_t i = 0; i < num_hthreads / num_l1_caches_per_l2_cache; i++) {
+    l2s.push_back(new CacheL2(ct_cachel2, i, this));
+    mcs.push_back(new MemoryController(ct_memory_controller, i, this));
+    dirs.push_back(new Directory(ct_directory, i, this));
+  }
+  noc = new Crossbar(ct_crossbar, 0, this, num_hthreads / num_l1_caches_per_l2_cache);
+  connect_comps();
+}
+
+void McSim::connect_comps() {
+  uint32_t num_l1_caches_per_l2_cache = pts->get_param_uint64("pts.num_l1$_per_l2$", 2);
+  uint32_t num_mcs                    = pts->get_param_uint64("pts.num_mcs", 2);
+  if (num_mcs * num_l1_caches_per_l2_cache > num_hthreads) {
+    LOG(FATAL) << "the # of memory controllers must not be larger than the # of L2 caches\n";
+  }
+
+  std::string   noc_type(pts->get_param_str("pts.noc_type"));
+  assert(noc_type == "xbar");
+
+  // connect o3core and l1s
+  for (uint32_t i = 0; i < num_hthreads; i++) {
+    o3cores[i]->cachel1i = (l1is[i]);
+    o3cores[i]->cachel1d = (l1ds[i]);
+    l1is[i]->lsus.push_back(o3cores[i]);
+    l1ds[i]->lsus.push_back(o3cores[i]);
+    o3cores[i]->tlbl1d   = (tlbl1ds[i]);
+    o3cores[i]->tlbl1i   = (tlbl1is[i]);
+    tlbl1ds[i]->lsus.push_back(o3cores[i]);
+    tlbl1is[i]->lsus.push_back(o3cores[i]);
+  }
+
+  // connect l1s and l2s
+  for (uint32_t i = 0; i < num_hthreads; i++) {
+    l1is[i]->cachel2 = l2s[i/num_l1_caches_per_l2_cache];
+    l1ds[i]->cachel2 = l2s[i/num_l1_caches_per_l2_cache];
+    l2s[i/num_l1_caches_per_l2_cache]->cachel1i.push_back(l1is[i]);
+    l2s[i/num_l1_caches_per_l2_cache]->cachel1d.push_back(l1ds[i]);
+  }
+
+  // instantiate directories
+  // currently it is assumed that (# of MCs) == (# of L2$s) == (# of directories)
+  for (uint32_t i = 0; i < num_hthreads / num_l1_caches_per_l2_cache; i++) {
+    mcs[i]->directory = (dirs[i]);
+    dirs[i]->memorycontroller = (mcs[i]);
+    l2s[i]->directory = (dirs[i]);
+    dirs[i]->cachel2  = (l2s[i]);
+    noc->directory.push_back(dirs[i]);
+    noc->cachel2.push_back(l2s[i]);
+    l2s[i]->crossbar  = noc;
+    dirs[i]->crossbar = noc;
+  }
+}
+
+McSimForTest::McSimForTest(PthreadTimingSimulator * pts_) : McSim(pts_) { }
+
+McSimForTest::~McSimForTest() { }
+
+void McSimForTest::create_comps() {
+  uint32_t num_threads_per_l1_cache   = pts->get_param_uint64("pts.num_hthreads_per_l1$", 4);
+  assert(num_threads_per_l1_cache == 1);
+  uint32_t num_l1_caches_per_l2_cache = pts->get_param_uint64("pts.num_l1$_per_l2$", 2);
+
+  for (uint32_t i = 0; i < num_hthreads; i++) {
+    o3cores.push_back(new O3CoreForTest(ct_o3core, i, this));
+    is_migrate_ready.push_back(false);
+  }
+  for (uint32_t i = 0; i < num_hthreads; i++) {
+    l1is.push_back(new CacheL1(ct_cachel1i, i, this));
+    l1ds.push_back(new CacheL1(ct_cachel1d, i, this));
+    tlbl1ds.push_back(new TLBL1ForTest(ct_tlbl1d, i, this));
+    tlbl1is.push_back(new TLBL1ForTest(ct_tlbl1i, i, this));
+  }
+  for (uint32_t i = 0; i < num_hthreads / num_l1_caches_per_l2_cache; i++) {
+    l2s.push_back(new CacheL2(ct_cachel2, i, this));
+    mcs.push_back(new MemoryController(ct_memory_controller, i, this));
+    dirs.push_back(new Directory(ct_directory, i, this));
+  }
+  noc = new Crossbar(ct_crossbar, 0, this, num_hthreads / num_l1_caches_per_l2_cache);
+  connect_comps();
+}
+
 
 }  // namespace PinPthread

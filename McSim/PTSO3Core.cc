@@ -144,15 +144,12 @@ O3Core::O3Core(
   o3queue_size = 0;
   o3rob_head   = 0;
   o3rob_size   = 0;
-
   for (unsigned int i = 0; i < o3queue_max_size; i++) {
     o3queue[i].state = o3iqs_invalid;
   }
-
   for (unsigned int i = 0; i < o3rob_max_size; i++) {
     o3rob[i].state = o3irs_invalid;
   }
-
   CHECK_GE(o3rob_max_size, (uint32_t)4) << "as of now, it is assumed that o3rob_max_size >= 4" << std::endl;
 }
 
@@ -176,6 +173,8 @@ O3Core::~O3Core() {
   }
 
   delete bp;
+  delete[] o3queue;
+  delete[] o3rob;
 }
 
 
@@ -605,5 +604,9 @@ void O3Core::displayO3ROB() {
 bool O3Core::IsRegDep(uint32_t rr, const O3ROB & o3rob_) {
   return (rr != 0) && (rr == o3rob_.rw0 || rr == o3rob_.rw1 || rr == o3rob_.rw2 || rr == o3rob_.rw3);
 }
+
+O3CoreForTest::O3CoreForTest(component_type type_, uint32_t num_, McSim * mcsim_):
+    O3Core(type_, num_, mcsim_) { }
+
 
 }  // namespace PinPthread

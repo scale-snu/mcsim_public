@@ -198,19 +198,6 @@ class O3Core : public Component {
  public:
   friend class McSim;
 
-  FRIEND_TEST(TLBTest, DTLBReqEvent);
-  FRIEND_TEST(TLBTest, DTLBProcessEvent);
-
-  friend class O3CoreTest;   // for O3CoreTest::TearDown()
-  FRIEND_TEST(O3CoreTest, CheckBuild);
-  FRIEND_TEST(O3CoreTest, Fetch);
-  FRIEND_TEST(O3CoreTest, Dispatch);
-  FRIEND_TEST(O3CoreTest, Execute);
-  FRIEND_TEST(O3CoreTest, Commit);
-  FRIEND_TEST(O3CoreTest, RepEvent);
-  FRIEND_TEST(O3CoreTest, ReqEvent);
-  FRIEND_TEST(O3CoreTest, Scenario1);
-
   FRIEND_TEST(CacheTest, CheckBuild);
   FRIEND_TEST(CacheTest, IsEmptyInitially);
   FRIEND_TEST(CacheTest, BasicCase);
@@ -221,6 +208,36 @@ class O3Core : public Component {
   FRIEND_TEST(CoherenceTest, Case4);
   FRIEND_TEST(CoherenceTest, Case5);
   FRIEND_TEST(CoherenceTest, Case6);
+};
+
+class O3CoreForTest : public O3Core {
+ public:
+  explicit O3CoreForTest(component_type type_, uint32_t num_, McSim * mcsim_);
+  ~O3CoreForTest() { }
+  // make member variables public
+  O3Queue * get_o3queue() { return o3queue; };
+  O3ROB * get_o3rob() { return o3rob; };
+
+  uint32_t get_o3queue_max_size() { return o3queue_max_size; }
+  uint32_t get_o3queue_head() { return o3queue_head; }
+  uint32_t get_o3queue_size() { return o3queue_size; }
+  void set_o3queue_head(uint32_t head) { o3queue_head = head; }
+  void set_o3queue_size(uint32_t size) { o3queue_size = size; }
+
+  uint32_t get_o3rob_max_size() { return o3rob_max_size; }
+  uint32_t get_o3rob_head() { return o3rob_head; }
+  uint32_t get_o3rob_size() { return o3rob_size; }
+  void set_o3rob_head(uint32_t head) { o3rob_head = head; }
+  void set_o3rob_size(uint32_t size) { o3rob_size = size; }
+  
+  uint64_t get_num_nacks() { return num_nacks; }
+  uint64_t get_num_consecutive_nacks() { return num_consecutive_nacks; }
+
+  uint32_t get_sse_t() { return sse_t; }
+  uint32_t get_branch_miss_penalty() { return branch_miss_penalty; }
+
+  uint64_t get_total_mem_rd_time() { return total_mem_rd_time; }
+  uint64_t get_total_mem_wr_time() { return total_mem_wr_time; }
 };
 
 }  // namespace PinPthread

@@ -5,9 +5,10 @@ namespace PinPthread {
 
 // static variable of TLBTest
 std::unique_ptr<PthreadTimingSimulator> TLBTest::test_pts;
-TLBL1* TLBTest::test_tlbl1i;
-TLBL1* TLBTest::test_tlbl1d;
-O3Core* TLBTest::test_o3core;
+TLBL1ForTest* TLBTest::test_tlbl1i;
+TLBL1ForTest* TLBTest::test_tlbl1d;
+O3CoreForTest* TLBTest::test_o3core;
+O3ROB* TLBTest::test_o3rob;
 std::vector<LocalQueueElement *> TLBTest::events;
 
 /* 1. START of TLB Build && Fixture Build Testing */
@@ -37,6 +38,7 @@ TEST_F(TLBTest, ITLBReqEvent) {
   // insert the same local event at different times
   events.push_back(create_tlb_read_event(TEST_ADDR_I, test_o3core));
   test_tlbl1i->add_req_event(10, events.back());
+  events.push_back(create_tlb_read_event(TEST_ADDR_I, test_o3core));
   test_tlbl1i->add_req_event(20, events.back());
 
   EXPECT_EQ((uint64_t)2, test_tlbl1i->geq->event_queue.size());
@@ -72,6 +74,7 @@ TEST_F(TLBTest, ITLBProcessEvent) {
   // one entry (initially accessed one) is evicted, now LRU access time is 30
   EXPECT_EQ((uint64_t)30, test_tlbl1i->get_LRU_time());
 
+  for (auto && el : events) delete el;
   events.clear();
   clear_geq();
 }
@@ -79,11 +82,13 @@ TEST_F(TLBTest, ITLBProcessEvent) {
 /* 2-2. DTLB */
 /* DTLB는 ROB entry를 먼저 설정해줘야 함 */
 TEST_F(TLBTest, DTLBReqEvent) {
-  set_rob_entry(test_o3core->o3rob[0], TEST_ADDR_I, TEST_ADDR_D);
-  events.push_back(create_tlb_read_event(test_o3core->o3rob[0].memaddr, test_o3core));
+  set_rob_entry(test_o3rob[0], TEST_ADDR_I, TEST_ADDR_D);
+  events.push_back(create_tlb_read_event(test_o3rob[0].memaddr, test_o3core));
   events.back()->rob_entry = 0;
-
   test_tlbl1d->add_req_event(10, events.back());
+  
+  events.push_back(create_tlb_read_event(test_o3rob[0].memaddr, test_o3core));
+  events.back()->rob_entry = 0;
   test_tlbl1d->add_req_event(20, events.back());
 
   EXPECT_EQ((uint64_t)2, test_tlbl1d->geq->event_queue.size());
@@ -105,10 +110,10 @@ TEST_F(TLBTest, DTLBProcessEvent) {
   // make TLB full
   for (uint i = 1; i <= test_tlbl1d->num_entries; i++) {
     uint64_t address = TEST_ADDR_D + ((1 << test_tlbl1d->page_sz_log2)*i);
-    uint32_t rob_entry_num = i % test_o3core->o3rob_max_size;
+    uint32_t rob_entry_num = i % test_o3core->get_o3rob_max_size();
 
-    set_rob_entry(test_o3core->o3rob[rob_entry_num], TEST_ADDR_I, address);
-    events.push_back(create_tlb_read_event(test_o3core->o3rob[rob_entry_num].memaddr, test_o3core));
+    set_rob_entry(test_o3rob[rob_entry_num], TEST_ADDR_I, address);
+    events.push_back(create_tlb_read_event(test_o3rob[rob_entry_num].memaddr, test_o3core));
     events.back()->rob_entry = rob_entry_num;
 
     test_tlbl1d->add_req_event(20 + 10*i, events.back());
@@ -124,8 +129,8 @@ TEST_F(TLBTest, DTLBProcessEvent) {
   clear_geq();
 
   // create one more TLB miss event
-  set_rob_entry(test_o3core->o3rob[0], TEST_ADDR_I, TEST_ADDR_D - (1 << test_tlbl1d->page_sz_log2));
-  events.push_back(create_tlb_read_event(test_o3core->o3rob[0].memaddr, test_o3core));
+  set_rob_entry(test_o3rob[0], TEST_ADDR_I, TEST_ADDR_D - (1 << test_tlbl1d->page_sz_log2));
+  events.push_back(create_tlb_read_event(test_o3rob[0].memaddr, test_o3core));
   events.back()->rob_entry = 0;
 
   test_tlbl1d->add_req_event(1000, events.back());
@@ -138,6 +143,7 @@ TEST_F(TLBTest, DTLBProcessEvent) {
   EXPECT_EQ(test_tlbl1d->num_entries, test_tlbl1d->get_size_of_LRU());
   EXPECT_EQ((uint64_t)40, test_tlbl1d->get_LRU_time());
 
+  for (auto && el : events) delete el;
 }
 
 LocalQueueElement * TLBTest::create_tlb_read_event(uint64_t _address, Component * from) {

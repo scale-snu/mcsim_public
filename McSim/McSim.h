@@ -93,7 +93,10 @@ enum coherence_state_type {
 class McSim {
  public:
   explicit McSim(PthreadTimingSimulator * pts_);
-  ~McSim();
+  virtual ~McSim();
+
+  virtual void create_comps();
+  void connect_comps();
 
   std::pair<UINT32, UINT64> resume_simulation(bool must_switch);
   // return value -- whether we have to resume simulation
@@ -171,6 +174,13 @@ class McSim {
   UINT64 num_l1_miss_last;
   UINT64 num_l2_acc_last;
   UINT64 num_l2_miss_last;
+};
+
+class McSimForTest : public McSim {
+ public:
+  explicit McSimForTest(PthreadTimingSimulator * pts_);
+  ~McSimForTest();
+  void create_comps() override;
 };
 
 }  // namespace PinPthread

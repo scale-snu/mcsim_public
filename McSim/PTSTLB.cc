@@ -63,7 +63,6 @@ TLBL1::~TLBL1() {
   }
 }
 
-
 void TLBL1::add_req_event(
     uint64_t event_time,
     LocalQueueElement * local_event,
@@ -71,7 +70,6 @@ void TLBL1::add_req_event(
   geq->add_event(event_time, this);
   req_event.insert(std::pair<uint64_t, LocalQueueElement *>(event_time, local_event));
 }
-
 
 uint32_t TLBL1::process_event(uint64_t curr_time) {
   auto req_event_iter = req_event.begin();
@@ -123,8 +121,10 @@ uint32_t TLBL1::process_event(uint64_t curr_time) {
     uint64_t event_time = curr_time + process_interval;
     geq->add_event(event_time, this);
   }
-
   return 0;
 }
+
+TLBL1ForTest::TLBL1ForTest(component_type type_, uint32_t num_, McSim * mcsim_):
+  TLBL1(type_, num_, mcsim_) { }
 
 }  // namespace PinPthread
