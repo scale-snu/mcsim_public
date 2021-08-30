@@ -5,8 +5,8 @@ namespace PinPthread {
 
 // static variable of O3CoreTest
 std::unique_ptr<PthreadTimingSimulator> O3CoreTest::test_pts;
-TLBL1ForTest* O3CoreTest::test_tlbl1i;
-TLBL1ForTest* O3CoreTest::test_tlbl1d;
+TLBL1* O3CoreTest::test_tlbl1i;
+TLBL1* O3CoreTest::test_tlbl1d;
 O3CoreForTest* O3CoreTest::test_o3core;
 CacheL1* O3CoreTest::test_cachel1i;
 CacheL1* O3CoreTest::test_cachel1d;

@@ -605,8 +605,4 @@ bool O3Core::IsRegDep(uint32_t rr, const O3ROB & o3rob_) {
   return (rr != 0) && (rr == o3rob_.rw0 || rr == o3rob_.rw1 || rr == o3rob_.rw2 || rr == o3rob_.rw3);
 }
 
-O3CoreForTest::O3CoreForTest(component_type type_, uint32_t num_, McSim * mcsim_):
-    O3Core(type_, num_, mcsim_) { }
-
-
 }  // namespace PinPthread

@@ -2,7 +2,7 @@
 
 # if the application does not finish until it executes 'max_total_instrs',
 # the simulation quits.
-max_total_instrs             = 10000000
+max_total_instrs             = 1000000
 # stack size per hardware thread
 stack_sz                     = 0x800000
 addr_offset_lsb              = 48
@@ -12,31 +12,10 @@ pts.skip_all_instrs           = false
 pts.simulate_only_data_caches = false
 pts.show_l2_stat_per_interval = false
 
-pts.num_hthreads             = 4
+pts.num_hthreads             = 16 
 pts.'num_hthreads_per_l1$'   = 1
-pts.'num_l1$_per_l2$'        = 2 
+pts.'num_l1$_per_l2$'        = 1 
 pts.num_mcs                  = 2
-
-
-#     [core_0]         [core_1]
-#      /   \            /   \
-# [L1I_0] [L1D_0]  [L1I_1] [L1D_1]
-#       \     \      /     / 
-#      [        L2_0        ]
-#              /  |
-#         [DIR_0] |
-#         /    \  |
-#    [MC_0]   [  NoC  ]   [MC_1]
-#                 |  \    /
-#                 | [DIR_1]
-#                 |  /
-#      [        L2_1        ]
-#       /     /      \     \
-# [L1I_2] [L1D_2]  [L1I_3] [L1D_3]
-#      \   /            \   /
-#     [core_2]         [core_3]
-
-
 # display simulation statistics when every pts.print_interval
 # instruction is executed.
 pts.print_interval           = 1000000
@@ -65,7 +44,7 @@ pts.o3core.max_issue_width     = 4
 pts.o3core.max_commit_width    = 4
 
 pts.'l1i$'.num_sets           = 64
-pts.'l1i$'.num_ways           = 1
+pts.'l1i$'.num_ways           = 4
 # which part of the address is mapped into a set
 pts.'l1i$'.set_lsb            = 6
 pts.'l1i$'.process_interval   = 10
@@ -74,21 +53,21 @@ pts.'l1i$'.to_l2_t            = 20
 # for how many ticks a cache is used per access
 pts.'l1i$'.num_sets_per_subarray = 8
 pts.'l1i$'.always_hit         = false
-pts.'l1i$'.use_prefetch       = true
+#pts.'l1i$'.use_prefetch       = true
 
 pts.'l1d$'.num_banks          = 4
 pts.'l1d$'.num_sets           = 64
-pts.'l1d$'.num_ways           = 1
+pts.'l1d$'.num_ways           = 4
 pts.'l1d$'.set_lsb            = 6
 pts.'l1d$'.process_interval   = 10
 pts.'l1d$'.to_lsu_t           = 4 
 pts.'l1d$'.to_l2_t            = 40
 pts.'l1d$'.num_sets_per_subarray = 8
 pts.'l1d$'.always_hit         = false
-pts.'l1d$'.use_prefetch       = true
+#pts.'l1d$'.use_prefetch       = true
 
 pts.'l2$'.num_sets            = 1024
-pts.'l2$'.num_ways            = 1
+pts.'l2$'.num_ways            = 16
 pts.'l2$'.set_lsb             = 6
 pts.'l2$'.process_interval    = 10
 pts.'l2$'.to_l1_t             = 40
@@ -100,7 +79,7 @@ pts.'l2$'.num_banks           = 4
 pts.'l2$'.num_flits_per_packet  = 3
 pts.'l2$'.num_sets_per_subarray = 16
 pts.'l2$'.always_hit            = false
-pts.'l2$'.use_prefetch          = true
+#pts.'l2$'.use_prefetch          = true
 
 pts.dir.set_lsb              = 6
 pts.dir.process_interval     = 10
@@ -155,17 +134,16 @@ pts.mc.display_os_page_usage    = false
 
 pts.l1dtlb.num_entries          = 64
 pts.l1dtlb.process_interval     = 10
-pts.l1dtlb.to_lsu_t             = 2
-pts.l1dtlb.page_sz_log2         = 22
-pts.l1dtlb.miss_penalty         = 80
-pts.l1dtlb.speedup              = 4
+pts.l1dtlb.to_lsu_t     = 2
+pts.l1dtlb.page_sz_log2 = 22
+pts.l1dtlb.miss_penalty = 80
+pts.l1dtlb.speedup      = 4
 
-pts.l1itlb.num_entries          = 64
-pts.l1itlb.process_interval     = 10
-pts.l1itlb.to_lsu_t             = 2
-pts.l1itlb.page_sz_log2         = 12
-pts.l1itlb.miss_penalty         = 80
-pts.l1itlb.speedup              = 4
+pts.l1itlb.num_entries  = 64
+pts.l1itlb.process_interval   = 10
+pts.l1itlb.to_lsu_t     = 2
+pts.l1itlb.page_sz_log2 = 12
+pts.l1itlb.miss_penalty = 80
+pts.l1itlb.speedup      = 4
 
 print_md = false
-unit_testing = true

@@ -71,7 +71,7 @@ Component::Component(
   mcsim->comps.push_back(this);
 }
 
-Component::~Component() { mcsim->comps.remove(this); }
+Component::~Component() { mcsim->comps.pop_back(); }
 
 void Component::display() { std::cout << *this; }
 

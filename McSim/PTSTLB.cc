@@ -124,7 +124,4 @@ uint32_t TLBL1::process_event(uint64_t curr_time) {
   return 0;
 }
 
-TLBL1ForTest::TLBL1ForTest(component_type type_, uint32_t num_, McSim * mcsim_):
-  TLBL1(type_, num_, mcsim_) { }
-
 }  // namespace PinPthread

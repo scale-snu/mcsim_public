@@ -5,9 +5,9 @@ namespace PinPthread {
 
 // static variable of TLBTest
 std::unique_ptr<PthreadTimingSimulator> TLBTest::test_pts;
+O3CoreForTest* TLBTest::test_o3core;
 TLBL1ForTest* TLBTest::test_tlbl1i;
 TLBL1ForTest* TLBTest::test_tlbl1d;
-O3CoreForTest* TLBTest::test_o3core;
 O3ROB* TLBTest::test_o3rob;
 std::vector<LocalQueueElement *> TLBTest::events;
 

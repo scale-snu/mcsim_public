@@ -85,14 +85,7 @@ PthreadTimingSimulator::PthreadTimingSimulator(const std::string & mdfile)
       std::cout << param.first << " = " << param.second << std::endl;
     }
   }
-
-  bool unit_testing = toml::find_or<toml::boolean>(data, "unit_testing", false);
-  if (unit_testing) {
-    mcsim = new McSimForTest(this);
-  } else {
-    mcsim = new McSim(this);
-  }
-  mcsim->create_comps();
+  mcsim = new McSim(this);
 }
 
 

@@ -47,7 +47,6 @@ class TLBL1 : public Component {
   virtual ~TLBL1();
   void add_req_event(uint64_t, LocalQueueElement *, Component * from = NULL);
   uint32_t process_event(uint64_t curr_time);
-  std::vector<Component *> lsus;         // uplink
 
   const uint32_t num_entries;
   const uint32_t l1_to_lsu_t;
@@ -62,17 +61,6 @@ class TLBL1 : public Component {
   // currently it is assumed that L1 TLBs are fully-associative
   std::map<uint64_t, uint64_t> entries;  // <page_num, time>
   std::map<uint64_t, std::map<uint64_t, uint64_t>::iterator> LRU;
-};
-
-class TLBL1ForTest : public TLBL1 {
- public:
-  explicit TLBL1ForTest(component_type type_, uint32_t num_, McSim * mcsim_);
-  ~TLBL1ForTest() { };
-  uint64_t get_num_access() { return num_access; }
-  uint64_t get_num_miss()   { return num_miss; }
-  uint64_t get_size_of_LRU()   { return entries.size(); }
-  uint64_t get_size_of_entries()   { return LRU.size(); }
-  uint64_t get_LRU_time()   { return LRU.begin()->first; }
 };
 
 }  // namespace PinPthread

@@ -41,7 +41,6 @@
 #include <utility>
 #include <vector>
 
-#include "PTS.h"
 #include "PTSComponent.h"
 
 static const ADDRINT search_addr = 0x800e7fffde77a040;
@@ -176,12 +175,6 @@ class McSim {
   UINT64 num_l2_miss_last;
 };
 
-class McSimForTest : public McSim {
- public:
-  explicit McSimForTest(PthreadTimingSimulator * pts_);
-  ~McSimForTest();
-  void create_comps() override;
-};
 
 }  // namespace PinPthread
 
