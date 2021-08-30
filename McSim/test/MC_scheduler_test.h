@@ -2,31 +2,54 @@
 #define MC_SCHED_H_
 
 #include "gtest/gtest.h"
-#include "gflags/gflags.h"
 
 #include "../McSim.h"
 #include "../PTS.h"
 #include "../PTSProcessDescription.h"
 
 #include "../PTSMemoryController.h"
+#include "../PTSDirectory.h"
 #include "AddressGen.h"
 
-DECLARE_string(mdfile); // defined in /test/main.cc
-
 namespace PinPthread {
+
+class MemoryControllerForTest : public MemoryController {
+ public:
+  explicit MemoryControllerForTest(component_type type_, uint32_t num_, McSim * mcsim_):
+    MemoryController(type_, num_, mcsim_) { }
+  ~MemoryControllerForTest() { }
+  bool get_parbs() { return par_bs; }
+  bool get_policy() { return policy; }
+  uint32_t rank_num(uint64_t addr) { return get_rank_num(addr); }
+  uint32_t bank_num(uint64_t addr) { return get_bank_num(addr); }
+  uint64_t page_num(uint64_t addr) { return get_page_num(addr); }
+  uint64_t get_num_read() { return num_read; };
+  uint64_t get_num_write() { return num_write; };
+  uint64_t get_num_activate() { return num_activate; };
+  uint64_t get_num_precharge() { return num_precharge; };
+  BankStatus get_bank_status(uint rank, uint bank) { return bank_status[rank][bank]; }
+};
 
 class MCSchedTest : public ::testing::Test {
   protected:
     static std::shared_ptr<PinPthread::PthreadTimingSimulator> test_pts;
-    static MemoryController* test_mc;
+    static MemoryControllerForTest* test_mc;
     static std::vector<uint64_t> row_A_addresses;
     static std::vector<uint64_t> row_B_addresses;
 
     static void SetUpTestSuite() {
       // Called once per TEST Suite
-      test_pts = std::make_shared<PinPthread::PthreadTimingSimulator>(FLAGS_mdfile);
-      test_mc = test_pts->mcsim->mcs[0];
+      test_pts = std::make_unique<PthreadTimingSimulator>("../Apps/md/test/test-md.toml");
+      
+      test_mc = new MemoryControllerForTest(ct_memory_controller, 0, test_pts->mcsim);
+      auto temp_mc = test_pts->mcsim->mcs[0];
+      test_pts->mcsim->mcs[0] = test_mc;
 
+      test_pts->mcsim->dirs[0]->memorycontroller = test_mc;
+      test_mc->directory = test_pts->mcsim->dirs[0];
+
+      delete temp_mc;
+      
       AddressGen* addrgen = new AddressGen(test_pts);
       // addrgen->generate([MC #], [bank], [row])
       // row_A_addresses: MC(0), bank(0), row(0x10), different column #

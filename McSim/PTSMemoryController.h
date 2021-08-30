@@ -191,22 +191,6 @@ class MemoryController : public Component {
   void     update_acc_dist();
 };
 
-class MemoryControllerForTest : public MemoryController {
- public:
-  explicit MemoryControllerForTest(component_type type_, uint32_t num_, McSim * mcsim_);
-  ~MemoryControllerForTest() { };
-  bool get_parbs() { return par_bs; }
-  bool get_policy() { return policy; }
-  uint32_t rank_num(uint64_t addr) { return get_rank_num(addr); }
-  uint32_t bank_num(uint64_t addr) { return get_bank_num(addr); }
-  uint64_t page_num(uint64_t addr) { return get_page_num(addr); }
-  uint64_t get_num_read() { return num_read; };
-  uint64_t get_num_write() { return num_write; };
-  uint64_t get_num_activate() { return num_activate; };
-  uint64_t get_num_precharge() { return num_precharge; };
-  BankStatus get_bank_status(uint rank, uint bank) { return bank_status[rank][bank]; }
-};
-
 }  // namespace PinPthread
 
 #endif  // PTSMEMORYCONTROLLER_H_

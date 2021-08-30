@@ -117,7 +117,7 @@ MemoryController::MemoryController(
   process_interval = get_param_uint64("process_interval", 10);
   // TODO(gajh): refresh implementation should be restored soon.
   if (refresh_interval != 0) geq->add_event(refresh_interval, this);
-  
+
   if (get_param_str("scheduling_policy") == "open") {
     policy = mc_scheduling_open;
   } else if (get_param_str("scheduling_policy") == "pred") {
@@ -671,8 +671,5 @@ void MemoryController::check_bank_status(LocalQueueElement * local_event) {
   }
   num_rw_interval++;
 }
-
-MemoryControllerForTest::MemoryControllerForTest(component_type type_, uint32_t num_, McSim * mcsim_):
-  MemoryController(type_, num_, mcsim_) { }
 
 }  // namespace PinPthread
