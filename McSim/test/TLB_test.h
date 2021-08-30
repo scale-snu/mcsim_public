@@ -58,13 +58,9 @@ class TLBTest : public ::testing::Test {
       test_pts->mcsim->o3cores[0] = test_o3core;
       test_pts->mcsim->tlbl1is[0] = test_tlbl1i;
       test_pts->mcsim->tlbl1ds[0] = test_tlbl1d;
-
-      test_o3core->cachel1i = test_pts->mcsim->l1is[0];
-      test_o3core->cachel1d = test_pts->mcsim->l1ds[0];
-      test_o3core->tlbl1d = test_pts->mcsim->tlbl1ds[0];
-      test_o3core->tlbl1i = test_pts->mcsim->tlbl1is[0];
       test_o3rob = test_o3core->get_o3rob();
 
+      test_pts->mcsim->connect_comps();
       delete temp_core;
       delete temp_tlbl1i;
       delete temp_tlbl1d;

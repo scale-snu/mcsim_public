@@ -4,7 +4,6 @@
 #include "gtest/gtest.h"
 
 #include "../McSim.h"
-#include "../PTS.h"
 #include "../PTSProcessDescription.h"
 
 #include "../PTSTLB.h"
@@ -69,10 +68,8 @@ class O3CoreTest : public ::testing::Test {
 
       auto temp_core = test_pts->mcsim->o3cores[0];
       test_pts->mcsim->o3cores[0] = test_o3core;
-      test_o3core->cachel1i = test_pts->mcsim->l1is[0];
-      test_o3core->cachel1d = test_pts->mcsim->l1ds[0];
-      test_o3core->tlbl1d = test_pts->mcsim->tlbl1ds[0];
-      test_o3core->tlbl1i = test_pts->mcsim->tlbl1is[0];
+
+      test_pts->mcsim->connect_comps();
       delete temp_core;
     }
 

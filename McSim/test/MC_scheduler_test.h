@@ -4,7 +4,6 @@
 #include "gtest/gtest.h"
 
 #include "../McSim.h"
-#include "../PTS.h"
 #include "../PTSProcessDescription.h"
 
 #include "../PTSMemoryController.h"
@@ -45,9 +44,7 @@ class MCSchedTest : public ::testing::Test {
       auto temp_mc = test_pts->mcsim->mcs[0];
       test_pts->mcsim->mcs[0] = test_mc;
 
-      test_pts->mcsim->dirs[0]->memorycontroller = test_mc;
-      test_mc->directory = test_pts->mcsim->dirs[0];
-
+      test_pts->mcsim->connect_comps();
       delete temp_mc;
       
       AddressGen* addrgen = new AddressGen(test_pts);
