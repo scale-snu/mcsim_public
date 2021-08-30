@@ -38,10 +38,8 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include <gtest/gtest_prod.h>
 
 #include "McSim.h"
-
 
 namespace PinPthread {
 
@@ -75,18 +73,8 @@ class Cache : public Component {
 
   virtual void show_state(uint64_t) = 0;
   void display_event(uint64_t curr_time, LocalQueueElement *, const std::string &);
-
  public:
   friend class McSim;
-  FRIEND_TEST(CacheTest, CheckBuild);
-  FRIEND_TEST(CacheTest, IsEmptyInitially);
-  FRIEND_TEST(CacheTest, BasicCase);
-  FRIEND_TEST(CoherenceTest, Case1);
-  FRIEND_TEST(CoherenceTest, Case2);
-  FRIEND_TEST(CoherenceTest, Case3);
-  FRIEND_TEST(CoherenceTest, Case4);
-  FRIEND_TEST(CoherenceTest, Case5);
-  FRIEND_TEST(CoherenceTest, Case6);
 };
 
 
@@ -130,14 +118,6 @@ class CacheL1 : public Cache {
   void add_event_to_lsu(uint64_t curr_time, LocalQueueElement *);
   void do_prefetch(uint64_t curr_time, const LocalQueueElement &);
   inline void update_LRU(uint32_t idx, l1_tag_pair ** tags_set, l1_tag_pair * const set_it);
-
- public:
-  FRIEND_TEST(CoherenceTest, Case1);
-  FRIEND_TEST(CoherenceTest, Case2);
-  FRIEND_TEST(CoherenceTest, Case3);
-  FRIEND_TEST(CoherenceTest, Case4);
-  FRIEND_TEST(CoherenceTest, Case5);
-  FRIEND_TEST(CoherenceTest, Case6);
 };
 
 
@@ -194,14 +174,6 @@ class CacheL2 : public Cache {
   void test_tags(uint32_t set);
   inline void update_LRU(uint32_t idx, L2Entry ** tags_set, L2Entry * const set_it);
   inline void req_L1_evict(uint64_t curr_time, L2Entry * const set_it, uint64_t addr, LocalQueueElement * lqe, bool always);
-
- public:
-  FRIEND_TEST(CoherenceTest, Case1);
-  FRIEND_TEST(CoherenceTest, Case2);
-  FRIEND_TEST(CoherenceTest, Case3);
-  FRIEND_TEST(CoherenceTest, Case4);
-  FRIEND_TEST(CoherenceTest, Case5);
-  FRIEND_TEST(CoherenceTest, Case6);
 };
 
 }  // namespace PinPthread

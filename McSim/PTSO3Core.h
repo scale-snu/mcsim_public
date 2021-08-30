@@ -36,7 +36,6 @@
 
 #include <queue>
 #include <utility>
-#include <gtest/gtest_prod.h>
 
 namespace PinPthread {
 
@@ -128,21 +127,22 @@ class O3Core : public Component {
   TLBL1   * tlbl1i;
   BranchPredictor * bp;
 
+
  protected:
   uint32_t num_hthreads;
   bool     is_active;
+  bool     active;
 
   uint64_t last_time_no_mem_served;
   uint64_t last_time_mem_served;
   uint64_t num_bubbled_slots;
 
   // pointer to the member variables in the corresponding Pthread object
-  bool active;
   ADDRINT stack;
   ADDRINT stacksize;
 
   uint64_t resume_time;
-  uint64_t mem_time;
+  // uint64_t mem_time;
 
   uint64_t num_instrs;  // # of fetched instrs
   uint64_t num_branch;
@@ -171,15 +171,15 @@ class O3Core : public Component {
 
   std::queue<std::pair<ins_type, uint64_t>> mem_acc;
   O3Queue * o3queue;
-  O3ROB   * o3rob;
   uint32_t  o3queue_max_size;
   uint32_t  o3queue_head;
   uint32_t  o3queue_size;
-  uint32_t  max_issue_width;
-  uint32_t  max_commit_width;
+  O3ROB   * o3rob;
   uint32_t  o3rob_max_size;
   uint32_t  o3rob_head;
   uint32_t  o3rob_size;
+  uint32_t  max_issue_width;
+  uint32_t  max_commit_width;
   uint64_t  latest_ip;
   uint64_t  latest_bmp_time;  // latest branch miss prediction time
   int32_t   max_alu;
@@ -197,17 +197,6 @@ class O3Core : public Component {
 
  public:
   friend class McSim;
-
-  FRIEND_TEST(CacheTest, CheckBuild);
-  FRIEND_TEST(CacheTest, IsEmptyInitially);
-  FRIEND_TEST(CacheTest, BasicCase);
-
-  FRIEND_TEST(CoherenceTest, Case1);
-  FRIEND_TEST(CoherenceTest, Case2);
-  FRIEND_TEST(CoherenceTest, Case3);
-  FRIEND_TEST(CoherenceTest, Case4);
-  FRIEND_TEST(CoherenceTest, Case5);
-  FRIEND_TEST(CoherenceTest, Case6);
 };
 
 }  // namespace PinPthread

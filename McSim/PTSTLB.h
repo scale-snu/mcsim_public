@@ -37,7 +37,6 @@
 #include <queue>
 #include <stack>
 #include <vector>
-#include <gtest/gtest_prod.h>
 
 namespace PinPthread {
 

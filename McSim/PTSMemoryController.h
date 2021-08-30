@@ -41,7 +41,6 @@
 
 #include "McSim.h"
 
-#include <gtest/gtest_prod.h>
 // some of the acronyms used here
 // ------------------------------
 //  pd  : powerdown

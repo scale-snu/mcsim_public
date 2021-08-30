@@ -516,8 +516,9 @@ void McSim::connect_comps() {
 
   std::string   noc_type(pts->get_param_str("pts.noc_type"));
   assert(noc_type == "xbar");
-
   // connect o3core and l1s
+  for (auto && el : l1is) el->lsus.clear();
+  for (auto && el : l1ds) el->lsus.clear();
   for (uint32_t i = 0; i < num_hthreads; i++) {
     o3cores[i]->cachel1i = (l1is[i]);
     l1is[i]->lsus.push_back(o3cores[i]);
@@ -527,6 +528,10 @@ void McSim::connect_comps() {
     o3cores[i]->tlbl1i   = (tlbl1is[i]);
   }
 
+  for (auto && el : l2s) {
+    el->cachel1d.clear();
+    el->cachel1i.clear();
+  }
   // connect l1s and l2s
   for (uint32_t i = 0; i < num_hthreads /* / num_threads_per_l1_cache */; i++) {
     l1is[i]->cachel2 = l2s[i/num_l1_caches_per_l2_cache];
@@ -537,6 +542,8 @@ void McSim::connect_comps() {
 
   // instantiate directories
   // currently it is assumed that (# of MCs) == (# of L2$s) == (# of directories)
+  noc->directory.clear();
+  noc->cachel2.clear();
   for (uint32_t i = 0; i < num_hthreads /* / num_threads_per_l1_cache */ / num_l1_caches_per_l2_cache; i++) {
     dirs[i]->memorycontroller = (mcs[i]);
     mcs[i]->directory = (dirs[i]);

@@ -76,14 +76,14 @@ class Directory : public Component {
   const uint32_t dir_to_l2_t;
   const uint32_t dir_to_xbar_t;
   const uint32_t num_flits_per_packet;
+  const bool has_directory_cache;
+  const bool use_limitless;
+  const uint32_t limitless_broadcast_threshold;
 
+ protected:
   std::map<uint64_t, DirEntry> dir;
   std::vector< std::list<uint64_t> > dir_cache;
   std::vector<uint64_t> num_sharer_histogram;
-
-  bool has_directory_cache;
-  bool use_limitless;
-  uint32_t limitless_broadcast_threshold;
 
   // stats
   uint64_t num_acc;
