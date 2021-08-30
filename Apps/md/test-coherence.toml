@@ -168,3 +168,4 @@ pts.l1itlb.miss_penalty         = 80
 pts.l1itlb.speedup              = 4
 
 print_md = false
+unit_testing = true

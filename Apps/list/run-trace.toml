@@ -4,6 +4,26 @@
 type = "trace"
 num_instrs_to_skip_first = 0
 trace_file = "/scale/cal/share/research/benchmarks/spec-cpu2017-snappy-modernize/554.21190.snappy"
-path = "/home/gajh/repository/mcsim_private/McSim/stream"
+path = "/scale/cal/home/wjdoh/mcsim_new/mcsim_private/McSim/stream"
 arg  = "STREAM"
 
+[[run]]
+type = "trace"
+num_instrs_to_skip_first = 0
+trace_file = "/scale/cal/share/research/benchmarks/spec-cpu2017-snappy-modernize/523.1214.snappy"
+path = "/scale/cal/home/wjdoh/mcsim_new/mcsim_private/McSim/stream"
+arg  = "STREAM"
+
+[[run]]
+type = "trace"
+num_instrs_to_skip_first = 0
+trace_file = "/scale/cal/share/research/benchmarks/spec-cpu2017-snappy-modernize/520.6293.snappy"
+path = "/scale/cal/home/wjdoh/mcsim_new/mcsim_private/McSim/stream"
+arg  = "STREAM"
+
+[[run]]
+type = "trace"
+num_instrs_to_skip_first = 0
+trace_file = "/scale/cal/share/research/benchmarks/spec-cpu2017-snappy-modernize/520.3162.snappy"
+path = "/scale/cal/home/wjdoh/mcsim_new/mcsim_private/McSim/stream"
+arg  = "STREAM"
