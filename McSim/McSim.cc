@@ -184,10 +184,9 @@ McSim::~McSim() {
   for (auto && el : l1is) delete el;
   for (auto && el : l1ds) delete el;
   for (auto && el : l2s) delete el;
-  for (auto && el : dirs) delete el;
   for (auto && el : mcs) delete el;
+  for (auto && el : dirs) delete el;
   delete noc;
-
   delete global_q;
 }
 
@@ -483,12 +482,22 @@ void McSim::create_comps() {
   for (uint32_t i = 0; i < num_hthreads; i++) {
     o3cores.push_back(new O3Core(ct_o3core, i, this));
     is_migrate_ready.push_back(false);
+  }
+  for (uint32_t i = 0; i < num_hthreads /* / num_threads_per_l1_cache*/; i++) {
     l1is.push_back(new CacheL1(ct_cachel1i, i, this));
     l1ds.push_back(new CacheL1(ct_cachel1d, i, this));
     tlbl1ds.push_back(new TLBL1(ct_tlbl1d, i, this));
     tlbl1is.push_back(new TLBL1(ct_tlbl1i, i, this));
   }
-  for (uint32_t i = 0; i < num_hthreads / num_l1_caches_per_l2_cache; i++) {
+  /*
+  if (num_hthreads % num_threads_per_l1_cache != 0) {
+    l1is.push_back(l1is[0]);
+    l1ds.push_back(l1ds[0]);
+    tlbl1ds.push_back(tlbl1ds[0]);
+    tlbl1is.push_back(tlbl1is[0]);
+  }
+  */
+  for (uint32_t i = 0; i < num_hthreads /* / num_threads_per_l1_cache */ / num_l1_caches_per_l2_cache; i++) {
     l2s.push_back(new CacheL2(ct_cachel2, i, this));
     mcs.push_back(new MemoryController(ct_memory_controller, i, this));
     dirs.push_back(new Directory(ct_directory, i, this));
@@ -500,7 +509,7 @@ void McSim::create_comps() {
 void McSim::connect_comps() {
   uint32_t num_l1_caches_per_l2_cache = pts->get_param_uint64("pts.num_l1$_per_l2$", 2);
   uint32_t num_mcs                    = pts->get_param_uint64("pts.num_mcs", 2);
-  if (num_mcs * num_l1_caches_per_l2_cache > num_hthreads) {
+  if (num_mcs * num_l1_caches_per_l2_cache /* * num_l1_caches_per_l2_cache */ > num_hthreads) {
     LOG(FATAL) << "the # of memory controllers must not be larger than the # of L2 caches\n";
   }
 
@@ -510,17 +519,17 @@ void McSim::connect_comps() {
   // connect o3core and l1s
   for (uint32_t i = 0; i < num_hthreads; i++) {
     o3cores[i]->cachel1i = (l1is[i]);
-    o3cores[i]->cachel1d = (l1ds[i]);
     l1is[i]->lsus.push_back(o3cores[i]);
+    o3cores[i]->cachel1d = (l1ds[i]);
     l1ds[i]->lsus.push_back(o3cores[i]);
     o3cores[i]->tlbl1d   = (tlbl1ds[i]);
-    o3cores[i]->tlbl1i   = (tlbl1is[i]);
     tlbl1ds[i]->lsus.push_back(o3cores[i]);
+    o3cores[i]->tlbl1i   = (tlbl1is[i]);
     tlbl1is[i]->lsus.push_back(o3cores[i]);
   }
 
   // connect l1s and l2s
-  for (uint32_t i = 0; i < num_hthreads; i++) {
+  for (uint32_t i = 0; i < num_hthreads /* / num_threads_per_l1_cache */; i++) {
     l1is[i]->cachel2 = l2s[i/num_l1_caches_per_l2_cache];
     l1ds[i]->cachel2 = l2s[i/num_l1_caches_per_l2_cache];
     l2s[i/num_l1_caches_per_l2_cache]->cachel1i.push_back(l1is[i]);
@@ -529,14 +538,14 @@ void McSim::connect_comps() {
 
   // instantiate directories
   // currently it is assumed that (# of MCs) == (# of L2$s) == (# of directories)
-  for (uint32_t i = 0; i < num_hthreads / num_l1_caches_per_l2_cache; i++) {
-    mcs[i]->directory = (dirs[i]);
+  for (uint32_t i = 0; i < num_hthreads /* / num_threads_per_l1_cache */ / num_l1_caches_per_l2_cache; i++) {
     dirs[i]->memorycontroller = (mcs[i]);
+    mcs[i]->directory = (dirs[i]);
     l2s[i]->directory = (dirs[i]);
-    dirs[i]->cachel2  = (l2s[i]);
+    l2s[i]->crossbar  = noc;
     noc->directory.push_back(dirs[i]);
     noc->cachel2.push_back(l2s[i]);
-    l2s[i]->crossbar  = noc;
+    dirs[i]->cachel2  = (l2s[i]);
     dirs[i]->crossbar = noc;
   }
 }
@@ -554,15 +563,23 @@ void McSimForTest::create_comps() {
     o3cores.push_back(new O3CoreForTest(ct_o3core, i, this));
     is_migrate_ready.push_back(false);
   }
-  for (uint32_t i = 0; i < num_hthreads; i++) {
+  for (uint32_t i = 0; i < num_hthreads /* / num_threads_per_l1_cache*/; i++) {
     l1is.push_back(new CacheL1(ct_cachel1i, i, this));
     l1ds.push_back(new CacheL1(ct_cachel1d, i, this));
     tlbl1ds.push_back(new TLBL1ForTest(ct_tlbl1d, i, this));
     tlbl1is.push_back(new TLBL1ForTest(ct_tlbl1i, i, this));
   }
-  for (uint32_t i = 0; i < num_hthreads / num_l1_caches_per_l2_cache; i++) {
+  /*
+  if (num_hthreads % num_threads_per_l1_cache != 0) {
+    l1is.push_back(l1is[0]);
+    l1ds.push_back(l1ds[0]);
+    tlbl1ds.push_back(tlbl1ds[0]);
+    tlbl1is.push_back(tlbl1is[0]);
+  }
+  */
+  for (uint32_t i = 0; i < num_hthreads /* / num_threads_per_l1_cache */ / num_l1_caches_per_l2_cache; i++) {
     l2s.push_back(new CacheL2(ct_cachel2, i, this));
-    mcs.push_back(new MemoryController(ct_memory_controller, i, this));
+    mcs.push_back(new MemoryControllerForTest(ct_memory_controller, i, this));
     dirs.push_back(new Directory(ct_directory, i, this));
   }
   noc = new Crossbar(ct_crossbar, 0, this, num_hthreads / num_l1_caches_per_l2_cache);

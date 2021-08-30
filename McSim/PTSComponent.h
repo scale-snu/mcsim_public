@@ -113,7 +113,7 @@ struct LocalQueueElement {
 class Component {  // meta-class
  public:
   Component(component_type type_, uint32_t num_, McSim * mcsim_);
-  virtual ~Component() { }
+  virtual ~Component();
 
   uint32_t                 process_interval;
   component_type           type;
