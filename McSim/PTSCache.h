@@ -49,8 +49,7 @@ class Cache : public Component {
  public:
   Cache(component_type type_, uint32_t num_, McSim * mcsim_);
   virtual ~Cache() { }
-
-  uint32_t set_lsb;
+  const uint32_t set_lsb;
 
  protected:
   uint32_t num_banks;
@@ -103,34 +102,25 @@ class CacheL1 : public Cache {
   uint32_t process_event(uint64_t curr_time);
   void show_state(uint64_t);
 
-  CacheL2 * cachel2;       // downlink
+  CacheL2 * cachel2;              // downlink
   std::vector<Component *> lsus;  // uplink
 
   class PrefetchEntry {
    public:
+    PrefetchEntry(): addr(0), hit(false) { }
     uint64_t addr;
     bool     hit;
-
-    PrefetchEntry(): addr(0), hit(false) { }
   };
 
   bool             use_prefetch;
   PrefetchEntry ** pres;  // prefetch history info
   uint32_t         num_pre_entries;
   uint32_t         oldest_pre_entry_idx;
-
   uint64_t         num_prefetch_requests;
   uint64_t         num_prefetch_hits;
 
-  FRIEND_TEST(CoherenceTest, Case1);
-  FRIEND_TEST(CoherenceTest, Case2);
-  FRIEND_TEST(CoherenceTest, Case3);
-  FRIEND_TEST(CoherenceTest, Case4);
-  FRIEND_TEST(CoherenceTest, Case5);
-  FRIEND_TEST(CoherenceTest, Case6);
-
- private:
-  std::pair< uint64_t, coherence_state_type > *** tags;  // address + coherence state of a set-associative cache
+ protected:
+  l1_tag_pair *** tags;       // address + coherence state of a set-associative cache
 
   const uint32_t l1_to_lsu_t;
   const uint32_t l1_to_l2_t;
@@ -140,27 +130,19 @@ class CacheL1 : public Cache {
   void add_event_to_lsu(uint64_t curr_time, LocalQueueElement *);
   void do_prefetch(uint64_t curr_time, const LocalQueueElement &);
   inline void update_LRU(uint32_t idx, l1_tag_pair ** tags_set, l1_tag_pair * const set_it);
+
+ public:
+  FRIEND_TEST(CoherenceTest, Case1);
+  FRIEND_TEST(CoherenceTest, Case2);
+  FRIEND_TEST(CoherenceTest, Case3);
+  FRIEND_TEST(CoherenceTest, Case4);
+  FRIEND_TEST(CoherenceTest, Case5);
+  FRIEND_TEST(CoherenceTest, Case6);
 };
 
 
 class CacheL2 : public Cache {
  public:
-  class L2Entry {
-   public:
-    uint64_t tag;
-    coherence_state_type  type;  // cs_type between L2 and DIR
-    coherence_state_type  type_l1l2;  // cs_type between L1 and L2
-    std::set<Component *> sharedl1;
-    LocalQueueElement *   pending;
-    uint64_t first_access_time;
-    uint64_t last_access_time;
-
-    L2Entry() : tag(0), type(cs_invalid), type_l1l2(cs_invalid),  sharedl1(),
-      pending(nullptr), first_access_time(0), last_access_time(0) { }
-
-    friend std::ostream & operator<<(std::ostream & out, L2Entry & l2);
-  };
-
   CacheL2(component_type type_, uint32_t num_, McSim * mcsim_);
   virtual ~CacheL2();
 
@@ -173,18 +155,36 @@ class CacheL2 : public Cache {
   NoC  * crossbar;        // downlink
   std::vector<CacheL1 *> cachel1d;   // uplink
   std::vector<CacheL1 *> cachel1i;   // uplink
-  L2Entry *** tags;  // address + coherence state of a set-associative cache
 
-  // private:
+  class L2Entry {
+   public:
+    L2Entry() : tag(0), type(cs_invalid), type_l1l2(cs_invalid),  sharedl1(),
+      pending(nullptr), first_access_time(0), last_access_time(0) { }
+
+    uint64_t tag;
+    coherence_state_type  type;  // cs_type between L2 and DIR
+    coherence_state_type  type_l1l2;  // cs_type between L1 and L2
+    std::set<Component *> sharedl1;
+    LocalQueueElement *   pending;
+    uint64_t first_access_time;
+    uint64_t last_access_time;
+
+    friend std::ostream & operator<<(std::ostream & out, L2Entry & l2);
+  };
+
+  uint64_t       num_destroyed_cache_lines;
+  uint64_t       cache_line_life_time;
+  uint64_t       time_between_last_access_and_cache_destroy;
+
+ protected:
+  L2Entry ***    tags;  // address + coherence state of a set-associative cache
+
   const uint32_t l2_to_l1_t;
   const uint32_t l2_to_dir_t;
   const uint32_t l2_to_xbar_t;
   const uint32_t num_flits_per_packet;
   uint32_t       num_banks_log2;
 
-  uint64_t       num_destroyed_cache_lines;
-  uint64_t       cache_line_life_time;
-  uint64_t       time_between_last_access_and_cache_destroy;
   uint64_t       num_ev_from_l1;
   uint64_t       num_ev_from_l1_miss;
   bool           always_hit;
@@ -194,6 +194,14 @@ class CacheL2 : public Cache {
   void test_tags(uint32_t set);
   inline void update_LRU(uint32_t idx, L2Entry ** tags_set, L2Entry * const set_it);
   inline void req_L1_evict(uint64_t curr_time, L2Entry * const set_it, uint64_t addr, LocalQueueElement * lqe, bool always);
+
+ public:
+  FRIEND_TEST(CoherenceTest, Case1);
+  FRIEND_TEST(CoherenceTest, Case2);
+  FRIEND_TEST(CoherenceTest, Case3);
+  FRIEND_TEST(CoherenceTest, Case4);
+  FRIEND_TEST(CoherenceTest, Case5);
+  FRIEND_TEST(CoherenceTest, Case6);
 };
 
 }  // namespace PinPthread

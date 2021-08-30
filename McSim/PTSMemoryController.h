@@ -50,14 +50,6 @@
 
 namespace PinPthread {
 
-// forward declaration of Google Test
-class MCSchedTest;
-
-class CheckBuild;
-class MCRequests;
-class MCProcessEvent;
-class MCSchedulingOpen;
-
 enum mc_bank_action {
   mc_bank_activate,
   mc_bank_read,
@@ -75,75 +67,68 @@ enum mc_scheduling_policy {
 
 class MemoryController : public Component {
  public:
-  class BankStatus {
-   public:
-    uint64_t action_time;
-    uint64_t page_num;
-    mc_bank_action action_type;
-    uint64_t last_activate_time;
-
-    explicit BankStatus(uint32_t num_entries): action_time(0), page_num(0), action_type(mc_bank_idle),
-      last_activate_time(0) {
-    }
-  };
-
   explicit MemoryController(component_type type_, uint32_t num_, McSim * mcsim_);
-  ~MemoryController();
+  virtual ~MemoryController();
 
   void add_req_event(uint64_t, LocalQueueElement *, Component * from = NULL);
   void add_rep_event(uint64_t, LocalQueueElement *, Component * from = NULL);
   uint32_t process_event(uint64_t curr_time);
+  void show_state(uint64_t curr_time);
 
   // Directory * directory;  // uplink
   Component * directory;  // uplink
   std::vector<LocalQueueElement *> req_l;
-  int32_t curr_batch_last;
 
-  uint32_t mc_to_dir_t;
-  uint32_t num_ranks_per_mc;
-  uint32_t num_banks_per_rank;
+  class BankStatus {
+   public:
+    explicit BankStatus(uint32_t num_entries):
+      action_time(0), page_num(0), action_type(mc_bank_idle),
+      last_activate_time(0) { }
 
- private:
+    uint64_t action_time;
+    uint64_t page_num;
+    mc_bank_action action_type;
+    uint64_t last_activate_time;
+  };
+
   // The unit of each t* value is "process_interval"
   // assume that RL = WL (in terms of DDRx)
-  uint32_t tRCD;
-  uint32_t tRR;
-  uint32_t tRP;
-  uint32_t tCL;           // CAS latency
-  uint32_t tBL;           // burst length
-  uint32_t tBBL;          // bank burst length
-  uint32_t tRAS;          // activate to precharge
+  const uint32_t tRCD;
+  const uint32_t tRR;
+  const uint32_t tRP;
+  const uint32_t tCL;           // CAS latency
+  const uint32_t tBL;           // burst length
+  const uint32_t tBBL;          // bank burst length
+  const uint32_t tRAS;          // activate to precharge
   // send multiple column level commands
-  uint32_t tWRBUB;        // WR->RD bubble between any ranks
-  uint32_t tRWBUB;        // RD->WR bubble between any ranks
-  uint32_t tRRBUB;        // RD->RD bubble between two different ranks
-  uint32_t tWTR;          // WR->RD time in the same rank
-  uint32_t req_window_sz;  // up to how many requests can be considered during scheduling
-  // uint32_t interleave_xor_base_bit;
+  const uint32_t tWRBUB;        // WR->RD bubble between any ranks
+  const uint32_t tRWBUB;        // RD->WR bubble between any ranks
+  const uint32_t tRRBUB;        // RD->RD bubble between two different ranks
+  const uint32_t tWTR;          // WR->RD time in the same rank
+  const uint32_t req_window_sz;  // up to how many requests can be considered during scheduling
+  const uint32_t mc_to_dir_t;
 
- public:
   const uint32_t rank_interleave_base_bit;
   const uint32_t bank_interleave_base_bit;
   const uint64_t page_sz_base_bit;   // byte addressing
   const uint32_t mc_interleave_base_bit;
-  const uint32_t num_mcs;
-  uint64_t      num_pages_per_bank; // set to public for MC unit test for a while
-  uint64_t      num_cached_pages_per_bank;
-  uint32_t      interleave_xor_base_bit;
+  const uint32_t interleave_xor_base_bit;
+  const uint32_t addr_offset_lsb;
 
- private:
+  const uint32_t num_hthreads;
+  const uint32_t num_mcs;
+  const uint32_t num_ranks_per_mc;
+  const uint32_t num_banks_per_rank;
+  const uint64_t num_pages_per_bank; // set to public for MC unit test for a while
+  const uint64_t num_cached_pages_per_bank;
+  const uint32_t num_pred_entries;
+
+  const bool     par_bs;  // parallelism-aware batch-scheduling
+
+  uint64_t num_reqs;
+
+ protected:
   mc_scheduling_policy policy;
-  bool           par_bs;  // parallelism-aware batch-scheduling
-  uint64_t      refresh_interval;
-  uint64_t      curr_refresh_page;
-  uint64_t      curr_refresh_bank;
-  // uint64_t      num_pages_per_bank;
-  // uint64_t      num_cached_pages_per_bank;
-  bool          full_duplex;
-  bool          is_fixed_latency;       // infinite BW
-  bool          is_fixed_bw_n_latency;  // take care of BW as well
-  uint64_t * pred_history;              // size : num_hthreads
-  uint32_t addr_offset_lsb;
 
   uint64_t num_read;
   uint64_t num_write;
@@ -155,17 +140,17 @@ class MemoryController : public Component {
   uint64_t num_pred_hit;
   uint64_t num_global_pred_miss;
   uint64_t num_global_pred_hit;
-  uint32_t num_pred_entries;
-
-  uint32_t base0, base1, base2;
-  uint32_t width0, width1, width2;
+  uint64_t * pred_history;              // size : num_hthreads
 
   uint64_t num_rw_interval;
   uint64_t num_conflict_interval;
   uint64_t num_pre_interval;
 
-  uint64_t last_process_time;
-  uint64_t packet_time_in_mc_acc;
+  uint64_t curr_refresh_page;
+  uint64_t curr_refresh_bank;
+
+  int32_t curr_batch_last;
+  int32_t * num_req_from_a_th;
 
   std::vector<std::vector<BankStatus>> bank_status;  // [rank][bank]
   std::vector<uint64_t> last_activate_time;          // [rank]
@@ -177,24 +162,19 @@ class MemoryController : public Component {
   std::map<uint64_t, mc_bank_action> rd_dp_status;   // reuse (RD,WR,IDLE) BankStatus
   std::map<uint64_t, mc_bank_action> wr_dp_status;   // reuse (RD,WR,IDLE) BankStatus
 
- public:
-  std::map<uint64_t, uint64_t> os_page_acc_dist;       // os page access distribution
-  std::map<uint64_t, uint64_t> os_page_acc_dist_curr;  // os page access distribution
-  bool     display_os_page_usage_summary;
-  bool     display_os_page_usage;
-  uint64_t num_reqs;
+  const uint64_t refresh_interval;
+  const bool     full_duplex;
+  const bool     is_fixed_latency;       // infinite BW
+  const bool     is_fixed_bw_n_latency;  // take care of BW as well
 
-  void     update_acc_dist();
+  uint64_t last_process_time;
+  uint64_t packet_time_in_mc_acc;
 
- private:
-  void show_state(uint64_t curr_time);
+  uint32_t base0, base1, base2;
+  uint32_t width0, width1, width2;
 
   void pre_processing(uint64_t curr_time);
   void check_bank_status(LocalQueueElement * local_event);
-
-  uint32_t num_hthreads;
-  int32_t * num_req_from_a_th;
-
   inline uint32_t get_rank_num(uint64_t addr) { 
     return ((addr >> rank_interleave_base_bit) ^ (addr >> interleave_xor_base_bit)) % num_ranks_per_mc;
   }
@@ -203,11 +183,28 @@ class MemoryController : public Component {
   }
   uint64_t get_page_num(uint64_t addr);
 
- protected:
-  FRIEND_TEST(MCSchedTest, CheckBuild);
-  FRIEND_TEST(MCSchedTest, MCRequests);
-  FRIEND_TEST(MCSchedTest, MCProcessEvent);
-  FRIEND_TEST(MCSchedTest, MCSchedulingOpen);
+ public:
+  std::map<uint64_t, uint64_t> os_page_acc_dist;       // os page access distribution
+  std::map<uint64_t, uint64_t> os_page_acc_dist_curr;  // os page access distribution
+  const bool     display_os_page_usage_summary;
+  const bool     display_os_page_usage;
+  void     update_acc_dist();
+};
+
+class MemoryControllerForTest : public MemoryController {
+ public:
+  explicit MemoryControllerForTest(component_type type_, uint32_t num_, McSim * mcsim_);
+  ~MemoryControllerForTest() { };
+  bool get_parbs() { return par_bs; }
+  bool get_policy() { return policy; }
+  uint32_t rank_num(uint64_t addr) { return get_rank_num(addr); }
+  uint32_t bank_num(uint64_t addr) { return get_bank_num(addr); }
+  uint64_t page_num(uint64_t addr) { return get_page_num(addr); }
+  uint64_t get_num_read() { return num_read; };
+  uint64_t get_num_write() { return num_write; };
+  uint64_t get_num_activate() { return num_activate; };
+  uint64_t get_num_precharge() { return num_precharge; };
+  BankStatus get_bank_status(uint rank, uint bank) { return bank_status[rank][bank]; }
 };
 
 }  // namespace PinPthread

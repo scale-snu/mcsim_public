@@ -68,9 +68,6 @@ MemoryController::MemoryController(
     McSim * mcsim_):
   Component(type_, num_, mcsim_),
   req_l(),
-  mc_to_dir_t(get_param_uint64("to_dir_t", 1000)),
-  num_ranks_per_mc(get_param_uint64("num_ranks_per_mc", 1)),
-  num_banks_per_rank(get_param_uint64("num_banks_per_rank", 8)),
   tRCD(get_param_uint64("tRCD", 10)),
   tRR(get_param_uint64("tRR",  5)),
   tRP(get_param_uint64("tRP",  tRP)),
@@ -83,38 +80,44 @@ MemoryController::MemoryController(
   tRRBUB(get_param_uint64("tRRBUB", 2)),
   tWTR(get_param_uint64("tWTR", 8)),
   req_window_sz(get_param_uint64("req_window_sz", 16)),
+  mc_to_dir_t(get_param_uint64("to_dir_t", 1000)),
   rank_interleave_base_bit(get_param_uint64("rank_interleave_base_bit", 14)),
   bank_interleave_base_bit(get_param_uint64("bank_interleave_base_bit", 14)),
   page_sz_base_bit(get_param_uint64("page_sz_base_bit", 12)),
   mc_interleave_base_bit(get_param_uint64("interleave_base_bit", 12)),
+  interleave_xor_base_bit(get_param_uint64("interleave_xor_base_bit", 20)),
+  addr_offset_lsb(get_param_uint64("addr_offset_lsb", "", 48)),
+  num_hthreads(mcsim_->get_num_hthreads()),
   num_mcs(get_param_uint64("num_mcs", "pts.", 2)),
-  num_read(0), num_write(0), num_activate(0), num_precharge(0),
-  num_write_to_read_switch(0), num_refresh(0),
-  num_pred_miss(0), num_pred_hit(0), num_global_pred_miss(0), num_global_pred_hit(0),
+  num_ranks_per_mc(get_param_uint64("num_ranks_per_mc", 1)),
+  num_banks_per_rank(get_param_uint64("num_banks_per_rank", 8)),
+  num_pages_per_bank(get_param_uint64("num_pages_per_bank", 8192)),
+  num_cached_pages_per_bank(get_param_uint64("num_cached_pages_per_bank", 4)),
   num_pred_entries(get_param_uint64("num_pred_entries", 1)),
+  par_bs(get_param_bool("par_bs", false)),
+  num_reqs(0), num_read(0), num_write(0), num_activate(0),
+  num_precharge(0), num_write_to_read_switch(0), num_refresh(0),
+  num_pred_miss(0), num_pred_hit(0), num_global_pred_miss(0), num_global_pred_hit(0),
+  num_rw_interval(0), num_conflict_interval(0), num_pre_interval(0),
+  curr_refresh_page(0), curr_refresh_bank(0), curr_batch_last(-1),
   bank_status(num_ranks_per_mc, std::vector<BankStatus>(num_banks_per_rank, BankStatus(num_pred_entries))),
   last_activate_time(num_ranks_per_mc, 0),
   last_write_time(num_ranks_per_mc, 0),
   last_read_time(std::pair<uint32_t, uint64_t>(0, 0)),
   last_read_time_rank(num_ranks_per_mc, 0),
   is_last_time_write(num_ranks_per_mc, false),
-  dp_status(),
-  rd_dp_status(),
-  wr_dp_status() {
+  dp_status(), rd_dp_status(), wr_dp_status(),
+  refresh_interval(get_param_uint64("refresh_interval",  0)),
+  full_duplex(get_param_bool("full_duplex", false)),
+  is_fixed_latency(get_param_bool("is_fixed_latency", false)),
+  is_fixed_bw_n_latency(get_param_bool("is_fixed_bw_n_latency", false)),
+  last_process_time(0), packet_time_in_mc_acc(0),
+  display_os_page_usage_summary(get_param_bool("display_os_page_usage_summary", false)),
+  display_os_page_usage(get_param_bool("display_os_page_usage", false)) {
   process_interval = get_param_uint64("process_interval", 10);
   // TODO(gajh): refresh implementation should be restored soon.
-  refresh_interval = get_param_uint64("refresh_interval",  0);
-
-  if (refresh_interval != 0) {
-    geq->add_event(refresh_interval, this);
-  }
-  curr_refresh_page = 0;
-  curr_refresh_bank = 0;
-  num_pages_per_bank = get_param_uint64("num_pages_per_bank", 8192);
-  num_cached_pages_per_bank = get_param_uint64("num_cached_pages_per_bank", 4);
-  interleave_xor_base_bit = get_param_uint64("interleave_xor_base_bit", 20);
-  addr_offset_lsb = get_param_uint64("addr_offset_lsb", "", 48);
-
+  if (refresh_interval != 0) geq->add_event(refresh_interval, this);
+  
   if (get_param_str("scheduling_policy") == "open") {
     policy = mc_scheduling_open;
   } else if (get_param_str("scheduling_policy") == "pred") {
@@ -122,10 +125,6 @@ MemoryController::MemoryController(
   } else {
     policy = mc_scheduling_closed;
   }
-
-  num_rw_interval       = 0;
-  num_conflict_interval = 0;
-
   // variables below are used to find page_num quickly
   std::multimap<uint32_t, uint32_t> interleavers;
   interleavers.insert(std::pair<uint32_t, uint32_t>(rank_interleave_base_bit, num_ranks_per_mc));
@@ -137,26 +136,12 @@ MemoryController::MemoryController(
   base1 = iter->first; width1 = iter->second; ++iter;
   base0 = iter->first; width0 = iter->second; ++iter;
 
-  par_bs      = get_param_bool("par_bs", false);
-  full_duplex = get_param_bool("full_duplex", false);
-
-  is_fixed_latency      = get_param_bool("is_fixed_latency", false);
-  is_fixed_bw_n_latency = get_param_bool("is_fixed_bw_n_latency", false);
-
-  display_os_page_usage = get_param_bool("display_os_page_usage", false);
-  num_reqs              = 0;
-
-  curr_batch_last       = -1;
-  num_hthreads          = mcsim_->get_num_hthreads();
   pred_history          = new uint64_t[num_hthreads];;
   num_req_from_a_th     = new int32_t[num_hthreads];
   for (uint32_t i = 0; i < num_hthreads; i++) {
     num_req_from_a_th[i] = 0;
     pred_history[i]      = 0;
   }
-
-  last_process_time     = 0;
-  packet_time_in_mc_acc = 0;
 }
 
 
@@ -330,6 +315,7 @@ uint32_t MemoryController::process_event(uint64_t curr_time) {
     // check constraints
     const uint64_t & address  = (*iter)->address;
     const event_type type   = (*iter)->type;
+    const uint32_t th_id   = (*iter)->th_id;
     const uint32_t rank_num = get_rank_num(address);
     const uint32_t bank_num = get_bank_num(address);
     const uint64_t page_num = get_page_num(address);
@@ -348,7 +334,7 @@ uint32_t MemoryController::process_event(uint64_t curr_time) {
       case mc_bank_idle:
         if (page_hit == false &&  // page_hit has priority 2
             last_activate_time[rank_num] + tRR*process_interval <= curr_time) {
-          int32_t n_req_from_curr_th = num_req_from_a_th[(*iter)->th_id];
+          int32_t n_req_from_curr_th = num_req_from_a_th[th_id];
           if (n_req_from_curr_th < num_req_from_the_same_thread ||
               (n_req_from_curr_th == num_req_from_the_same_thread && c_idx == -1)) {
             c_idx  = i;
@@ -392,7 +378,7 @@ uint32_t MemoryController::process_event(uint64_t curr_time) {
             if (need_precharge == true &&
                 page_hit == false &&  // page_hit has priority 2
                 last_activate_time[rank_num] + tRR*process_interval <= curr_time) {
-              int32_t n_req_from_curr_th = num_req_from_a_th[(*iter)->th_id];
+              int32_t n_req_from_curr_th = num_req_from_a_th[th_id];
               if (n_req_from_curr_th < num_req_from_the_same_thread ||
                   (n_req_from_curr_th == num_req_from_the_same_thread && c_idx == -1)) {
                 c_idx  = i;
@@ -484,11 +470,11 @@ uint32_t MemoryController::process_event(uint64_t curr_time) {
           }
           if (met_constraints == true &&
               (page_hit == false ||  // this request is page_hit
-               num_req_from_a_th[(*iter)->th_id] < num_req_from_the_same_thread)) {
+               num_req_from_a_th[th_id] < num_req_from_the_same_thread)) {
             c_idx  = i;
             c_iter = iter;
             page_hit = true;
-            num_req_from_the_same_thread = num_req_from_a_th[(*iter)->th_id];
+            num_req_from_the_same_thread = num_req_from_a_th[th_id];
           }
         }
         break;
@@ -505,6 +491,7 @@ uint32_t MemoryController::process_event(uint64_t curr_time) {
     // check bank_status
     const uint64_t address  = (*iter)->address;
     const event_type type   = (*iter)->type;
+    const uint32_t th_id = (*iter)->th_id;
     const uint32_t rank_num = get_rank_num(address);
     const uint32_t bank_num = get_bank_num(address);
     const uint64_t page_num = get_page_num(address);
@@ -590,7 +577,7 @@ uint32_t MemoryController::process_event(uint64_t curr_time) {
               LOG(FATAL) << "currenly at req_l[" << i << "]\n";
               break;
           }
-          if (par_bs == true) num_req_from_a_th[(*iter)->th_id]--;
+          if (par_bs == true) num_req_from_a_th[th_id]--;
           if (policy == mc_scheduling_open) {
             curr_bank.action_type = curr_action_type;
           } else {
@@ -684,5 +671,8 @@ void MemoryController::check_bank_status(LocalQueueElement * local_event) {
   }
   num_rw_interval++;
 }
+
+MemoryControllerForTest::MemoryControllerForTest(component_type type_, uint32_t num_, McSim * mcsim_):
+  MemoryController(type_, num_, mcsim_) { }
 
 }  // namespace PinPthread

@@ -53,6 +53,7 @@ Cache::Cache(
     uint32_t num_,
     McSim * mcsim_):
   Component(type_, num_, mcsim_),
+  set_lsb(get_param_uint64("set_lsb", 6)),
   num_rd_access(0), num_rd_miss(0),
   num_wr_access(0), num_wr_miss(0),
   num_ev_coherency(0), num_ev_capacity(0),
@@ -61,7 +62,6 @@ Cache::Cache(
   num_banks = get_param_uint64("num_banks", 1);
   req_qs    = std::vector< std::queue<LocalQueueElement * > >(num_banks);
 }
-
 
 void Cache::display_event(uint64_t curr_time, LocalQueueElement * lqe, const std::string & postfix) {
   if (lqe->address >> set_lsb == search_addr >> set_lsb) {
@@ -85,7 +85,6 @@ CacheL1::CacheL1(
   l1_to_l2_t(get_param_uint64("to_l2_t", 45)) {
   num_sets   = get_param_uint64("num_sets", 64);
   num_ways   = get_param_uint64("num_ways",  4);
-  set_lsb    = get_param_uint64("set_lsb",   6);
   always_hit = get_param_bool("always_hit", false);
   process_interval = get_param_uint64("process_interval", 10);
   l2_set_lsb = get_param_uint64("set_lsb", "pts.l2$.", set_lsb);
@@ -431,6 +430,10 @@ uint32_t CacheL1::process_event(uint64_t curr_time) {
           }
         }
       }
+      if (etype == et_read && use_prefetch == true) {
+        // currently prefetch is conducted for read requests only.
+        do_prefetch(curr_time, *req_lqe);
+      }
 
       if (hit == false) {
         if (is_coherence_miss == false) {
@@ -440,11 +443,6 @@ uint32_t CacheL1::process_event(uint64_t curr_time) {
         cachel2->add_req_event(curr_time + l1_to_l2_t, req_lqe);
       } else {
         add_event_to_lsu(curr_time, req_lqe);
-      }
-
-      if (etype == et_read && use_prefetch == true) {
-        // currently prefetch is conducted for read requests only.
-        do_prefetch(curr_time, *req_lqe);
       }
     }
   }
@@ -589,7 +587,6 @@ CacheL2::CacheL2(
   num_flits_per_packet(get_param_uint64("num_flits_per_packet", 1)) {
     num_sets         = get_param_uint64("num_sets",  512);
     num_ways         = get_param_uint64("num_ways",  8);
-    set_lsb          = get_param_uint64("set_lsb",   6);
     process_interval = get_param_uint64("process_interval", 20);
     num_banks_log2   = log2(num_banks);
 
@@ -695,6 +692,14 @@ CacheL2::~CacheL2() {
       << 1.0 * time_between_last_access_and_cache_destroy / (process_interval * num_destroyed_cache_lines)
       << ") L2$ cycles" << std::endl;
   }
+
+  for (uint32_t j = 0; j < num_sets; j++) {
+    for (uint32_t k = 0; k < num_ways; k++) {
+      delete tags[j][k];
+    }
+    delete[] tags[j];
+  }
+  delete[] tags;
 }
 
 
