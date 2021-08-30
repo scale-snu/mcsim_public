@@ -58,17 +58,20 @@ Directory::Directory(
   dir_to_l2_t(get_param_uint64("to_l2_t", 140)),
   dir_to_xbar_t(get_param_uint64("to_xbar_t", 350)),
   num_flits_per_packet(get_param_uint64("num_flits_per_packet", 1)),
-  num_nack(0), num_bypass(0),
+  num_acc(0), num_nack(0), num_bypass(0),
   num_i_to_tr(0), num_e_to_tr(0), num_s_to_tr(0), num_m_to_tr(0), num_m_to_i(0),
   num_tr_to_i(0), num_tr_to_e(0), num_tr_to_s(0), num_tr_to_m(0),
   num_evict(0), num_invalidate(0), num_from_mc(0),
-  num_dir_cache_access(0), num_dir_cache_miss(0), num_dir_cache_retry(0), num_dir_evict(0) {
+  num_dir_cache_miss(0), num_dir_cache_retry(0), num_dir_evict(0) {
   process_interval        = get_param_uint64("process_interval", 50);
   has_directory_cache     = get_param_bool("has_directory_cache", false);
   use_limitless           = get_param_bool("use_limitless", false);
   limitless_broadcast_threshold = get_param_uint64("limitless_broadcast_threshold", 4);
 
-  dir_cache = std::vector< std::list<uint64_t> >(num_sets);
+  if (has_directory_cache) {
+    dir_cache = std::vector< std::list<uint64_t> >(num_sets);
+  }
+
   num_sharer_histogram = std::vector<uint64_t>(mcsim->l2s.size()+1, 0);
 }
 
@@ -85,12 +88,15 @@ Directory::~Directory() {
          << num_m_to_i << ", "
          << num_tr_to_i << ", " << num_tr_to_e << ", " << num_tr_to_s << ", " << num_tr_to_m << ")" << std::endl;
     std::cout << "  -- Dir [" << std::setw(3) << num
-         << "] : (nack, bypass, ev, inv, from_mc, dir_acc, dir$_miss, dir$_retry, dir$_ev) = ("
-         << num_nack << ", " << num_bypass << ", " << num_evict << ", "
-         << num_invalidate << ", " << num_from_mc << ", "
-         << num_dir_cache_access << ", " << num_dir_cache_miss << ", "
+         << "] : (acc, nack, bypass, ev, inv, from_mc) = ("
+         << num_acc << num_nack << ", " << num_bypass << ", " << num_evict << ", "
+         << num_invalidate << ", " << num_from_mc << ")" << std::endl;
+    if (has_directory_cache) {
+      std::cout << "  -- Dir [" << std::setw(3) << num
+         << "] : (dir$_acc, dir$_miss, dir$_retry, dir$_ev) = ("
+         << num_dir_cache_miss << ", "
          << num_dir_cache_retry << ", " << num_dir_evict << "), ";
-
+    }
     for (unsigned int i = 1; i < num_sharer_histogram.size(); i++) {
       std::cout << num_sharer_histogram[i] << ", ";
     }
@@ -151,7 +157,7 @@ uint32_t Directory::process_event(uint64_t curr_time) {
 
   LocalQueueElement * rep_lqe = nullptr;
   LocalQueueElement * req_lqe = nullptr;
-  num_dir_cache_access++;
+  num_acc++;
 
   // event -> queue
   if (rep_q.empty() == false) {

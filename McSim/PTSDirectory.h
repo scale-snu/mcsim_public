@@ -44,6 +44,19 @@ namespace PinPthread {
 
 class Directory : public Component {
  public:
+  explicit Directory(component_type type_, uint32_t num_, McSim * mcsim_);
+  virtual ~Directory();
+
+  void add_req_event(uint64_t, LocalQueueElement *, Component * from = NULL);
+  void add_rep_event(uint64_t, LocalQueueElement *, Component * from = NULL);
+  uint32_t process_event(uint64_t curr_time);
+  void show_state(uint64_t);
+
+  // MemoryController * memorycontroller;  // downlink
+  Component * memorycontroller;  // downlink
+  CacheL2   * cachel2;    // uplink
+  NoC       * crossbar;   // uplink
+
   class DirEntry {
    public:
     coherence_state_type type;
@@ -55,14 +68,6 @@ class Directory : public Component {
 
     DirEntry() : type(cs_invalid), sharedl2(), pending(NULL), got_cl(false), not_in_dc(false), num_sharer(0) { }
   };
-
-  explicit Directory(component_type type_, uint32_t num_, McSim * mcsim_);
-  ~Directory();
-
-  // MemoryController * memorycontroller;  // downlink
-  Component * memorycontroller;  // downlink
-  CacheL2          * cachel2;           // uplink
-  NoC              * crossbar;          // uplink
 
   const uint32_t set_lsb;
   const uint32_t num_sets;
@@ -81,6 +86,7 @@ class Directory : public Component {
   uint32_t limitless_broadcast_threshold;
 
   // stats
+  uint64_t num_acc;
   uint64_t num_nack;
   uint64_t num_bypass;  // miss after miss
   uint64_t num_i_to_tr;
@@ -95,15 +101,9 @@ class Directory : public Component {
   uint64_t num_evict;   // requests from L2 since a cache is evicted
   uint64_t num_invalidate;
   uint64_t num_from_mc;
-  uint64_t num_dir_cache_access;
   uint64_t num_dir_cache_miss;
   uint64_t num_dir_cache_retry;
   uint64_t num_dir_evict;
-
-  void add_req_event(uint64_t, LocalQueueElement *, Component * from = NULL);
-  void add_rep_event(uint64_t, LocalQueueElement *, Component * from = NULL);
-  uint32_t process_event(uint64_t curr_time);
-  void show_state(uint64_t);
 
   inline void remove_directory_cache_entry(uint32_t set, uint64_t dir_entry);
   void add_event_to_UL(uint64_t curr_time, LocalQueueElement *, bool is_data);
@@ -112,7 +112,6 @@ class Directory : public Component {
       Component * comp,
       LocalQueueElement * lqe);
 };
-
 
 }  // namespace PinPthread
 
