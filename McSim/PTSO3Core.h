@@ -127,9 +127,32 @@ class O3Core : public Component {
   TLBL1   * tlbl1i;
   BranchPredictor * bp;
 
+  const uint32_t num_hthreads;
+
+  const uint32_t lsu_to_l1i_t;
+  const uint32_t lsu_to_l1d_t;
+  const uint32_t lsu_to_l1i_t_for_x87_op;
+  const uint32_t spinning_slowdown;
+
+  const bool     bypass_tlb;
+  const uint32_t consecutive_nack_threshold;
+  const bool     display_barrier;
+  const bool     was_nack;
+  const bool     mimick_inorder;
+
+  const uint32_t o3queue_max_size;
+  const uint32_t o3rob_max_size;
+  const uint32_t max_issue_width;
+  const uint32_t max_commit_width;
+  const int32_t  max_alu;
+  const int32_t  max_ldst;
+  const int32_t  max_ld;
+  const int32_t  max_st;
+  const int32_t  max_sse;
+
+  friend class McSim;
 
  protected:
-  uint32_t num_hthreads;
   bool     is_active;
   bool     active;
 
@@ -140,7 +163,6 @@ class O3Core : public Component {
   // pointer to the member variables in the corresponding Pthread object
   ADDRINT stack;
   ADDRINT stacksize;
-
   uint64_t resume_time;
   // uint64_t mem_time;
 
@@ -154,49 +176,27 @@ class O3Core : public Component {
   uint64_t total_mem_wr_time;
   uint64_t total_mem_rd_time;
 
-  const uint32_t lsu_to_l1i_t;
-  const uint32_t lsu_to_l1d_t;
-  const uint32_t lsu_to_l1i_t_for_x87_op;
   uint32_t branch_miss_penalty;
-  const uint32_t spinning_slowdown;
-  bool           bypass_tlb;
   uint32_t lock_t;
   uint32_t unlock_t;
   uint32_t barrier_t;
   uint32_t sse_t;
-  const uint32_t consecutive_nack_threshold;
-  bool           display_barrier;
-  bool           was_nack;
-  bool           mimick_inorder;
 
   std::queue<std::pair<ins_type, uint64_t>> mem_acc;
   O3Queue * o3queue;
-  uint32_t  o3queue_max_size;
   uint32_t  o3queue_head;
   uint32_t  o3queue_size;
   O3ROB   * o3rob;
-  uint32_t  o3rob_max_size;
   uint32_t  o3rob_head;
   uint32_t  o3rob_size;
-  uint32_t  max_issue_width;
-  uint32_t  max_commit_width;
   uint64_t  latest_ip;
   uint64_t  latest_bmp_time;  // latest branch miss prediction time
-  int32_t   max_alu;
-  int32_t   max_ldst;
-  int32_t   max_ld;
-  int32_t   max_st;
-  int32_t   max_sse;
 
   bool      is_private(ADDRINT);
 
   void displayO3Queue();
   void displayO3ROB();
-
   bool IsRegDep(uint32_t rr, const O3ROB & o3rob_);
-
- public:
-  friend class McSim;
 };
 
 }  // namespace PinPthread

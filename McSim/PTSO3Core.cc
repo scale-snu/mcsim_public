@@ -42,9 +42,8 @@
 namespace PinPthread {
 
 BranchPredictor::BranchPredictor(uint32_t num_entries_, uint32_t gp_size_):
-  num_entries(num_entries_), gp_size(gp_size_), bimodal_entry(num_entries, 1),
-  global_history(0) {
-}
+  num_entries(num_entries_), gp_size(gp_size_),
+  bimodal_entry(num_entries, 1), global_history(0) { }
 
 
 bool BranchPredictor::miss(uint64_t addr, bool taken) {
@@ -92,37 +91,37 @@ O3Core::O3Core(
     McSim * mcsim_):
   Component(type_, num_, mcsim_),
   num_hthreads(get_param_uint64("num_hthreads", "pts.", max_hthreads)),
-  is_active(), active(false), last_time_no_mem_served(0),
-  last_time_mem_served(0), num_bubbled_slots(0),
-  stack(0), stacksize(0), resume_time(0),
-  num_instrs(0), num_branch(0), num_branch_miss(0), num_nacks(0),
-  num_consecutive_nacks(0), num_x87_ops(0), num_call_ops(0),
-  total_mem_wr_time(0), total_mem_rd_time(0),
   lsu_to_l1i_t(get_param_uint64("to_l1i_t", 10)),
   lsu_to_l1d_t(get_param_uint64("to_l1d_t", 10)),
   lsu_to_l1i_t_for_x87_op(get_param_uint64("to_l1i_t_for_x87_op", lsu_to_l1i_t)),
-  branch_miss_penalty(get_param_uint64("branch_miss_penalty", 100)),
   spinning_slowdown(get_param_uint64("spinning_slowdown", 10)),
   bypass_tlb(get_param_bool("bypass_tlb", false)),
-  lock_t(get_param_uint64("lock_t", 100)),
-  unlock_t(get_param_uint64("unlock_t", 100)),
-  barrier_t(get_param_uint64("barrier_t", 100)),
-  sse_t(get_param_uint64("sse_t", 40)),
   consecutive_nack_threshold(get_param_uint64("consecutive_nack_threshold", 1000)),
   display_barrier(get_param_bool("display_barrier", false)),
   was_nack(false), mimick_inorder(get_param_bool("mimick_inorder", false)),
   o3queue_max_size(get_param_uint64("o3queue_max_size", 64) + 4),
-  o3queue_head(0), o3queue_size(0),
   o3rob_max_size(get_param_uint64("o3rob_max_size", 16)),
-  o3rob_head(0), o3rob_size(0),
   max_issue_width(get_param_uint64("max_issue_width", 4)),
   max_commit_width(get_param_uint64("max_commit_width", 4)),
-  latest_ip(0), latest_bmp_time(0),
   max_alu(get_param_uint64("max_alu", max_commit_width)),
   max_ldst(get_param_uint64("max_ldst", max_commit_width)),
   max_ld(get_param_uint64("max_ld",   max_commit_width)),
   max_st(get_param_uint64("max_st",   max_commit_width)),
-  max_sse(get_param_uint64("max_sse",  max_commit_width)) {
+  max_sse(get_param_uint64("max_sse",  max_commit_width)),
+  is_active(), active(false),
+  last_time_no_mem_served(0), last_time_mem_served(0), num_bubbled_slots(0),
+  stack(0), stacksize(0), resume_time(0),
+  num_instrs(0), num_branch(0), num_branch_miss(0), num_nacks(0),
+  num_consecutive_nacks(0), num_x87_ops(0), num_call_ops(0),
+  total_mem_wr_time(0), total_mem_rd_time(0),
+  branch_miss_penalty(get_param_uint64("branch_miss_penalty", 100)),
+  lock_t(get_param_uint64("lock_t", 100)),
+  unlock_t(get_param_uint64("unlock_t", 100)),
+  barrier_t(get_param_uint64("barrier_t", 100)),
+  sse_t(get_param_uint64("sse_t", 40)),
+  o3queue_head(0), o3queue_size(0),
+  o3rob_head(0), o3rob_size(0),
+  latest_ip(0), latest_bmp_time(0) {
   process_interval    = get_param_uint64("process_interval", 80);
   branch_miss_penalty = ceil_by_y(branch_miss_penalty, process_interval);
   lock_t              = ceil_by_y(lock_t,              process_interval);
