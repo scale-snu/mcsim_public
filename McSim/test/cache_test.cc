@@ -69,13 +69,6 @@ TEST_F(CacheTest, BasicCase) {
   EXPECT_EQ((unsigned int)1, test_l2->get_num_rd_miss());
 
   EXPECT_EQ((unsigned int)1, test_l2->crossbar->num_req);
-
-  curr_time += 40;  // l2_to_xbar_t == 40 
-  test_l2->crossbar->process_event(curr_time);
-  // 다른 directory에 event 넘어감 (et_read)
-  curr_time += 40;  // xbar_to_dir_t == 40
- 
-  test_l2->geq->process_event_isolateTEST(ct_directory);
   
   delete test_event;
 }

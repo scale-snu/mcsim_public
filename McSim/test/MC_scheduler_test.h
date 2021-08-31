@@ -61,6 +61,7 @@ class MCSchedTest : public ::testing::Test {
 
     void clear_geq() { test_mc->geq->event_queue.clear(); }
     LocalQueueElement * create_read_event(uint64_t _address);
+    void geq_process_event();
 };
 
 }

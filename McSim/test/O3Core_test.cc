@@ -46,7 +46,7 @@ TEST_F(O3CoreTest, Fetch) {
   test_o3core->set_o3queue_head(0);
 
   test_o3core->geq->add_event(10, test_o3core);
-  test_o3core->geq->process_event_isolateTEST(ct_o3core);
+  test_o3core->process_event(10);
 
   EXPECT_EQ(o3iqs_being_loaded, test_o3queue[0].state);
 
@@ -67,7 +67,7 @@ TEST_F(O3CoreTest, Fetch) {
   test_o3core->set_o3queue_head(0);
   
   test_o3core->geq->add_event(10, test_o3core);
-  test_o3core->geq->process_event_isolateTEST(ct_o3core);
+  test_o3core->process_event(10);
 
   EXPECT_EQ(o3iqs_being_loaded, test_o3queue[0].state);
   EXPECT_EQ(o3iqs_not_in_queue, test_o3queue[1].state);
@@ -108,7 +108,7 @@ TEST_F(O3CoreTest, Dispatch) {
   test_o3core->set_o3rob_size(1);
 
   test_o3core->geq->add_event(10, test_o3core);
-  test_o3core->geq->process_event_isolateTEST(ct_o3core);
+  test_o3core->process_event(10);
 
   // after process_event() call
   EXPECT_EQ((int32_t)0, test_o3rob[1].rr0);  // true dependency (pointing rob[0])
@@ -138,7 +138,7 @@ TEST_F(O3CoreTest, Dispatch) {
   test_o3core->set_o3queue_head(1);
 
   test_o3core->geq->add_event(10, test_o3core);
-  test_o3core->geq->process_event_isolateTEST(ct_o3core);
+  test_o3core->process_event(10);
 
   EXPECT_EQ((uint32_t)0, test_o3core->get_o3queue_size());   // 1 - 1 --> 0
   EXPECT_EQ((uint32_t)2, test_o3core->get_o3queue_head());   // 1 + 1 --> 2
@@ -249,7 +249,7 @@ TEST_F(O3CoreTest, Commit) {
 
   // CHECK in-order commit
   test_o3core->geq->add_event(10, test_o3core);
-  test_o3core->geq->process_event_isolateTEST(ct_o3core);
+  test_o3core->process_event(10);
 
   EXPECT_EQ(o3irs_invalid, test_o3rob[0].state);    // commit
   EXPECT_EQ(o3irs_invalid, test_o3rob[1].state);    // commit
@@ -263,7 +263,7 @@ TEST_F(O3CoreTest, Commit) {
   // CHECK time constraints
   test_o3rob[2].state = o3irs_completed;
   test_o3core->geq->add_event(20, test_o3core);
-  test_o3core->geq->process_event_isolateTEST(ct_o3core);
+  test_o3core->process_event(20);
 
   EXPECT_EQ(o3irs_invalid, test_o3rob[2].state);    // commit
   EXPECT_EQ(o3irs_invalid, test_o3rob[3].state);    // commit
@@ -276,7 +276,7 @@ TEST_F(O3CoreTest, Commit) {
 
   // CHECK all instructions completed well
   test_o3core->geq->add_event(50, test_o3core);
-  test_o3core->geq->process_event_isolateTEST(ct_o3core);
+  test_o3core->process_event(50);
 
   EXPECT_EQ(o3irs_invalid, test_o3rob[6].state);
   EXPECT_EQ((uint32_t)0, test_o3core->get_o3rob_size());

@@ -46,7 +46,8 @@ TEST_F(TLBTest, ITLBReqEvent) {
 }
 
 TEST_F(TLBTest, ITLBProcessEvent) {
-  test_tlbl1i->geq->process_event_isolateTEST(ct_tlbl1i);
+  test_tlbl1i->process_event(10);
+  test_tlbl1i->process_event(20);
 
   // the # of misses is 1 because the accesses have occured at the same address
   EXPECT_EQ((uint64_t)1, test_tlbl1i->get_num_miss());
@@ -63,8 +64,8 @@ TEST_F(TLBTest, ITLBProcessEvent) {
     address = TEST_ADDR_I + ((1 << test_tlbl1i->page_sz_log2)*i);
     events.push_back(create_tlb_read_event(address, test_o3core));
     test_tlbl1i->add_req_event(20 + i*10, events.back());
+    test_tlbl1i->process_event(20 + i*10);
   }
-  test_tlbl1i->geq->process_event_isolateTEST(ct_tlbl1i);
   
   EXPECT_EQ((uint64_t)65, test_tlbl1i->get_num_miss());   // 1 + 64
   EXPECT_EQ((uint64_t)66, test_tlbl1i->get_num_access()); // 2 + 64
@@ -96,8 +97,9 @@ TEST_F(TLBTest, DTLBReqEvent) {
 }
 
 TEST_F(TLBTest, DTLBProcessEvent) {
-  test_tlbl1d->geq->process_event_isolateTEST(ct_tlbl1d);
-  
+  test_tlbl1d->process_event(10);
+  test_tlbl1d->process_event(20);
+
   // the # of misses is 1 because the accesses have occured at the same address
   EXPECT_EQ((uint64_t)1, test_tlbl1d->get_num_miss());
   EXPECT_EQ((uint64_t)2, test_tlbl1d->get_num_access());
@@ -117,8 +119,8 @@ TEST_F(TLBTest, DTLBProcessEvent) {
     events.back()->rob_entry = rob_entry_num;
 
     test_tlbl1d->add_req_event(20 + 10*i, events.back());
+    test_tlbl1d->process_event(20 + 10*i);
   }
-  test_tlbl1d->geq->process_event_isolateTEST(ct_tlbl1d);
 
   EXPECT_EQ((uint64_t)65, test_tlbl1d->get_num_miss());   // 1 + 64
   EXPECT_EQ((uint64_t)66, test_tlbl1d->get_num_access()); // 2 + 64
@@ -134,8 +136,7 @@ TEST_F(TLBTest, DTLBProcessEvent) {
   events.back()->rob_entry = 0;
 
   test_tlbl1d->add_req_event(1000, events.back());
-
-  test_tlbl1d->geq->process_event_isolateTEST(ct_tlbl1d);
+  test_tlbl1d->process_event(1000);
 
   EXPECT_EQ((uint64_t)66, test_tlbl1d->get_num_miss());   // 65 + 1
   EXPECT_EQ((uint64_t)67, test_tlbl1d->get_num_access()); // 66 + 1
