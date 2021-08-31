@@ -67,11 +67,9 @@ Component::Component(
     component_type type_,
     uint32_t num_,
     McSim * mcsim_):
-  type(type_), num(num_), mcsim(mcsim_), geq(mcsim_->global_q) {
-  mcsim->comps.push_back(this);
-}
+  type(type_), num(num_), mcsim(mcsim_), geq(mcsim_->global_q) { }
 
-Component::~Component() { mcsim->comps.pop_back(); }
+Component::~Component() { }
 
 void Component::display() { std::cout << *this; }
 
@@ -82,7 +80,7 @@ std::ostream & Component::print(std::ostream & out) const {
 }
 
 
-const char * Component::prefix_str() const {
+const std::string Component::prefix_str() const {
   switch (type) {
     case ct_core:     return "pts.core.";
     case ct_o3core:    return "pts.o3core.";

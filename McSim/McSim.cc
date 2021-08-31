@@ -64,7 +64,7 @@ std::ostream& operator<<(std::ostream & output, component_type ct) {
     case ct_tlbl1d:    output << "ct_tlbl1d"; break;
     case ct_tlbl1i:    output << "ct_tlbl1i"; break;
     case ct_tlbl2:     output << "ct_tlbl2"; break;
-    default: output << ct; break;
+    default:           output << ct; break;
   }
   return output;
 }
@@ -103,7 +103,7 @@ std::ostream & operator << (std::ostream & output, event_type et) {
     case et_rd_dir_info_req: output << "et_rdiq"; break;
     case et_rd_dir_info_rep: output << "et_rdip"; break;
     case et_nop:        output << "et_nop"; break;
-    default: break;
+    default:            output << et; break;
   }
   return output;
 }
@@ -121,7 +121,7 @@ std::ostream & operator << (std::ostream & output, coherence_state_type cs) {
     case cs_tr_to_m:   output << "cs_tr_to_m"; break;
     case cs_tr_to_e:   output << "cs_tr_to_e"; break;
     case cs_m_to_s:    output << "cs_m_to_s"; break;
-    default: break;
+    default:           output << cs; break;
   }
   return output;
 }
@@ -143,7 +143,7 @@ std::ostream & operator << (std::ostream & output, ins_type it) {
     case ins_notify:  output << "ins_notify"; break;
     case ins_waitfor: output << "ins_waitfor"; break;
     case ins_invalid: output << "ins_invalid"; break;
-    default: break;
+    default:          output << it; break;
   }
   return output;
 }
@@ -159,7 +159,7 @@ McSim::McSim(PthreadTimingSimulator * pts_)
   max_acc_queue_size(pts_->get_param_uint64("pts.max_acc_queue_size", 1000)),
   num_hthreads(pts->get_param_uint64("pts.num_hthreads", max_hthreads)),
   print_interval(pts->get_param_uint64("pts.print_interval", 1000000)),
-  l1ds(), l1is(), l2s(), dirs(), mcs(), tlbl1ds(), tlbl1is(), comps(),
+  l1ds(), l1is(), l2s(), dirs(), mcs(), tlbl1ds(), tlbl1is(),
   num_fetched_instrs(0), num_instrs_printed_last_time(0),
   num_destroyed_cache_lines_last_time(0), cache_line_life_time_last_time(0),
   time_between_last_access_and_cache_destroy_last_time(0),
@@ -193,7 +193,15 @@ McSim::~McSim() {
 
 
 void McSim::show_state(uint64_t addr) {
-  for (auto && el : comps) el->show_state(addr);
+  for (auto && el : o3cores) el->show_state(addr);
+  for (auto && el : tlbl1is) el->show_state(addr);
+  for (auto && el : tlbl1ds) el->show_state(addr);
+  for (auto && el : l1is) el->show_state(addr);
+  for (auto && el : l1ds) el->show_state(addr);
+  for (auto && el : l2s) el->show_state(addr);
+  for (auto && el : mcs) el->show_state(addr);
+  for (auto && el : dirs) el->show_state(addr);
+  noc->show_state(addr);
 }
 
 

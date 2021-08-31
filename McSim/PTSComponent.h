@@ -95,13 +95,13 @@ enum event_type {
 struct LocalQueueElement {
   std::stack<Component *> from;  // where it is from
   event_type type;
-  uint64_t   address;
-  uint32_t   th_id;
+  UINT64     address;
+  UINT32     th_id;
   bool       dummy;
-  int32_t    rob_entry;
+  INT32      rob_entry;
 
   LocalQueueElement() : from(), th_id(0), dummy(false), rob_entry(-1) { }
-  LocalQueueElement(Component * comp, event_type type_, uint64_t address_, uint32_t th_id_ = 0):
+  LocalQueueElement(Component * comp, event_type type_, UINT64 address_, UINT32 th_id_ = 0):
     from(), type(type_), address(address_), th_id(th_id_), dummy(false), rob_entry(-1) { from.push(comp); }
 
   void display();
@@ -112,66 +112,66 @@ struct LocalQueueElement {
 
 class Component {  // meta-class
  public:
-  Component(component_type type_, uint32_t num_, McSim * mcsim_);
+  Component(component_type type_, UINT32 num_, McSim * mcsim_);
   virtual ~Component();
 
-  uint32_t                 process_interval;
-  component_type           type;
-  uint32_t                 num;
-  McSim                  * mcsim;
-  GlobalEventQueue       * geq;  // global event queue
+  UINT32               process_interval;
+  component_type       type;
+  UINT32               num;
+  McSim              * mcsim;
+  GlobalEventQueue   * geq;  // global event queue
 
-  virtual void add_req_event(uint64_t, LocalQueueElement *, Component * from) { ASSERTX(0); }
-  virtual void add_rep_event(uint64_t, LocalQueueElement *, Component * from) { ASSERTX(0); }
-  virtual void add_req_event(uint64_t a, LocalQueueElement * b) { add_req_event(a, b, NULL); }
-  virtual void add_rep_event(uint64_t a, LocalQueueElement * b) { add_rep_event(a, b, NULL); }
-  virtual uint32_t process_event(uint64_t curr_time) = 0;
-  virtual void show_state(uint64_t address) { }
+  virtual void add_req_event(UINT64, LocalQueueElement *, Component * from) { ASSERTX(0); }
+  virtual void add_rep_event(UINT64, LocalQueueElement *, Component * from) { ASSERTX(0); }
+  virtual void add_req_event(UINT64 a, LocalQueueElement * b) { add_req_event(a, b, NULL); }
+  virtual void add_rep_event(UINT64 a, LocalQueueElement * b) { add_rep_event(a, b, NULL); }
+  virtual UINT32 process_event(UINT64 curr_time) = 0;
+  virtual void show_state(UINT64 address) { }
   virtual void display();
   virtual std::ostream & print(std::ostream & out) const;
 
-  std::multimap<uint64_t, LocalQueueElement *> req_event;
-  std::multimap<uint64_t, LocalQueueElement *> rep_event;
+  std::multimap<UINT64, LocalQueueElement *> req_event;
+  std::multimap<UINT64, LocalQueueElement *> rep_event;
   std::queue<LocalQueueElement *> req_q;
   std::queue<LocalQueueElement *> rep_q;
 
  protected:
-  const char * prefix_str() const;
-  uint32_t get_param_uint64(const std::string & param, uint32_t def = 0) const;
-  uint32_t get_param_uint64(const std::string & param, const std::string & prefix, uint32_t def = 0) const;
-  std::string   get_param_str(const std::string & param) const;
-  bool     get_param_bool(const std::string & param, bool def_value) const;
-  uint32_t log2(uint64_t num);
-  inline uint64_t ceil_by_y(uint64_t x, uint64_t y) { return ((x + y - 1) / y) * y; }
+  const std::string prefix_str() const;
+  UINT32 get_param_uint64(const std::string & param, UINT32 def = 0) const;
+  UINT32 get_param_uint64(const std::string & param, const std::string & prefix, UINT32 def = 0) const;
+  std::string get_param_str(const std::string & param) const;
+  bool   get_param_bool(const std::string & param, bool def_value) const;
+  UINT32 log2(UINT64 num);
+  inline UINT64 ceil_by_y(UINT64 x, UINT64 y) { return ((x + y - 1) / y) * y; }
 
  public:
   friend std::ostream& operator<<(std::ostream &out, const Component &c) { return c.print(out); }
 };
 
 
-typedef std::map<uint64_t, std::set<Component *> > event_queue_t;
+typedef std::map<UINT64, std::set<Component *> > event_queue_t;
 
 class GlobalEventQueue {
  public:
   // private:
   event_queue_t event_queue;
-  uint64_t curr_time;
+  UINT64 curr_time;
   McSim * mcsim;
 
  public:
   explicit GlobalEventQueue(McSim * mcsim_);
   ~GlobalEventQueue();
-  void add_event(uint64_t event_time, Component *);
-  uint32_t process_event();
-  uint32_t process_event_isolateTEST(component_type target);
+  void add_event(UINT64 event_time, Component *);
+  UINT32 process_event();
+  UINT32 process_event_isolateTEST(component_type target);
   void display();
 
-  uint32_t num_hthreads;
-  uint32_t num_mcs;
-  uint32_t interleave_base_bit;
-  uint32_t interleave_xor_base_bit;
-  uint32_t page_sz_base_bit;
-  uint32_t which_mc(uint64_t);  // which mc does an address belong to?
+  UINT32 num_hthreads;
+  UINT32 num_mcs;
+  UINT32 interleave_base_bit;
+  UINT32 interleave_xor_base_bit;
+  UINT32 page_sz_base_bit;
+  UINT32 which_mc(UINT64);  // which mc does an address belong to?
 
   friend std::ostream& operator<<(std::ostream &out, GlobalEventQueue &g);
 };

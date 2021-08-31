@@ -145,7 +145,6 @@ class McSim {
   GlobalEventQueue *              global_q;
   std::vector<TLBL1 *>            tlbl1ds;
   std::vector<TLBL1 *>            tlbl1is;
-  std::list<Component *>          comps;
 
   UINT32 get_num_hthreads() const { return num_hthreads; }
   UINT64 get_curr_time()    const { return global_q->curr_time; }
