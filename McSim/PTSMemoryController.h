@@ -139,7 +139,7 @@ class MemoryController : public Component {
   uint64_t num_pred_hit;
   uint64_t num_global_pred_miss;
   uint64_t num_global_pred_hit;
-  uint64_t * pred_history;              // size : num_hthreads
+  std::vector<uint64_t> pred_history;              // size : num_hthreads
 
   uint64_t num_rw_interval;
   uint64_t num_conflict_interval;
@@ -149,7 +149,7 @@ class MemoryController : public Component {
   uint64_t curr_refresh_bank;
 
   int32_t curr_batch_last;
-  int32_t * num_req_from_a_th;
+  std::vector<int32_t> num_req_from_a_th;
 
   std::vector<std::vector<BankStatus>> bank_status;  // [rank][bank]
   std::vector<uint64_t> last_activate_time;          // [rank]

@@ -97,9 +97,11 @@ MemoryController::MemoryController(
   par_bs(get_param_bool("par_bs", false)),
   num_reqs(0), num_read(0), num_write(0), num_activate(0),
   num_precharge(0), num_write_to_read_switch(0), num_refresh(0),
-  num_pred_miss(0), num_pred_hit(0), num_global_pred_miss(0), num_global_pred_hit(0),
+  num_pred_miss(0), num_pred_hit(0), num_global_pred_miss(0),
+  num_global_pred_hit(0), pred_history(num_hthreads, 0),
   num_rw_interval(0), num_conflict_interval(0), num_pre_interval(0),
   curr_refresh_page(0), curr_refresh_bank(0), curr_batch_last(-1),
+  num_req_from_a_th(num_hthreads, 0),
   bank_status(num_ranks_per_mc, std::vector<BankStatus>(num_banks_per_rank, BankStatus(num_pred_entries))),
   last_activate_time(num_ranks_per_mc, 0),
   last_write_time(num_ranks_per_mc, 0),
@@ -135,20 +137,12 @@ MemoryController::MemoryController(
   base2 = iter->first; width2 = iter->second; ++iter;
   base1 = iter->first; width1 = iter->second; ++iter;
   base0 = iter->first; width0 = iter->second; ++iter;
-
-  pred_history          = new uint64_t[num_hthreads];;
-  num_req_from_a_th     = new int32_t[num_hthreads];
-  for (uint32_t i = 0; i < num_hthreads; i++) {
-    num_req_from_a_th[i] = 0;
-    pred_history[i]      = 0;
-  }
 }
 
 
 MemoryController::~MemoryController() {
   if (num_read > 0) {
     update_acc_dist();
-
     std::cout << "  -- MC  [" << std::setw(3) << num << "] : (rd, wr, act, pre) = ("
          << std::setw(9) << num_read << ", " << std::setw(9) << num_write << ", "
          << std::setw(9) << num_activate << ", " << std::setw(9) << num_precharge
@@ -160,7 +154,6 @@ MemoryController::~MemoryController() {
          << "local pred (miss,hit)=( " << num_pred_miss << ", " << num_pred_hit << "), "
          << "global pred (miss,hit)=( " << num_global_pred_miss << ", " << num_global_pred_hit << ")" << std::endl;
   }
-
   if (display_os_page_usage == true) {
     for (auto && iter : os_page_acc_dist) {
       std::cout << "  -- page 0x" << std::setfill('0') << std::setw(8) << std::hex << iter.first * (1 << page_sz_base_bit)
@@ -169,8 +162,6 @@ MemoryController::~MemoryController() {
            << ", " << std::setw(7) << iter.second << ") times at (Core, MC)." <<  std::endl;
     }
   }
-  delete[] pred_history;
-  delete[] num_req_from_a_th;
 }
 
 
