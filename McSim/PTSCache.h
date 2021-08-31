@@ -48,15 +48,14 @@ class Cache : public Component {
   Cache(component_type type_, uint32_t num_, McSim * mcsim_);
   virtual ~Cache() { }
   const uint32_t set_lsb;
+  const uint32_t num_banks;
+  const uint32_t num_sets;
+  const uint32_t num_ways;
+  const uint32_t num_sets_per_subarray;
+  friend class McSim;
 
  protected:
-  uint32_t num_banks;
-  uint32_t num_sets;
-  uint32_t num_ways;
-
-  uint32_t num_sets_per_subarray;
   std::vector< std::queue<LocalQueueElement * > > req_qs;
-
   // stats
   uint64_t num_rd_access;
   uint64_t num_rd_miss;
@@ -68,13 +67,9 @@ class Cache : public Component {
   uint64_t num_upgrade_req;       // S/E -> M
   uint64_t num_bypass;
   uint64_t num_nack;
-
   uint64_t tot_awake_time;
-
   virtual void show_state(uint64_t) = 0;
   void display_event(uint64_t curr_time, LocalQueueElement *, const std::string &);
- public:
-  friend class McSim;
 };
 
 
@@ -90,8 +85,8 @@ class CacheL1 : public Cache {
   uint32_t process_event(uint64_t curr_time);
   void show_state(uint64_t);
 
-  CacheL2 * cachel2;              // downlink
   std::vector<Component *> lsus;  // uplink
+  CacheL2 * cachel2;              // downlink
 
   class PrefetchEntry {
    public:
@@ -100,20 +95,20 @@ class CacheL1 : public Cache {
     bool     hit;
   };
 
-  bool             use_prefetch;
-  PrefetchEntry ** pres;  // prefetch history info
-  uint32_t         num_pre_entries;
-  uint32_t         oldest_pre_entry_idx;
-  uint64_t         num_prefetch_requests;
-  uint64_t         num_prefetch_hits;
-
- protected:
-  l1_tag_pair *** tags;       // address + coherence state of a set-associative cache
-
   const uint32_t l1_to_lsu_t;
   const uint32_t l1_to_l2_t;
-  bool           always_hit;
-  uint32_t       l2_set_lsb;  // TODO(gajh): as of now, we only support the case when L1$ line size <= L2$ line size
+
+  const bool       always_hit;
+  const uint32_t   l2_set_lsb;  // TODO(gajh): as of now, we only support the case when L1$ line size <= L2$ line size
+  const bool       use_prefetch;
+  const uint32_t   num_pre_entries;
+
+ protected:
+  l1_tag_pair  *** tags;       // address + coherence state of a set-associative cache
+  PrefetchEntry ** pres;       // prefetch history info
+  uint64_t         num_prefetch_requests;
+  uint64_t         num_prefetch_hits;
+  uint32_t         oldest_pre_entry_idx;
 
   void add_event_to_lsu(uint64_t curr_time, LocalQueueElement *);
   void do_prefetch(uint64_t curr_time, const LocalQueueElement &);
@@ -131,10 +126,10 @@ class CacheL2 : public Cache {
   uint32_t process_event(uint64_t curr_time);
   void show_state(uint64_t);
 
-  Directory * directory;  // downlink
-  NoC  * crossbar;        // downlink
   std::vector<CacheL1 *> cachel1d;   // uplink
   std::vector<CacheL1 *> cachel1i;   // uplink
+  Directory * directory;  // downlink
+  NoC  * crossbar;        // downlink
 
   class L2Entry {
    public:
@@ -152,23 +147,21 @@ class CacheL2 : public Cache {
     friend std::ostream & operator<<(std::ostream & out, L2Entry & l2);
   };
 
-  uint64_t       num_destroyed_cache_lines;
-  uint64_t       cache_line_life_time;
-  uint64_t       time_between_last_access_and_cache_destroy;
-
- protected:
-  L2Entry ***    tags;  // address + coherence state of a set-associative cache
-
   const uint32_t l2_to_l1_t;
   const uint32_t l2_to_dir_t;
   const uint32_t l2_to_xbar_t;
   const uint32_t num_flits_per_packet;
-  uint32_t       num_banks_log2;
+  const uint32_t num_banks_log2;
+  const bool     always_hit;
+  const bool     display_life_time;
 
+ protected:
+  L2Entry ***    tags;  // address + coherence state of a set-associative cache
   uint64_t       num_ev_from_l1;
   uint64_t       num_ev_from_l1_miss;
-  bool           always_hit;
-  bool           display_life_time;
+  uint64_t       num_destroyed_cache_lines;
+  uint64_t       cache_line_life_time;
+  uint64_t       time_between_last_access_and_cache_destroy;
 
   void add_event_to_LL(uint64_t curr_time, LocalQueueElement *, bool check_top, bool is_data = false);
   void test_tags(uint32_t set);

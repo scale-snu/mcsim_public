@@ -54,12 +54,15 @@ Cache::Cache(
     McSim * mcsim_):
   Component(type_, num_, mcsim_),
   set_lsb(get_param_uint64("set_lsb", 6)),
+  num_banks(get_param_uint64("num_banks", 1)),
+  num_sets(get_param_uint64("num_sets", 64)),
+  num_ways(get_param_uint64("num_ways",  4)),
+  num_sets_per_subarray(get_param_uint64("num_sets_per_subarray", 1)),
   num_rd_access(0), num_rd_miss(0),
   num_wr_access(0), num_wr_miss(0),
   num_ev_coherency(0), num_ev_capacity(0),
   num_coherency_access(0), num_upgrade_req(0),
   num_bypass(0), num_nack(0) {
-  num_banks = get_param_uint64("num_banks", 1);
   req_qs    = std::vector< std::queue<LocalQueueElement * > >(num_banks);
 }
 
@@ -69,7 +72,6 @@ void Cache::display_event(uint64_t curr_time, LocalQueueElement * lqe, const std
     show_state(lqe->address);
   }
 }
-
 
 // in L1, num_sets is the number of sets of all L1 banks.
 // set_lsb still sets the size of a cache line.
@@ -82,16 +84,14 @@ CacheL1::CacheL1(
     McSim * mcsim_):
   Cache(type_, num_, mcsim_),
   l1_to_lsu_t(get_param_uint64("to_lsu_t", 0)),
-  l1_to_l2_t(get_param_uint64("to_l2_t", 45)) {
-  num_sets   = get_param_uint64("num_sets", 64);
-  num_ways   = get_param_uint64("num_ways",  4);
-  always_hit = get_param_bool("always_hit", false);
+  l1_to_l2_t(get_param_uint64("to_l2_t", 45)),
+  always_hit(get_param_bool("always_hit", false)),
+  l2_set_lsb(get_param_uint64("set_lsb", "pts.l2$.", set_lsb)),
+  use_prefetch(get_param_bool("use_prefetch", false)),
+  num_pre_entries(get_param_uint64("num_pre_entries", 64)),
+  num_prefetch_requests(0), num_prefetch_hits(0), oldest_pre_entry_idx(0) {
   process_interval = get_param_uint64("process_interval", 10);
-  l2_set_lsb = get_param_uint64("set_lsb", "pts.l2$.", set_lsb);
   CHECK(l2_set_lsb >= set_lsb);
-
-  num_sets_per_subarray = get_param_uint64("num_sets_per_subarray", 1);
-
   tags = new l1_tag_pair ** [num_sets];
   for (uint32_t i = 0; i < num_sets; i++) {
     tags[i] = new l1_tag_pair * [num_ways];
@@ -100,13 +100,6 @@ CacheL1::CacheL1(
       tags[i][j] = new l1_tag_pair(0, cs_invalid);
     }
   }
-
-  use_prefetch          = get_param_bool("use_prefetch", false);
-  num_prefetch_requests = 0;
-  num_prefetch_hits     = 0;
-  num_pre_entries       = get_param_uint64("num_pre_entries", 64);
-  oldest_pre_entry_idx  = 0;
-
   pres = new PrefetchEntry * [num_pre_entries];
   for (uint32_t i = 0; i < num_pre_entries; i++) {
     pres[i] = new PrefetchEntry();
@@ -579,37 +572,29 @@ std::ostream & operator<<(std::ostream & out, CacheL2::L2Entry & l2) {
 CacheL2::CacheL2(
     component_type type_,
     uint32_t num_,
-    McSim * mcsim_)
-  :Cache(type_, num_, mcsim_),
+    McSim * mcsim_):
+  Cache(type_, num_, mcsim_),
   l2_to_l1_t(get_param_uint64("to_l1_t", 45)),
   l2_to_dir_t(get_param_uint64("to_dir_t", 90)),
   l2_to_xbar_t(get_param_uint64("to_xbar_t", 90)),
-  num_flits_per_packet(get_param_uint64("num_flits_per_packet", 1)) {
-    num_sets         = get_param_uint64("num_sets",  512);
-    num_ways         = get_param_uint64("num_ways",  8);
-    process_interval = get_param_uint64("process_interval", 20);
-    num_banks_log2   = log2(num_banks);
+  num_flits_per_packet(get_param_uint64("num_flits_per_packet", 1)),
+  num_banks_log2(log2(num_banks)),
+  always_hit(get_param_bool("always_hit", false)),
+  display_life_time(get_param_bool("display_life_time", false)),
+  num_ev_from_l1(0), num_ev_from_l1_miss(0),num_destroyed_cache_lines(0),
+  cache_line_life_time(0), time_between_last_access_and_cache_destroy(0) {
+  process_interval = get_param_uint64("process_interval", 20);
 
-    num_sets_per_subarray = get_param_uint64("num_sets_per_subarray", 1);
-    always_hit            = get_param_bool("always_hit", false);
-    display_life_time     = get_param_bool("display_life_time", false);
-
-    num_destroyed_cache_lines = 0;
-    cache_line_life_time      = 0;
-    time_between_last_access_and_cache_destroy = 0;
-    num_ev_from_l1      = 0;
-    num_ev_from_l1_miss = 0;
-
-    // tags   = vector< list< L2Entry > >(num_sets, list< L2Entry >(num_ways, L2Entry()));
-    tags = new L2Entry ** [num_sets];
-    for (uint32_t i = 0; i < num_sets; i++) {
-      tags[i] = new L2Entry * [num_ways];
-      // tags[i][0] = LRU, tags[i][num_ways -1] = MRU
-      for (uint32_t j = 0; j < num_ways; j++) {
-        tags[i][j] = new L2Entry();
-      }
+  // tags   = vector< list< L2Entry > >(num_sets, list< L2Entry >(num_ways, L2Entry()));
+  tags = new L2Entry ** [num_sets];
+  for (uint32_t i = 0; i < num_sets; i++) {
+    tags[i] = new L2Entry * [num_ways];
+    // tags[i][0] = LRU, tags[i][num_ways -1] = MRU
+    for (uint32_t j = 0; j < num_ways; j++) {
+      tags[i][j] = new L2Entry();
     }
   }
+}
 
 
 CacheL2::~CacheL2() {
