@@ -21,9 +21,9 @@ TEST_F(CacheTest, CheckBuild) {
   ASSERT_NE(nullptr, test_l1d) << "wrong McSim L1DCache Build ";
   ASSERT_NE(nullptr, test_l2) << "wrong McSim L2Cache Build ";
 
-  EXPECT_EQ((uint)0, test_l1i->get_num_sets() & (test_l1i->get_num_sets() - 1)) << "L1i: the number of sets should be 2^N";
-  EXPECT_EQ((uint)0, test_l1d->get_num_sets() & (test_l1d->get_num_sets() - 1)) << "L1d: the number of sets should be 2^N";
-  EXPECT_EQ((uint)0, test_l2->get_num_sets()  & (test_l2->get_num_sets() - 1 )) << "L2: the number of sets should be 2^N";
+  EXPECT_EQ((uint)0, test_l1i->num_sets & (test_l1i->num_sets - 1)) << "L1i: the number of sets should be 2^N";
+  EXPECT_EQ((uint)0, test_l1d->num_sets & (test_l1d->num_sets - 1)) << "L1d: the number of sets should be 2^N";
+  EXPECT_EQ((uint)0, test_l2->num_sets  & (test_l2->num_sets - 1 )) << "L2: the number of sets should be 2^N";
 }
 
 /* 2. START of Cache Testing */

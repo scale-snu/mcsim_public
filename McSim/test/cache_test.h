@@ -21,7 +21,6 @@ class CacheL1ForTest : public CacheL1 {
   explicit CacheL1ForTest(component_type type_, uint32_t num_, McSim * mcsim_):
     CacheL1(type_, num_, mcsim_) { }
   ~CacheL1ForTest() { }
-  uint32_t get_num_sets() { return num_sets; }
   uint64_t get_num_rd_access() { return num_rd_access; }
   uint64_t get_num_rd_miss() { return num_rd_miss; }
   uint64_t get_num_wr_access() { return num_wr_access; }
@@ -29,7 +28,6 @@ class CacheL1ForTest : public CacheL1 {
   uint64_t get_num_ev_coherency() { return num_ev_coherency; }
   uint64_t get_num_ev_capacity() { return num_ev_capacity; }
   uint64_t get_num_coherency_access() { return num_coherency_access; }
-
 };
 
 class CacheL2ForTest : public CacheL2 {
@@ -37,10 +35,8 @@ class CacheL2ForTest : public CacheL2 {
   explicit CacheL2ForTest(component_type type_, uint32_t num_, McSim * mcsim_):
     CacheL2(type_, num_, mcsim_) { }
   ~CacheL2ForTest() { }
-  uint32_t get_num_sets() { return num_sets; }
   uint64_t get_num_rd_access() { return num_rd_access; }
   uint64_t get_num_rd_miss() { return num_rd_miss; }
-
 };
 
 class CacheTest : public ::testing::Test {

@@ -26,7 +26,7 @@ TEST_F(O3CoreTest, CheckBuild) {
   EXPECT_NE(nullptr, test_o3core->get_o3queue());
   EXPECT_NE(nullptr, test_o3core->get_o3rob());
 
-  EXPECT_LT((uint32_t)4, test_o3core->get_o3rob_max_size()) << "as of now, it is assumed that o3rob_max_size >= 4";
+  EXPECT_LT((uint32_t)4, test_o3core->o3rob_max_size) << "as of now, it is assumed that o3rob_max_size >= 4";
 }
 
 /* 2. START of O3Core Testing */

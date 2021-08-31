@@ -110,7 +110,7 @@ TEST_F(TLBTest, DTLBProcessEvent) {
   // make TLB full
   for (uint i = 1; i <= test_tlbl1d->num_entries; i++) {
     uint64_t address = TEST_ADDR_D + ((1 << test_tlbl1d->page_sz_log2)*i);
-    uint32_t rob_entry_num = i % test_o3core->get_o3rob_max_size();
+    uint32_t rob_entry_num = i % test_o3core->o3rob_max_size;
 
     set_rob_entry(test_o3rob[rob_entry_num], TEST_ADDR_I, address);
     events.push_back(create_tlb_read_event(test_o3rob[rob_entry_num].memaddr, test_o3core));

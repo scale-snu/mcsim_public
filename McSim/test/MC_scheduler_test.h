@@ -17,7 +17,6 @@ class MemoryControllerForTest : public MemoryController {
   explicit MemoryControllerForTest(component_type type_, uint32_t num_, McSim * mcsim_):
     MemoryController(type_, num_, mcsim_) { }
   ~MemoryControllerForTest() { }
-  bool get_parbs() { return par_bs; }
   bool get_policy() { return policy; }
   uint32_t rank_num(uint64_t addr) { return get_rank_num(addr); }
   uint32_t bank_num(uint64_t addr) { return get_bank_num(addr); }

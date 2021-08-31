@@ -31,7 +31,6 @@ class CacheL1ForTest : public CacheL1 {
   explicit CacheL1ForTest(component_type type_, uint32_t num_, McSim * mcsim_):
     CacheL1(type_, num_, mcsim_) { }
   ~CacheL1ForTest() { }
-  uint32_t get_num_sets() { return num_sets; }
   l1_tag_pair** get_tags(uint32_t set) { return tags[set]; }
 };
 
@@ -40,7 +39,6 @@ class CacheL2ForTest : public CacheL2 {
   explicit CacheL2ForTest(component_type type_, uint32_t num_, McSim * mcsim_):
     CacheL2(type_, num_, mcsim_) { }
   ~CacheL2ForTest() { }
-  uint32_t get_num_sets() { return num_sets; }
   L2Entry** get_tags(uint32_t set) { return tags[set]; }
 };
 

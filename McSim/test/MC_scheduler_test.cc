@@ -20,7 +20,7 @@ std::vector<uint64_t> MCSchedTest::row_B_addresses;
 TEST_F(MCSchedTest, CheckBuild) {
   EXPECT_NE(nullptr, test_pts) << "wrong PthreadTimingSimulator Build ";
   EXPECT_NE(nullptr, test_mc) << "wrong McSim Build ";
-  EXPECT_EQ(true, test_mc->get_parbs());
+  EXPECT_EQ(true, test_mc->par_bs);
   EXPECT_EQ(mc_scheduling_open, test_mc->get_policy());
 }
 /* END of 1. */

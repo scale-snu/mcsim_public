@@ -23,13 +23,11 @@ class O3CoreForTest : public O3Core {
   O3Queue * get_o3queue() { return o3queue; };
   O3ROB * get_o3rob() { return o3rob; };
 
-  uint32_t get_o3queue_max_size() { return o3queue_max_size; }
   uint32_t get_o3queue_head() { return o3queue_head; }
   uint32_t get_o3queue_size() { return o3queue_size; }
   void set_o3queue_head(uint32_t head) { o3queue_head = head; }
   void set_o3queue_size(uint32_t size) { o3queue_size = size; }
 
-  uint32_t get_o3rob_max_size() { return o3rob_max_size; }
   uint32_t get_o3rob_head() { return o3rob_head; }
   uint32_t get_o3rob_size() { return o3rob_size; }
   void set_o3rob_head(uint32_t head) { o3rob_head = head; }
@@ -76,13 +74,13 @@ class O3CoreTest : public ::testing::Test {
     virtual void TearDown() override {
       clear_geq();
       O3Queue * test_o3queue = test_o3core->get_o3queue();
-      for (unsigned int i = 0; i < test_o3core->get_o3queue_max_size(); i++) {
+      for (unsigned int i = 0; i < test_o3core->o3queue_max_size; i++) {
         test_o3queue[i].state = o3iqs_invalid;
       }
       test_o3core->set_o3queue_head(0);
       test_o3core->set_o3queue_size(0);
       O3ROB * test_o3rob = test_o3core->get_o3rob();
-      for (unsigned int i = 0; i < test_o3core->get_o3rob_max_size(); i++) {
+      for (unsigned int i = 0; i < test_o3core->o3rob_max_size; i++) {
         test_o3rob[i].state = o3irs_invalid;
       }
       test_o3core->set_o3rob_head(0);

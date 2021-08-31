@@ -19,7 +19,6 @@ class O3CoreForTest : public O3Core {
     O3Core(type_, num_, mcsim_) { }
   ~O3CoreForTest() { }
   O3ROB * get_o3rob() { return o3rob; };
-  uint32_t get_o3rob_max_size() { return o3rob_max_size; }
 };
 
 class TLBL1ForTest : public TLBL1 {

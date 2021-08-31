@@ -53,10 +53,10 @@ TEST_F(CoherenceTest, CheckBuild) {
 
 TEST_F(CoherenceTest, Case1) {
   // $: I to E, Dir: I to E
-  l1_set = (TEST_ADDR_D >> test_l1ds[0]->set_lsb) % test_l1ds[0]->get_num_sets();
-  l1_tag = (TEST_ADDR_D >> test_l1ds[0]->set_lsb) / test_l1ds[0]->get_num_sets();
-  l2_set = (TEST_ADDR_D >> test_l2s[0]->set_lsb) % test_l2s[0]->get_num_sets();
-  l2_tag = (TEST_ADDR_D >> test_l2s[0]->set_lsb) / test_l2s[0]->get_num_sets();
+  l1_set = (TEST_ADDR_D >> test_l1ds[0]->set_lsb) % test_l1ds[0]->num_sets;
+  l1_tag = (TEST_ADDR_D >> test_l1ds[0]->set_lsb) / test_l1ds[0]->num_sets;
+  l2_set = (TEST_ADDR_D >> test_l2s[0]->set_lsb) % test_l2s[0]->num_sets;
+  l2_tag = (TEST_ADDR_D >> test_l2s[0]->set_lsb) / test_l2s[0]->num_sets;
 
   auto l1_tags_set = test_l1ds[0]->get_tags(l1_set);
   auto l2_tags_set = test_l2s[0]->get_tags(l2_set);
@@ -240,7 +240,7 @@ TEST_F(CoherenceTest, Case6) {
   auto l2_1_tags_set = test_l2s[1]->get_tags(l2_set);
 
   auto temp = 1 << test_l2s[0]->set_lsb;
-  temp *= test_l2s[0]->get_num_sets();
+  temp *= test_l2s[0]->num_sets;
   uint64_t const test_address2 = TEST_ADDR_D + temp; // same index, different tag
 
   set_rob_entry((test_cores[1]->get_o3rob())[0], test_address2, 6000);
