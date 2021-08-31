@@ -42,7 +42,7 @@ namespace PinPthread {
 
 class NoC : public Component {
  public:
-  typedef std::pair<LocalQueueElement *, Component *> EventPair;
+  using EventPair = std::pair<LocalQueueElement *, Component *>;
   enum noc_priority { noc_rep, noc_crq, noc_req };
 
   explicit NoC(component_type type_, uint32_t num_, McSim * mcsim_);

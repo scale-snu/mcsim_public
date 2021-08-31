@@ -75,10 +75,10 @@ struct PTSInstr {
   uint32_t rw3;
 };
 
-typedef union {
+union instr_n_str {
   PTSInstr   instr[instr_batch_size];
   char       str[1024];
-} instr_n_str;
+};
 
 struct PTSMessage {
   pts_msg_type type;

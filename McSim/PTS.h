@@ -44,25 +44,25 @@
 
 #include "toml.hpp"
 
-typedef uint8_t  UINT8;   // LINUX HOSTS
-typedef uint16_t UINT16;
-typedef uint32_t UINT32;
-typedef uint64_t UINT64;
+using UINT8  = uint8_t;   // LINUX HOSTS
+using UINT16 = uint16_t;
+using UINT32 = uint32_t;
+using UINT64 = uint64_t;
 
-typedef int8_t  INT8;
-typedef int16_t INT16;
-typedef int32_t INT32;
-typedef int64_t INT64;
+using INT8   = int8_t;
+using INT16  = int16_t;
+using INT32  = int32_t;
+using INT64  = int64_t;
 
 #if defined(TARGET_IA32)  // Intel(R) 32 architectures
-  typedef UINT32 ADDRINT;
-  typedef INT32 ADDRDELTA;
+  using ADDRINT = UINT32;
+  using ADDRDELTA = INT32;
 #elif defined(TARGET_IA32E)  // Intel(R) 64 architectures
-  typedef UINT64 ADDRINT;
-  typedef INT64 ADDRDELTA;
+  using ADDRINT = UINT64;
+  using ADDRDELTA = INT64;
 #elif defined(TARGET_IPF)
-  typedef UINT64 ADDRINT;
-  typedef INT64 ADDRDELTA;
+  using ADDRINT = UINT64;
+  using ADDRDELTA = INT64;
 #else
   #error "xxx"
 #endif

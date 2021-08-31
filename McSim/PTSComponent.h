@@ -149,7 +149,7 @@ class Component {  // meta-class
 };
 
 
-typedef std::map<UINT64, std::set<Component *> > event_queue_t;
+using event_queue_t = std::map<UINT64, std::set<Component *> >;
 
 class GlobalEventQueue {
  public:
