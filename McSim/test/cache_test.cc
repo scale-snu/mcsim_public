@@ -4,7 +4,7 @@
 #include <iostream>
 
 namespace PinPthread {
-
+namespace CacheTest {
 // static variable of CacheTest
 std::unique_ptr<PinPthread::PthreadTimingSimulator> CacheTest::test_pts;
 O3Core* CacheTest::test_o3core;
@@ -73,4 +73,5 @@ TEST_F(CacheTest, BasicCase) {
   delete test_event;
 }
 
+}
 }

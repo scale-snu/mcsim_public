@@ -13,6 +13,7 @@
 #include <vector>
 
 namespace PinPthread {
+namespace O3CoreTest {
 
 class O3CoreForTest : public O3Core {
  public:
@@ -45,7 +46,7 @@ class O3CoreForTest : public O3Core {
 
 class O3CoreTest : public ::testing::Test {
   protected:
-    static std::unique_ptr<PinPthread::PthreadTimingSimulator> test_pts;
+    static std::unique_ptr<PthreadTimingSimulator> test_pts;
     static O3CoreForTest* test_o3core;
     static TLBL1* test_tlbl1i;
     static TLBL1* test_tlbl1d;
@@ -90,6 +91,7 @@ class O3CoreTest : public ::testing::Test {
     void clear_geq() { test_o3core->geq->event_queue.clear(); }
 };
 
+}
 }
 
 #endif // O3CORE_TEST_H_

@@ -2,6 +2,7 @@
 #include "gtest/gtest.h"
 
 namespace PinPthread {
+namespace O3CoreTest {
 
 // static variable of O3CoreTest
 std::unique_ptr<PthreadTimingSimulator> O3CoreTest::test_pts;
@@ -499,4 +500,5 @@ TEST_F(O3CoreTest, Scenario1) {
   EXPECT_EQ((uint32_t)4, test_o3core->get_o3rob_head());
 }
 
+}
 }

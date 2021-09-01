@@ -12,6 +12,7 @@
 #include <vector>
 
 namespace PinPthread {
+namespace TLBTest {
 
 class O3CoreForTest : public O3Core {
  public:
@@ -69,6 +70,7 @@ class TLBTest : public ::testing::Test {
     void set_rob_entry(O3ROB & o3rob_entry, uint64_t _ip, uint64_t _memaddr);
 };
 
+}
 }
 
 #endif // TLB_TEST_H

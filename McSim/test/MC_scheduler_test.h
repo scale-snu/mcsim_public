@@ -11,6 +11,7 @@
 #include "AddressGen.h"
 
 namespace PinPthread {
+namespace MCSchedTest {
 
 class MemoryControllerForTest : public MemoryController {
  public:
@@ -64,6 +65,7 @@ class MCSchedTest : public ::testing::Test {
     void geq_process_event();
 };
 
+}
 }
 
 #endif // MC_SCHED_H_

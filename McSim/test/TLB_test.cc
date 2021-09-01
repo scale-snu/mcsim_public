@@ -2,6 +2,7 @@
 #include "gtest/gtest.h"
 
 namespace PinPthread {
+namespace TLBTest {
 
 // static variable of TLBTest
 std::unique_ptr<PthreadTimingSimulator> TLBTest::test_pts;
@@ -169,4 +170,5 @@ void TLBTest::set_rob_entry(O3ROB & o3rob_entry, uint64_t _ip, uint64_t _memaddr
   o3rob_entry.rw2 = -1; o3rob_entry.rw3 = -1;
 }
 
+}
 }

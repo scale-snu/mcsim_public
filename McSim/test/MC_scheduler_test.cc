@@ -10,6 +10,7 @@ namespace PinPthread {
 extern std::ostream & operator << (std::ostream & output, mc_scheduling_policy policy);
 extern std::ostream & operator << (std::ostream & output, mc_bank_action action);
 
+namespace MCSchedTest {
 // static variable of MCSchedTest
 std::shared_ptr<PthreadTimingSimulator> MCSchedTest::test_pts;
 MemoryControllerForTest* MCSchedTest::test_mc;
@@ -153,4 +154,5 @@ void MCSchedTest::geq_process_event() {
   }
 }
 
+}
 }

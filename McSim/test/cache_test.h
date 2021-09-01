@@ -15,7 +15,7 @@
 
 namespace PinPthread {
 
-
+namespace CacheTest {
 class CacheL1ForTest : public CacheL1 {
  public:
   explicit CacheL1ForTest(component_type type_, uint32_t num_, McSim * mcsim_):
@@ -76,6 +76,7 @@ class CacheTest : public ::testing::Test {
     void clear_geq() { test_o3core->geq->event_queue.clear(); }
 };
 
+}
 }
 
 #endif // Cache_TEST_H
