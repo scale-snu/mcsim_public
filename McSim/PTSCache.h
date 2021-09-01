@@ -123,7 +123,7 @@ class CacheL2 : public Cache {
 
   void add_req_event(uint64_t, LocalQueueElement *, Component * from = nullptr);
   void add_rep_event(uint64_t, LocalQueueElement *, Component * from = nullptr);
-  uint32_t process_event(uint64_t curr_time);
+  virtual uint32_t process_event(uint64_t curr_time);
   void show_state(uint64_t);
 
   std::vector<CacheL1 *> cachel1d;   // uplink

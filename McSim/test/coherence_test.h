@@ -15,6 +15,7 @@
 #include <vector>
 
 namespace PinPthread {
+namespace CoherenceTest {
 
 class O3CoreForTest : public O3Core {
  public:
@@ -37,16 +38,23 @@ class CacheL1ForTest : public CacheL1 {
 class CacheL2ForTest : public CacheL2 {
  public:
   explicit CacheL2ForTest(component_type type_, uint32_t num_, McSim * mcsim_):
-    CacheL2(type_, num_, mcsim_) { }
+    CacheL2(type_, num_, mcsim_), address(0, 0), cs_type(), cs_type_l1l2() { }
   ~CacheL2ForTest() { }
+  uint32_t process_event(uint64_t curr_time) override;
+  std::pair<uint32_t, uint32_t> address;           // <set, tag>
+  std::vector<coherence_state_type> cs_type;
+  std::vector<coherence_state_type> cs_type_l1l2;
   L2Entry** get_tags(uint32_t set) { return tags[set]; }
 };
 
 class DirectoryForTest : public Directory {
  public:
   explicit DirectoryForTest(component_type type_, uint32_t num_, McSim * mcsim_):
-    Directory(type_, num_, mcsim_) { }
+    Directory(type_, num_, mcsim_), address(0), cs_type() { }
   ~DirectoryForTest() { }
+  uint32_t process_event(uint64_t curr_time) override;
+  uint64_t address;
+  std::vector<coherence_state_type> cs_type;
   std::map<uint64_t, PinPthread::Directory::DirEntry>::iterator search_dir(uint64_t);
   std::map<uint64_t, PinPthread::Directory::DirEntry>::iterator get_dir_end();
 };
@@ -105,6 +113,7 @@ class CoherenceTest : public ::testing::Test {
     void set_rob_entry(O3ROB & o3rob_entry, uint64_t _memaddr, uint64_t ready_time, bool isread = true);
 };
 
+}
 }
 
 #endif // COHERENCE_TEST_H
