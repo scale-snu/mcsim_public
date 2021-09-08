@@ -74,7 +74,6 @@ pts.'l1i$'.to_l2_t            = 20
 # for how many ticks a cache is used per access
 pts.'l1i$'.num_sets_per_subarray = 8
 pts.'l1i$'.always_hit         = false
-pts.'l1i$'.use_prefetch       = true
 
 pts.'l1d$'.num_banks          = 4
 pts.'l1d$'.num_sets           = 64
@@ -85,9 +84,8 @@ pts.'l1d$'.to_lsu_t           = 4
 pts.'l1d$'.to_l2_t            = 40
 pts.'l1d$'.num_sets_per_subarray = 8
 pts.'l1d$'.always_hit         = false
-pts.'l1d$'.use_prefetch       = true
 
-pts.'l2$'.num_sets            = 16384
+pts.'l2$'.num_sets            = 4096
 pts.'l2$'.num_ways            = 16
 pts.'l2$'.set_lsb             = 6
 pts.'l2$'.process_interval    = 10
@@ -119,10 +117,10 @@ pts.xbar.to_l2_t             = 40
 pts.xbar.process_interval    = 10
 pts.noc.num_node             = 2
 
-pts.mc.process_interval         = 15
+pts.mc.process_interval         = 20
 pts.mc.to_dir_t                 = 430
 pts.mc.interleave_base_bit      = 12
-pts.mc.interleave_xor_base_bit  = 20
+pts.mc.interleave_xor_base_bit  = 18
 pts.mc.num_ranks_per_mc         = 1
 pts.mc.num_banks_per_rank       = 8
 # parameters that start with 'pts.mc.t[capital letter]'
