@@ -100,7 +100,6 @@ pts.'l2$'.num_banks           = 4
 pts.'l2$'.num_flits_per_packet  = 3
 pts.'l2$'.num_sets_per_subarray = 16
 pts.'l2$'.always_hit            = false
-pts.'l2$'.use_prefetch        = true
 
 pts.dir.set_lsb              = 6
 pts.dir.process_interval     = 10
