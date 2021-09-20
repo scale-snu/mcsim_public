@@ -226,3 +226,8 @@ the meaning of parameters that are not clear.
 [2] H. Pan, K. Asanovic, R. Cohn and C. K. Luk, "Controlling Program
     Execution through Binary Instrumentation," Computer Architecture
     News, vol.33, no.5, 2005.
+
+## License
+
+[BSD-3-Clause](LICENSE)
+

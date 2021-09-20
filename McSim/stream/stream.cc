@@ -1,3 +1,7 @@
+// Copyright (c) 2010-present Jung Ho Ahn and other contributors. All rights
+// reserved. Use of this source code is governed by a BSD-style license that can
+// be found in the LICENSE file. See the AUTHORS file for names of contributors.
+
 /*************************************************************************/
 /*                                                                       */
 /*  C = A + B                                                            */

@@ -1,32 +1,6 @@
-/*
- * Copyright (c) 2010 The Hewlett-Packard Development Company
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are
- * met: redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer;
- * redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution;
- * neither the name of the copyright holders nor the names of its
- * contributors may be used to endorse or promote products derived from
- * this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * Authors: Jung Ho Ahn
- */
+// Copyright (c) 2010 The Hewlett-Packard Development Company. All rights
+// reserved. Use of this source code is governed by a BSD-style license that can
+// be found in the LICENSE file. See the AUTHORS file for names of contributors.
 
 #ifndef PTSMEMORYCONTROLLER_H_
 #define PTSMEMORYCONTROLLER_H_
@@ -118,7 +92,7 @@ class MemoryController : public Component {
   const uint32_t num_mcs;
   const uint32_t num_ranks_per_mc;
   const uint32_t num_banks_per_rank;
-  const uint64_t num_pages_per_bank; // set to public for MC unit test for a while
+  const uint64_t num_pages_per_bank;  // set to public for MC unit test for a while
   const uint64_t num_cached_pages_per_bank;
   const uint32_t num_pred_entries;
 
@@ -174,10 +148,10 @@ class MemoryController : public Component {
 
   void pre_processing(uint64_t curr_time);
   void check_bank_status(LocalQueueElement * local_event);
-  inline uint32_t get_rank_num(uint64_t addr) { 
+  inline uint32_t get_rank_num(uint64_t addr) {
     return ((addr >> rank_interleave_base_bit) ^ (addr >> interleave_xor_base_bit)) % num_ranks_per_mc;
   }
-  inline uint32_t get_bank_num(uint64_t addr) { 
+  inline uint32_t get_bank_num(uint64_t addr) {
     return ((addr >> bank_interleave_base_bit) ^ (addr >> interleave_xor_base_bit)) % num_banks_per_rank;
   }
   uint64_t get_page_num(uint64_t addr);
