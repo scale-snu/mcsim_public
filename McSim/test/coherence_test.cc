@@ -21,7 +21,6 @@ UINT64 CoherenceTest::l1_tag;
 UINT32 CoherenceTest::l2_set;
 UINT64 CoherenceTest::l2_tag;
 
-/* 1. START of Cache Build && Fixture Build Testing */
 TEST_F(CoherenceTest, CheckBuild) {
   ASSERT_NE(nullptr, test_pts) << "wrong PthreadTimingSimulator Build ";
   ASSERT_NE(nullptr, test_pts->mcsim) << "wrong McSim Build ";
@@ -51,7 +50,7 @@ TEST_F(CoherenceTest, Case1) {
   l2_set = (TEST_ADDR_D >> test_l2s[0]->set_lsb) % test_l2s[0]->num_sets;
   l2_tag = (TEST_ADDR_D >> test_l2s[0]->set_lsb) / test_l2s[0]->num_sets;
 
-  // coherence state를 확인할 address 저장
+  // save the address that you want to check the coherence state
   for (auto && l2 : test_l2s) {
     l2->set_address(TEST_ADDR_D);
   }
@@ -71,12 +70,13 @@ TEST_F(CoherenceTest, Case1) {
   auto it = test_dir->search_dir(TEST_ADDR_D);
   EXPECT_EQ(it, test_dir->get_dir_end());  // not in directory
 
+  
   set_rob_entry((test_cores[0]->get_o3rob())[0], TEST_ADDR_D, 0);
   test_cores[0]->set_o3rob_head(0);
   test_cores[0]->set_o3rob_size(1);
-
   test_pts->mcsim->global_q->add_event(0, test_cores[0]);
   test_pts->mcsim->global_q->process_event();
+
 
   EXPECT_EQ(l1_tags_set[0]->first, l1_tag);
   EXPECT_EQ(l1_tags_set[0]->second, cs_exclusive);
@@ -91,11 +91,11 @@ TEST_F(CoherenceTest, Case1) {
 
   // check transient state
   EXPECT_EQ(test_dir->cs_type[0], cs_tr_to_e);
-  EXPECT_EQ(test_dir->cs_type[1], cs_exclusive);    // (I) -> tr_to_e -> E
+  EXPECT_EQ(test_dir->cs_type[1], cs_exclusive);  // (I) -> tr_to_e -> E
 }
 
 TEST_F(CoherenceTest, Case2) {
-  // $: I|E to S, Dir: -
+  // $: I to E, E to S, Dir: -
   auto l1_0_tags_set = test_l1ds[0]->get_tags(l1_set);
   auto l1_1_tags_set = test_l1ds[1]->get_tags(l1_set);
   auto l2_tags_set   = test_l2s[0]->get_tags(l2_set);
@@ -124,7 +124,7 @@ TEST_F(CoherenceTest, Case2) {
 }
 
 TEST_F(CoherenceTest, Case3) {
-  // $: I to E, Dir: E to S
+  // $: I to E|S, E to S, Dir: E to S
   auto l1_0_tags_set = test_l1ds[0]->get_tags(l1_set);
   auto l1_1_tags_set = test_l1ds[1]->get_tags(l1_set);
   auto l1_2_tags_set = test_l1ds[2]->get_tags(l1_set);
@@ -251,7 +251,6 @@ TEST_F(CoherenceTest, Case6) {
   auto temp = 1 << test_l2s[0]->set_lsb;
   temp *= test_l2s[0]->num_sets;
   UINT64 const test_address2 = TEST_ADDR_D + temp;  // same index, different tag
-  // test_dir에서 test_address2 block의 coherence state는 I -> tr_to_e -> E 로 변함
   test_dir->set_address(test_address2);
 
   set_rob_entry((test_cores[1]->get_o3rob())[0], test_address2, 6000);
@@ -338,9 +337,11 @@ UINT32 DirectoryForTest::process_event(UINT64 curr_time) {
   auto res = Directory::process_event(curr_time);
 
   if (dir.find(address) != dir.end()) {
-    if (cs_type.empty() ||  // 아직 기록된 cs_type이 없거나
-        cs_type.back() != dir.find(address)->second.type) {  // 마지막 기록된 cs_type에서 coherence state가 바뀐 경우
-      cs_type.push_back(dir.find(address)->second.type);  // 기록하기
+    // if there's no recorded coherence state yet,
+    // the last recorded coherence state had changed,
+    if (cs_type.empty() ||
+        cs_type.back() != dir.find(address)->second.type) {  
+      cs_type.push_back(dir.find(address)->second.type);  // save the state
     }
   } else {  // not in directory
     cs_type.push_back(cs_invalid);
