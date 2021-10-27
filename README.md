@@ -20,9 +20,9 @@ The released source includes these subdirectories:
 
 McSimA+ was tested under the following system.
 
-+ OS: Ubuntu 18.04.1 LTS (Kernel 5.3.0)
-+ Compiler: gcc version 7.5.0
-+ Tool: Intel Pin 3.16
++ OS: Ubuntu 20.04.3 LTS (Kernel 5.11.0)
++ Compiler: gcc version 9.3.0
++ Tool: Intel Pin 3.20
 
 To build the McSimA+ simulator on Linux, first clone the github repository,
 which includes the required packages as git submodules:
@@ -85,13 +85,13 @@ $ make install
 1. Download the Pin at [Pin - A Binary Instrumentation Tool](https://software.intel.com/en-us/articles/pin-a-binary-instrumentation-tool-downloads).
 ```bash
 $ cd third-party
-$ wget http://software.intel.com/sites/landingpage/pintool/downloads/pin-3.16-98275-ge0db48c31-gcc-linux.tar.gz
-$ tar -xvf pin-3.16-98275-ge0db48c31-gcc-linux.tar.gz
+$ wget https://software.intel.com/sites/landingpage/pintool/downloads/pin-3.20-98437-gf02b61307-gcc-linux.tar.gz
+$ tar -xvf pin-3.20-98437-gf02b61307-gcc-linux.tar.gz
 ```
 
 2. Create a `Pin` symbolic link in the `mcsim_private` directory.
 ```bash
-$ ln -s "$(pwd)"/pin-3.16-98275-ge0db48c31-gcc-linux "$(pwd)"/../pin
+$ ln -s "$(pwd)"/pin-3.20-98437-gf02b61307-gcc-linux "$(pwd)"/../pin
 ```
 
 3. Go to `McSim` and compile McSim. (To build the back-end, the 
