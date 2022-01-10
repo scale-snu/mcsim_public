@@ -52,11 +52,11 @@ install_third_party() {
 download_intel_pin() {
   cd "$THIRD_PARTY_DIR"
 
-  if [ ! -e "pin-3.16-98275-ge0db48c31-gcc-linux.tar.gz" ]
+  if [ ! -e "pin-3.20-98437-gf02b61307-gcc-linux.tar.gz" ]
   then
-    wget http://software.intel.com/sites/landingpage/pintool/downloads/pin-3.16-98275-ge0db48c31-gcc-linux.tar.gz
-    tar -xvf pin-3.16-98275-ge0db48c31-gcc-linux.tar.gz
-    ln -s "$THIRD_PARTY_DIR"/pin-3.16-98275-ge0db48c31-gcc-linux "$ROOT"/pin
+    wget https://software.intel.com/sites/landingpage/pintool/downloads/pin-3.20-98437-gf02b61307-gcc-linux.tar.gz
+    tar -xvf pin-3.20-98437-gf02b61307-gcc-linux.tar.gz
+    ln -s "$THIRD_PARTY_DIR"/pin-3.20-98437-gf02b61307-gcc-linux "$ROOT"/pin
   fi
 }
 
