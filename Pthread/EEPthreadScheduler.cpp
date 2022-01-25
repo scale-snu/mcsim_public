@@ -106,8 +106,11 @@ void PthreadScheduler::PlayTraces(const string & trace_name, uint64_t trace_skip
     trace_file.seekg(offset, ios::beg);
     trace_file.read(reinterpret_cast<char *>(footer), sizeof(struct Footer));
 
-    ASSERT(footer->magic_number_ == kTraceMagicNumber, "[ERROR] magic number!\n");
-    ASSERT(footer->offset_ == offset, "[ERROR] offset!\n");
+    ASSERT(footer->magic_number_ == kTraceMagicNumber,
+           "[ERROR] Invalid magic number in trace file!\n");
+    ASSERT(footer->offset_ == offset,
+           "[ERROR] Invalid offset in trace file!\n");
+
     *slice_count = footer->total_slice_;
 
     trace_file.seekg(0, ios::beg);
