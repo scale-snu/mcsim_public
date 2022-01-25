@@ -110,6 +110,8 @@ void PthreadScheduler::PlayTraces(const string & trace_name, uint64_t trace_skip
            "[ERROR] Invalid magic number in trace file!\n");
     ASSERT(footer->offset_ == offset,
            "[ERROR] Invalid offset in trace file!\n");
+    ASSERT(footer->total_slice_ > 0,
+           "[ERROR] Invalid slice counts in trace file!\n");
 
     *slice_count = footer->total_slice_;
 
