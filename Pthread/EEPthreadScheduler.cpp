@@ -1,7 +1,32 @@
-// Copyright (c) 2010 The Hewlett-Packard Development Company. All rights
-// reserved. Use of this source code is governed by a BSD-style license that can
-// be found in the LICENSE file. See the AUTHORS file for names of contributors.
-
+/*
+ * Copyright (c) 2010 The Hewlett-Packard Development Company
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met: redistributions of source code must retain the above copyright
+ * notice, this list of conditions and the following disclaimer;
+ * redistributions in binary form must reproduce the above copyright
+ * notice, this list of conditions and the following disclaimer in the
+ * documentation and/or other materials provided with the distribution;
+ * neither the name of the copyright holders nor the names of its
+ * contributors may be used to endorse or promote products derived from
+ * this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Authors: Jung Ho Ahn
+ */
 #include <assert.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -60,23 +85,35 @@ void PthreadScheduler::PlayTraces(const string & trace_name, uint64_t trace_skip
   uint64_t num_sent_instrs = 0;
   do {
     ifstream trace_file(trace_name.c_str(), ios::binary);
-    ifstream page_acc_file;
-    addr_perc.clear();
     if (trace_file.fail()) {
       cout << "failed to open " << trace_name << endl;
       return;
     }
 
+    Footer* footer = new Footer;
     PTSInstrTrace * instrs = new PTSInstrTrace[instr_group_size];
     const size_t maxCompressedLength = snappy::MaxCompressedLength(sizeof(PTSInstrTrace)*instr_group_size);
     size_t * compressed_length = new size_t;
     (*compressed_length) = 0;
     char * compressed = new char[maxCompressedLength];
     size_t *slice_count = new size_t;
-    size_t prev_count = 0;
 
-    trace_file.read(reinterpret_cast<char *>(slice_count), sizeof(size_t));
+    // read footer in trace file
+    trace_file.seekg(0, ios::end);
+    size_t total_size = trace_file.tellg();
+    size_t offset = total_size - sizeof(struct Footer);
+
+    trace_file.seekg(offset, ios::beg);
+    trace_file.read(reinterpret_cast<char *>(footer), sizeof(struct Footer));
+
+    ASSERT(footer->magic_number_ == kTraceMagicNumber, "[ERROR] magic number!\n");
+    ASSERT(footer->offset_ == offset, "[ERROR] offset!\n");
+    *slice_count = footer->total_slice_;
+
+    trace_file.seekg(0, ios::beg);
+
     do {
+      trace_file.read(reinterpret_cast<char *>(slice_count), sizeof(size_t));
       trace_file.read(reinterpret_cast<char *>(compressed_length), sizeof(size_t));
       trace_file.read(compressed, *compressed_length);
       if (snappy::RawUncompress(compressed, *compressed_length, reinterpret_cast<char *>(instrs)) == false) {
@@ -84,6 +121,7 @@ void PthreadScheduler::PlayTraces(const string & trace_name, uint64_t trace_skip
         trace_file.close();
         return;
       }
+
       for (uint32_t i = 0; i < instr_group_size; i++) {
         PTSInstrTrace & curr_instr = instrs[i];
 
@@ -109,10 +147,8 @@ void PthreadScheduler::PlayTraces(const string & trace_name, uint64_t trace_skip
               curr_instr.rw3);
         }
       }
+    } while (*slice_count < footer->total_slice_);
 
-      prev_count = *slice_count;
-      trace_file.read(reinterpret_cast<char *>(slice_count), sizeof(size_t));
-    } while (prev_count < *slice_count);
 
     delete[] instrs;
     delete[] compressed;
