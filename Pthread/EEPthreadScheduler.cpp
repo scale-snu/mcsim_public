@@ -95,8 +95,9 @@ void PthreadScheduler::PlayTraces(const string & trace_name, uint64_t trace_skip
     const size_t maxCompressedLength = snappy::MaxCompressedLength(sizeof(PTSInstrTrace)*instr_group_size);
     size_t * compressed_length = new size_t;
     (*compressed_length) = 0;
-    char * compressed = new char[maxCompressedLength];
+    char * compressed   = new char[maxCompressedLength];
     size_t *slice_count = new size_t;
+    (*slice_count) = 0;
 
     // read footer in trace file
     trace_file.seekg(0, ios::end);

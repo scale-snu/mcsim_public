@@ -254,6 +254,9 @@ VOID ProcessMemIns(
       curr_file.write(reinterpret_cast<char *>(footer), sizeof(struct Footer));
       curr_file.close();
 
+      *slice_count = 0;
+      *offset = 0;
+
       cout << "  ++ num_ins : (mem_rd, mem_wr, 2nd_mem_rd, all)=";
       cout << "( " << dec
            << setw(10) << num_ins_mem_rd     << ", "
