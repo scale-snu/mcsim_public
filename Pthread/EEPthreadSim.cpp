@@ -8,6 +8,13 @@
 #include <sstream>
 #include <string>
 
+KNOB< UINT32 > KnobPid(KNOB_MODE_WRITEONCE, "pintool", "pid", "", "");
+KNOB< UINT32 > KnobTotalNum(KNOB_MODE_WRITEONCE, "pintool", "total_num", "", "");
+KNOB< string > KnobTmpShared(KNOB_MODE_WRITEONCE, "pintool", "tmp_shared", "", "");
+KNOB< string > KnobTraceName(KNOB_MODE_WRITEONCE, "pintool", "trace_name", "", "");
+KNOB< UINT64 > KnobTraceSkipFirst(KNOB_MODE_WRITEONCE, "pintool", "trace_skip_first", "0", "");
+KNOB< UINT64 > KnobSkipFirst(KNOB_MODE_WRITEONCE, "pintool", "skip_first", "0", "");
+
 namespace PinPthread {
 
 /* --------------------------------------------------------------------------- */
