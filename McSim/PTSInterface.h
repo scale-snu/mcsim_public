@@ -2,8 +2,8 @@
 // reserved. Use of this source code is governed by a BSD-style license that can
 // be found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#ifndef PTSINTERFACE_H_
-#define PTSINTERFACE_H_
+#ifndef MCSIM_PTSINTERFACE_H_
+#define MCSIM_PTSINTERFACE_H_
 
 #include <stdint.h>
 
@@ -65,4 +65,4 @@ struct PTSMessage {
   instr_n_str  val;
 };
 
-#endif  // PTSINTERFACE_H_
+#endif  // MCSIM_PTSINTERFACE_H_

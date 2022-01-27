@@ -5,6 +5,7 @@
 #include "PTSTLB.h"
 #include "PTSCache.h"
 #include <iomanip>
+#include <utility>
 
 namespace PinPthread {
 
@@ -78,7 +79,9 @@ uint32_t TLBL1::process_event(uint64_t curr_time) {
         entries.erase(LRU.begin()->second);
         LRU.erase(LRU.begin());
       }
-      LRU.insert(std::pair<uint64_t, std::map<uint64_t, uint64_t>::iterator>(curr_time, entries.insert(std::pair<uint64_t, uint64_t>(page_num, curr_time)).first));
+      LRU.insert(
+        std::pair<uint64_t, std::map<uint64_t, uint64_t>::iterator>(
+          curr_time, entries.insert(std::pair<uint64_t, uint64_t>(page_num, curr_time)).first));
     } else {
       if (type == ct_tlbl1i) {
         (req_lqe->from.top())->add_req_event(curr_time + l1_to_lsu_t, req_lqe);
@@ -87,7 +90,9 @@ uint32_t TLBL1::process_event(uint64_t curr_time) {
       }
       LRU.erase(entries[page_num]);
       entries[page_num] = curr_time;
-      LRU.insert(std::pair<uint64_t, std::map<uint64_t, uint64_t>::iterator>(curr_time, entries.find(page_num)));
+      LRU.insert(
+        std::pair<uint64_t, std::map<uint64_t, uint64_t>::iterator>(
+          curr_time, entries.find(page_num)));
     }
   }
 

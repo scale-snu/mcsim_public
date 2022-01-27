@@ -2,11 +2,10 @@
 // reserved. Use of this source code is governed by a BSD-style license that can
 // be found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "PTSProcessDescription.h"
+#include <glog/logging.h>
 #include <fstream>
 #include <sstream>
-#include <glog/logging.h>
-
-#include "PTSProcessDescription.h"
 #include "toml.hpp"
 
 namespace PinPthread {

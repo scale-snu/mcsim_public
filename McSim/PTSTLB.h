@@ -2,8 +2,8 @@
 // reserved. Use of this source code is governed by a BSD-style license that can
 // be found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#ifndef PTSTLB_H_
-#define PTSTLB_H_
+#ifndef MCSIM_PTSTLB_H_
+#define MCSIM_PTSTLB_H_
 
 #include "McSim.h"
 
@@ -38,4 +38,4 @@ class TLBL1 : public Component {
 
 }  // namespace PinPthread
 
-#endif  // PTSTLB_H_
+#endif  // MCSIM_PTSTLB_H_

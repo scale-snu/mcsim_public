@@ -150,24 +150,39 @@ uint32_t Crossbar::process_event(uint64_t curr_time) {
         rep_event_iter->second.first->type == et_e_to_i ||
         rep_event_iter->second.first->type == et_e_to_m) {
       uint32_t which_mc = geq->which_mc(rep_event_iter->second.first->address);
-      queues[rep_event_iter->second.second->num].insert(std::pair<noc_priority, EventPair>(noc_rep, EventPair(rep_event_iter->second.first, directory[which_mc])));
+      queues[rep_event_iter->second.second->num].insert(
+        std::pair<noc_priority, EventPair>(
+          noc_rep, EventPair(
+            rep_event_iter->second.first,
+            directory[which_mc])));
     } else {
-      queues[rep_event_iter->second.second->num].insert(std::pair<noc_priority, EventPair>(noc_rep, EventPair(rep_event_iter->second.first, rep_event_iter->second.first->from.top())));
+      queues[rep_event_iter->second.second->num].insert(
+        std::pair<noc_priority, EventPair>(
+          noc_rep, EventPair(
+            rep_event_iter->second.first,
+            rep_event_iter->second.first->from.top())));
     }
     ++rep_event_iter;
   }
 
   while (crq_event_iter != crq_events.end() && crq_event_iter->first == curr_time) {
     // special case --  from.top() is the target L2
-    queues[crq_event_iter->second.second->num].insert(std::pair<noc_priority, EventPair>(noc_crq, EventPair(crq_event_iter->second.first, crq_event_iter->second.first->from.top())));
+    queues[crq_event_iter->second.second->num].insert(
+      std::pair<noc_priority, EventPair>(
+        noc_crq, EventPair(
+          crq_event_iter->second.first,
+          crq_event_iter->second.first->from.top())));
     crq_event_iter->second.first->from.pop();
     ++crq_event_iter;
   }
 
   while (req_event_iter != req_events.end() && req_event_iter->first == curr_time) {
     // process the first request event
-    uint32_t which_mc  = geq->which_mc(req_event_iter->second.first->address);  // TODO(gajh) : it is assumed that (directory[i]->num == i)
-    queues[req_event_iter->second.second->num].insert(std::pair<noc_priority, EventPair>(noc_req, EventPair(req_event_iter->second.first, directory[which_mc])));
+    // TODO(gajh) : it is assumed that (directory[i]->num == i)
+    uint32_t which_mc  = geq->which_mc(req_event_iter->second.first->address);
+    queues[req_event_iter->second.second->num].insert(
+      std::pair<noc_priority, EventPair>(
+        noc_req, EventPair(req_event_iter->second.first, directory[which_mc])));
     ++req_event_iter;
   }
 

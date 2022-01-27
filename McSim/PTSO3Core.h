@@ -2,8 +2,8 @@
 // reserved. Use of this source code is governed by a BSD-style license that can
 // be found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#ifndef PTSO3CORE_H_
-#define PTSO3CORE_H_
+#ifndef MCSIM_PTSO3CORE_H_
+#define MCSIM_PTSO3CORE_H_
 
 #include "PTS.h"
 #include "PTSComponent.h"
@@ -176,5 +176,5 @@ class O3Core : public Component {
 
 }  // namespace PinPthread
 
-#endif  // PTSO3CORE_H_
+#endif  // MCSIM_PTSO3CORE_H_
 

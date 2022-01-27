@@ -2,8 +2,8 @@
 // reserved. Use of this source code is governed by a BSD-style license that can
 // be found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#ifndef PTSXBAR_H_
-#define PTSXBAR_H_
+#ifndef MCSIM_PTSXBAR_H_
+#define MCSIM_PTSXBAR_H_
 
 #include <list>
 #include <map>
@@ -69,5 +69,5 @@ class Crossbar : public NoC {
 
 }  // namespace PinPthread
 
-#endif  // PTSXBAR_H_
+#endif  // MCSIM_PTSXBAR_H_
 
