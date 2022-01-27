@@ -118,22 +118,24 @@ MemoryController::~MemoryController() {
   if (num_read > 0) {
     update_acc_dist();
     std::cout << "  -- MC  [" << std::setw(3) << num << "] : (rd, wr, act, pre) = ("
-         << std::setw(9) << num_read << ", " << std::setw(9) << num_write << ", "
-         << std::setw(9) << num_activate << ", " << std::setw(9) << num_precharge
-         << "), # of WR->RD switch = " << num_write_to_read_switch
-         << ", #_refresh = " << num_refresh << ", "
-         << os_page_acc_dist.size() << " pages acc, "
-         << "avg_tick_in_mc= " << packet_time_in_mc_acc / (num_read + num_write) << std::endl;
+      << std::setw(9) << num_read << ", " << std::setw(9) << num_write << ", "
+      << std::setw(9) << num_activate << ", " << std::setw(9) << num_precharge
+      << "), # of WR->RD switch = " << num_write_to_read_switch
+      << ", #_refresh = " << num_refresh << ", "
+      << os_page_acc_dist.size() << " pages acc, "
+      << "avg_tick_in_mc= " << packet_time_in_mc_acc / (num_read + num_write) << std::endl;
     std::cout << "  -- MC  [" << std::setw(3) << num << "] : "
-         << "local pred (miss,hit)=( " << num_pred_miss << ", " << num_pred_hit << "), "
-         << "global pred (miss,hit)=( " << num_global_pred_miss << ", " << num_global_pred_hit << ")" << std::endl;
+         << "local pred (miss,hit)=( " << num_pred_miss << ", " << num_pred_hit
+         << "), global pred (miss,hit)=( " << num_global_pred_miss << ", " << num_global_pred_hit
+         << ")" << std::endl;
   }
   if (display_os_page_usage == true) {
     for (auto && iter : os_page_acc_dist) {
-      std::cout << "  -- page 0x" << std::setfill('0') << std::setw(8) << std::hex << iter.first * (1 << page_sz_base_bit)
-           << std::setfill(' ') << std::dec << " is accessed ("
-           << std::setw(7) << mcsim->os_page_req_dist[iter.first]
-           << ", " << std::setw(7) << iter.second << ") times at (Core, MC)." <<  std::endl;
+      std::cout << "  -- page 0x" << std::setfill('0') << std::setw(8) << std::hex
+        << iter.first * (1 << page_sz_base_bit)
+        << std::setfill(' ') << std::dec << " is accessed ("
+        << std::setw(7) << mcsim->os_page_req_dist[iter.first]
+        << ", " << std::setw(7) << iter.second << ") times at (Core, MC)." <<  std::endl;
     }
   }
 }
@@ -152,7 +154,8 @@ void MemoryController::add_req_event(
       directory->add_rep_event(event_time + mc_to_dir_t, local_event);
     }
   } else if (is_fixed_bw_n_latency == true) {
-    last_process_time = (event_time == 0 || event_time > last_process_time) ? event_time : (last_process_time + process_interval);
+    last_process_time = (event_time == 0 || event_time > last_process_time) ? event_time :
+                        (last_process_time + process_interval);
 
     if (local_event->type == et_evict || local_event->type == et_dir_evict) {
       num_write++;
@@ -280,7 +283,6 @@ uint32_t MemoryController::process_event(uint64_t curr_time) {
     // check constraints
     const uint64_t & address  = (*iter)->address;
     const event_type type   = (*iter)->type;
-    const uint32_t th_id   = (*iter)->th_id;
     const uint32_t rank_num = get_rank_num(address);
     const uint32_t bank_num = get_bank_num(address);
     const uint64_t page_num = get_page_num(address);
@@ -299,7 +301,7 @@ uint32_t MemoryController::process_event(uint64_t curr_time) {
       case mc_bank_idle:
         if (page_hit == false &&  // page_hit has priority 2
             last_activate_time[rank_num] + tRR*process_interval <= curr_time) {
-          int32_t n_req_from_curr_th = num_req_from_a_th[th_id];
+          int32_t n_req_from_curr_th = num_req_from_a_th[(*iter)->th_id];
           if (n_req_from_curr_th < num_req_from_the_same_thread ||
               (n_req_from_curr_th == num_req_from_the_same_thread && c_idx == -1)) {
             c_idx  = i;
@@ -343,7 +345,7 @@ uint32_t MemoryController::process_event(uint64_t curr_time) {
             if (need_precharge == true &&
                 page_hit == false &&  // page_hit has priority 2
                 last_activate_time[rank_num] + tRR*process_interval <= curr_time) {
-              int32_t n_req_from_curr_th = num_req_from_a_th[th_id];
+              int32_t n_req_from_curr_th = num_req_from_a_th[(*iter)->th_id];
               if (n_req_from_curr_th < num_req_from_the_same_thread ||
                   (n_req_from_curr_th == num_req_from_the_same_thread && c_idx == -1)) {
                 c_idx  = i;
@@ -366,9 +368,11 @@ uint32_t MemoryController::process_event(uint64_t curr_time) {
               rd_dp_status.erase(rd_dp_status.begin(), rd_dp_status.lower_bound(curr_time));
               rd_miter = rd_dp_status.lower_bound(curr_time + tCL*process_interval);
               if ((full_duplex == false &&
-                    (miter == dp_status.end() || miter->first >= curr_time + (tCL+tBL)*process_interval)) ||
+                    (miter == dp_status.end() ||
+                     miter->first >= curr_time + (tCL+tBL)*process_interval)) ||
                   (full_duplex == true &&
-                   (rd_miter == rd_dp_status.end() || rd_miter->first >= curr_time + (tCL+tBL)*process_interval))) {
+                    (rd_miter == rd_dp_status.end() ||
+                     rd_miter->first >= curr_time + (tCL+tBL)*process_interval))) {
                 bool wrbub = false;
                 // WRBUB
                 miter = dp_status.lower_bound(curr_time + tCL*process_interval - tWRBUB*process_interval);
@@ -382,7 +386,8 @@ uint32_t MemoryController::process_event(uint64_t curr_time) {
                   ++miter;
                 }
 
-                if (wrbub == false && tWTR > 0 && last_write_time[rank_num] + tWTR*process_interval > curr_time) {
+                if (wrbub == false && tWTR > 0 &&
+                    last_write_time[rank_num] + tWTR*process_interval > curr_time) {
                   wrbub = true;  // tWTR constraint
                 }
 
@@ -403,15 +408,16 @@ uint32_t MemoryController::process_event(uint64_t curr_time) {
               wr_dp_status.erase(wr_dp_status.begin(), wr_dp_status.lower_bound(curr_time));
               wr_miter = wr_dp_status.lower_bound(curr_time + tCL*process_interval);
               if ((full_duplex == false &&
-                    (miter == dp_status.end() || miter->first >= curr_time + (tCL+tBL)*process_interval)) ||
+                    (miter == dp_status.end() ||
+                     miter->first >= curr_time + (tCL+tBL)*process_interval)) ||
                   (full_duplex == true  &&
-                   (wr_miter == wr_dp_status.end() || wr_miter->first >= curr_time + (tCL+tBL)*process_interval))) {
+                    (wr_miter == wr_dp_status.end() ||
+                     wr_miter->first >= curr_time + (tCL+tBL)*process_interval))) {
                 bool rwbub = false;
                 // RWBUB
                 miter = dp_status.lower_bound(curr_time + tCL*process_interval - tRWBUB*process_interval);
-                while (full_duplex == false &&
-                    miter != dp_status.end() &&
-                    miter->first < curr_time + tCL*process_interval) {
+                while (full_duplex == false && miter != dp_status.end() &&
+                       miter->first < curr_time + tCL*process_interval) {
                   if (miter->second == mc_bank_read) {
                     rwbub = true;
                     break;
@@ -419,7 +425,8 @@ uint32_t MemoryController::process_event(uint64_t curr_time) {
                   ++miter;
                 }
 
-                if (rwbub == false && last_read_time_rank[rank_num] + tRWBUB*process_interval > curr_time) {
+                if (rwbub == false &&
+                    last_read_time_rank[rank_num] + tRWBUB*process_interval > curr_time) {
                   rwbub = true;  // tRTW constraint
                 }
 
@@ -435,11 +442,11 @@ uint32_t MemoryController::process_event(uint64_t curr_time) {
           }
           if (met_constraints == true &&
               (page_hit == false ||  // this request is page_hit
-               num_req_from_a_th[th_id] < num_req_from_the_same_thread)) {
+               num_req_from_a_th[(*iter)->th_id] < num_req_from_the_same_thread)) {
             c_idx  = i;
             c_iter = iter;
             page_hit = true;
-            num_req_from_the_same_thread = num_req_from_a_th[th_id];
+            num_req_from_the_same_thread = num_req_from_a_th[(*iter)->th_id];
           }
         }
         break;
@@ -456,7 +463,6 @@ uint32_t MemoryController::process_event(uint64_t curr_time) {
     // check bank_status
     const uint64_t address  = (*iter)->address;
     const event_type type   = (*iter)->type;
-    const uint32_t th_id = (*iter)->th_id;
     const uint32_t rank_num = get_rank_num(address);
     const uint32_t bank_num = get_bank_num(address);
     const uint64_t page_num = get_page_num(address);
@@ -542,7 +548,7 @@ uint32_t MemoryController::process_event(uint64_t curr_time) {
               LOG(FATAL) << "currenly at req_l[" << i << "]\n";
               break;
           }
-          if (par_bs == true) num_req_from_a_th[th_id]--;
+          if (par_bs == true) num_req_from_a_th[(*iter)->th_id]--;
           if (policy == mc_scheduling_open) {
             curr_bank.action_type = curr_action_type;
           } else {

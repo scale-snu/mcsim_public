@@ -2,8 +2,8 @@
 // reserved. Use of this source code is governed by a BSD-style license that can
 // be found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#ifndef PTSCOMPONENT_H_
-#define PTSCOMPONENT_H_
+#ifndef MCSIM_PTSCOMPONENT_H_
+#define MCSIM_PTSCOMPONENT_H_
 
 #include <iostream>
 #include <map>
@@ -76,7 +76,10 @@ struct LocalQueueElement {
 
   LocalQueueElement() : from(), th_id(0), dummy(false), rob_entry(-1) { }
   LocalQueueElement(Component * comp, event_type type_, UINT64 address_, UINT32 th_id_ = 0):
-    from(), type(type_), address(address_), th_id(th_id_), dummy(false), rob_entry(-1) { from.push(comp); }
+      from(), type(type_), address(address_),
+      th_id(th_id_), dummy(false), rob_entry(-1) {
+    from.push(comp);
+  }
 
   void display();
 
@@ -112,7 +115,10 @@ class Component {  // meta-class
  protected:
   const std::string prefix_str() const;
   UINT32 get_param_uint64(const std::string & param, UINT32 def = 0) const;
-  UINT32 get_param_uint64(const std::string & param, const std::string & prefix, UINT32 def = 0) const;
+  UINT32 get_param_uint64(
+    const std::string & param,
+    const std::string & prefix,
+    UINT32 def = 0) const;
   std::string get_param_str(const std::string & param) const;
   bool   get_param_bool(const std::string & param, bool def_value) const;
   UINT32 log2(UINT64 num);
@@ -151,4 +157,4 @@ class GlobalEventQueue {
 
 }  // namespace PinPthread
 
-#endif  // PTSCOMPONENT_H_
+#endif  // MCSIM_PTSCOMPONENT_H_

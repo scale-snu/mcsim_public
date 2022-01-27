@@ -7,6 +7,7 @@
 #include <iomanip>
 #include <queue>
 #include <set>
+#include <map>
 #include <sstream>
 #include <string>
 
@@ -29,8 +30,6 @@ Cache::Cache(
   Component(type_, num_, mcsim_),
   set_lsb(get_param_uint64("set_lsb", 6)),
   num_banks(get_param_uint64("num_banks", 1)),
-  num_sets(get_param_uint64("num_sets", 64)),
-  num_ways(get_param_uint64("num_ways",  4)),
   num_sets_per_subarray(get_param_uint64("num_sets_per_subarray", 1)),
   num_rd_access(0), num_rd_miss(0),
   num_wr_access(0), num_wr_miss(0),
@@ -40,9 +39,13 @@ Cache::Cache(
   req_qs    = std::vector< std::queue<LocalQueueElement * > >(num_banks);
 }
 
-void Cache::display_event(uint64_t curr_time, LocalQueueElement * lqe, const std::string & postfix) {
+void Cache::display_event(
+    uint64_t curr_time,
+    LocalQueueElement * lqe,
+    const std::string & postfix) {
   if (lqe->address >> set_lsb == search_addr >> set_lsb) {
-    LOG(WARNING) << "  -- [" << std::setw(7) << curr_time << "] " << type << postfix << " [" << num << "] " << *lqe;
+    LOG(WARNING) << "  -- [" << std::setw(7) << curr_time << "] " << type << postfix
+      << " [" << num << "] " << *lqe;
     show_state(lqe->address);
   }
 }
@@ -65,6 +68,8 @@ CacheL1::CacheL1(
   num_pre_entries(get_param_uint64("num_pre_entries", 64)),
   num_prefetch_requests(0), num_prefetch_hits(0), oldest_pre_entry_idx(0) {
   process_interval = get_param_uint64("process_interval", 10);
+  num_sets = get_param_uint64("num_sets", 64);
+  num_ways = get_param_uint64("num_ways",  4);
   CHECK(l2_set_lsb >= set_lsb);
   tags = new l1_tag_pair ** [num_sets];
   for (uint32_t i = 0; i < num_sets; i++) {
@@ -86,7 +91,8 @@ CacheL1::~CacheL1() {
     std::cout << "  -- L1$" << ((type == ct_cachel1d) ? "D[" : "I[")
       << std::setw(3) << num << "] : RD (miss, access)=( "
       << std::setw(8) << num_rd_miss << ", " << std::setw(8) << num_rd_access << ")= "
-      << std::setw(6) << std::setiosflags(std::ios::fixed) << std::setprecision(2) << 100.00*num_rd_miss/num_rd_access << "%, PRE (hit, reqs)=( "
+      << std::setw(6) << std::setiosflags(std::ios::fixed) << std::setprecision(2)
+      << 100.00*num_rd_miss/num_rd_access << "%, PRE (hit, reqs)=( "
       << num_prefetch_hits << ", " << num_prefetch_requests << " )" << std::endl;
   }
   if (num_wr_access > 0) {
@@ -97,7 +103,8 @@ CacheL1::~CacheL1() {
       << 100.00*num_wr_miss/num_wr_access << "%" << std::endl;
   }
 
-  if ((type == ct_cachel1d) && (num_ev_coherency > 0 || num_ev_capacity > 0 || num_coherency_access > 0)) {
+  if ((type == ct_cachel1d) &&
+      (num_ev_coherency > 0 || num_ev_capacity > 0 || num_coherency_access > 0)) {
     std::cout << "  -- L1$D[" << std::setw(3) << num
       << "] : (ev_coherency, ev_capacity, coherency_access, up_req, bypass, nack)=( "
       << std::setw(8) << num_ev_coherency << ", " << std::setw(8) << num_ev_capacity << ", "
@@ -130,9 +137,10 @@ CacheL1::~CacheL1() {
     std::cout << std::endl;
   } else if ((type == ct_cachel1i) &&
       (num_ev_coherency > 0 || num_coherency_access > 0)) {
-    std::cout << "  -- L1$I[" << std::setw(3) << num << "] : (ev_coherency, coherency_access, bypass)=( "
-      << std::setw(10) << num_ev_coherency << ", " << std::setw(10) << num_coherency_access << ", "
-      << std::setw(10) << num_bypass << ")" << std::endl;
+    std::cout << "  -- L1$I[" << std::setw(3) << num
+      << "] : (ev_coherency, coherency_access, bypass)=( " << std::setw(10)
+      << num_ev_coherency << ", " << std::setw(10) << num_coherency_access << ", " << std::setw(10)
+      << num_bypass << ")" << std::endl;
   }
 
   for (uint32_t i = 0; i < num_sets; i++) {
@@ -329,7 +337,9 @@ uint32_t CacheL1::process_event(uint64_t curr_time) {
           }
 
           set_it->first  = tag;
-          set_it->second = (etype == et_read && (addr_in_cache == false || set_it->second != cs_modified)) ? cs_exclusive : cs_modified;
+          set_it->second = (etype == et_read &&
+                            (addr_in_cache == false || set_it->second != cs_modified)) ?
+                           cs_exclusive : cs_modified;
           update_LRU(idx, tags_set, set_it);
           add_event_to_lsu(curr_time, rep_lqe);
           break;
@@ -360,7 +370,8 @@ uint32_t CacheL1::process_event(uint64_t curr_time) {
       bool is_coherence_miss = false;
 
       // display_event(curr_time, req_lqe, "Q");
-      DLOG_IF(FATAL, etype != et_read && etype != et_write) << "req_lqe->type should be either et_read or et_write, not " << etype << ".\n";
+      DLOG_IF(FATAL, etype != et_read && etype != et_write)
+        << "req_lqe->type should be either et_read or et_write, not " << etype << ".\n";
       if (etype == et_read) {
         num_rd_access++;
         for (uint32_t idx = 0; idx < num_ways && hit == false; idx++) {
@@ -368,7 +379,8 @@ uint32_t CacheL1::process_event(uint64_t curr_time) {
           if (set_it->second == cs_invalid) {
             continue;
           } else if (set_it->first == tag) {
-            if (set_it->second == cs_modified || set_it->second == cs_shared || set_it->second == cs_exclusive) {
+            if (set_it->second == cs_modified || set_it->second == cs_shared ||
+                set_it->second == cs_exclusive) {
               hit = true;
               update_LRU(idx, tags_set, set_it);
             }
@@ -397,10 +409,6 @@ uint32_t CacheL1::process_event(uint64_t curr_time) {
           }
         }
       }
-      if (etype == et_read && use_prefetch == true) {
-        // currently prefetch is conducted for read requests only.
-        do_prefetch(curr_time, *req_lqe);
-      }
 
       if (hit == false) {
         if (is_coherence_miss == false) {
@@ -410,6 +418,11 @@ uint32_t CacheL1::process_event(uint64_t curr_time) {
         cachel2->add_req_event(curr_time + l1_to_l2_t, req_lqe);
       } else {
         add_event_to_lsu(curr_time, req_lqe);
+      }
+
+      if (etype == et_read && use_prefetch == true) {
+        // currently prefetch is conducted for read requests only.
+        do_prefetch(curr_time, *req_lqe);
       }
     }
   }
@@ -555,9 +568,11 @@ CacheL2::CacheL2(
   num_banks_log2(log2(num_banks)),
   always_hit(get_param_bool("always_hit", false)),
   display_life_time(get_param_bool("display_life_time", false)),
-  num_ev_from_l1(0), num_ev_from_l1_miss(0),num_destroyed_cache_lines(0),
+  num_ev_from_l1(0), num_ev_from_l1_miss(0), num_destroyed_cache_lines(0),
   cache_line_life_time(0), time_between_last_access_and_cache_destroy(0) {
   process_interval = get_param_uint64("process_interval", 20);
+  num_sets = get_param_uint64("num_sets", 512);
+  num_ways = get_param_uint64("num_ways",  8);
 
   // tags   = vector< list< L2Entry > >(num_sets, list< L2Entry >(num_ways, L2Entry()));
   tags = new L2Entry ** [num_sets];
@@ -575,16 +590,20 @@ CacheL2::~CacheL2() {
   if (num_rd_access > 0) {
     std::cout << "  -- L2$ [" << std::setw(3) << num << "] : RD (miss, acc)=( "
       << std::setw(8) << num_rd_miss << ", " << std::setw(8) << num_rd_access << ")= "
-      << std::setw(6) << std::setiosflags(std::ios::fixed) << std::setprecision(2) << 100.00*num_rd_miss/num_rd_access << "%" << std::endl;
+      << std::setw(6) << std::setiosflags(std::ios::fixed) << std::setprecision(2)
+      << 100.00*num_rd_miss/num_rd_access << "%" << std::endl;
   }
   if (num_wr_access > 0) {
     std::cout << "  -- L2$ [" << std::setw(3) << num << "] : WR (miss, acc)=( "
       << std::setw(8) << num_wr_miss << ", " << std::setw(8) << num_wr_access << ")= "
-      << std::setw(6) << std::setiosflags(std::ios::fixed) << std::setprecision(2) << 100.00*num_wr_miss/num_wr_access << "%" << std::endl;
+      << std::setw(6) << std::setiosflags(std::ios::fixed) << std::setprecision(2)
+      << 100.00*num_wr_miss/num_wr_access << "%" << std::endl;
   }
 
-  if (num_ev_coherency > 0 || num_ev_capacity > 0 || num_coherency_access > 0 || num_upgrade_req > 0) {
-    std::cout << "  -- L2$ [" << std::setw(3) << num << "] : (ev_coherency, ev_capacity, coherency_acc, up_req, bypass, nack)=( "
+  if (num_ev_coherency > 0 || num_ev_capacity > 0 ||
+      num_coherency_access > 0 || num_upgrade_req > 0) {
+    std::cout << "  -- L2$ [" << std::setw(3) << num
+      << "] : (ev_coherency, ev_capacity, coherency_acc, up_req, bypass, nack)=( "
       << std::setw(8) << num_ev_coherency << ", " << std::setw(8) << num_ev_capacity << ", "
       << std::setw(8) << num_coherency_access << ", " << std::setw(8) << num_upgrade_req << ", "
       << std::setw(8) << num_bypass << ", " << std::setw(8) << num_nack << ")" << std::endl;
@@ -592,7 +611,8 @@ CacheL2::~CacheL2() {
   if (num_ev_from_l1 > 0) {
     std::cout << "  -- L2$ [" << std::setw(3) << num << "] : EV_from_L1 (miss, acc)=( "
       << std::setw(8) << num_ev_from_l1_miss << ", " << std::setw(8) << num_ev_from_l1 << ")= "
-      << std::setiosflags(std::ios::fixed) << std::setprecision(2) << 100.0*num_ev_from_l1_miss/num_ev_from_l1 << "%, ";
+      << std::setiosflags(std::ios::fixed) << std::setprecision(2)
+      << 100.0*num_ev_from_l1_miss/num_ev_from_l1 << "%, ";
   }
   if (num_rd_access > 0 || num_wr_access > 0) {
     uint32_t num_cache_lines    = 0;
@@ -606,7 +626,6 @@ CacheL2::~CacheL2() {
     std::map<uint64_t, uint64_t> dirty_cl_per_offset;
 
     for (uint32_t j = 0; j < num_sets; j++) {
-      // for (list<CacheL2::L2Entry>::iterator iter = tags[j].begin(); iter != tags[j].end(); ++iter)
       for (uint32_t k = 0; k < num_ways; k++) {
         L2Entry * iter = tags[j][k];
         if (iter->type == cs_modified) {
@@ -632,11 +651,16 @@ CacheL2::~CacheL2() {
       num_s_cache_lines + num_m_cache_lines + num_tr_cache_lines;
 
     std::cout << " L2$ (i,e,s,m,tr) ratio=("
-      << std::setiosflags(std::ios::fixed) << std::setw(3) << 1000 * num_i_cache_lines  / num_cache_lines << ", "
-      << std::setiosflags(std::ios::fixed) << std::setw(3) << 1000 * num_e_cache_lines  / num_cache_lines << ", "
-      << std::setiosflags(std::ios::fixed) << std::setw(3) << 1000 * num_s_cache_lines  / num_cache_lines << ", "
-      << std::setiosflags(std::ios::fixed) << std::setw(3) << 1000 * num_m_cache_lines  / num_cache_lines << ", "
-      << std::setiosflags(std::ios::fixed) << std::setw(3) << 1000 * num_tr_cache_lines / num_cache_lines << "), num_dirty_lines (pid:#) = ";
+      << std::setiosflags(std::ios::fixed) << std::setw(3)
+      << 1000 * num_i_cache_lines  / num_cache_lines << ", "
+      << std::setiosflags(std::ios::fixed) << std::setw(3)
+      << 1000 * num_e_cache_lines  / num_cache_lines << ", "
+      << std::setiosflags(std::ios::fixed) << std::setw(3)
+      << 1000 * num_s_cache_lines  / num_cache_lines << ", "
+      << std::setiosflags(std::ios::fixed) << std::setw(3)
+      << 1000 * num_m_cache_lines  / num_cache_lines << ", "
+      << std::setiosflags(std::ios::fixed) << std::setw(3)
+      << 1000 * num_tr_cache_lines / num_cache_lines << "), num_dirty_lines (pid:#) = ";
 
     for (auto m_iter = dirty_cl_per_offset.begin(); m_iter != dirty_cl_per_offset.end(); m_iter++) {
       std::cout << m_iter->first << " : " << m_iter->second << ", ";
@@ -644,11 +668,13 @@ CacheL2::~CacheL2() {
     std::cout << std::endl;
   }
   if (display_life_time == true && num_destroyed_cache_lines > 0) {
-    std::cout << "  -- L2$ [" << std::setw(3) << num << "] : (cache_line_life_time, time_between_last_access_and_cache_destroy) = ("
+    std::cout << "  -- L2$ [" << std::setw(3) << num
+    << "] : (cache_line_life_time, time_between_last_access_and_cache_destroy) = ("
       << std::setiosflags(std::ios::fixed) << std::setprecision(2)
       << 1.0 * cache_line_life_time / (process_interval * num_destroyed_cache_lines) << ", "
       << std::setiosflags(std::ios::fixed) << std::setprecision(2)
-      << 1.0 * time_between_last_access_and_cache_destroy / (process_interval * num_destroyed_cache_lines)
+      << 1.0 * time_between_last_access_and_cache_destroy /
+         (process_interval * num_destroyed_cache_lines)
       << ") L2$ cycles" << std::endl;
   }
 
@@ -831,9 +857,11 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
 
       CHECK_NE(idx, num_ways) << *this << *rep_lqe << *geq;
       if (bypass == false) {
-        set_it->type = (etype == et_e_rd) ? cs_exclusive : (etype == et_s_rd) ? cs_shared : cs_modified;
+        set_it->type = (etype == et_e_rd) ? cs_exclusive :
+                       (etype == et_s_rd) ? cs_shared : cs_modified;
         if (rep_lqe->from.size() > 1) {
-          set_it->type_l1l2 = (etype == et_write) ? cs_modified : (shared == true) ? cs_shared : cs_exclusive;
+          set_it->type_l1l2 = (etype == et_write) ? cs_modified :
+                              (shared == true) ? cs_shared : cs_exclusive;
           set_it->tag       = tag;
           set_it->sharedl1.insert(rep_lqe->from.top());
         } else {
@@ -883,7 +911,8 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
         set_it->type_l1l2 = cs_invalid;
         set_it->type      = cs_invalid;
         update_LRU(idx, tags_set, set_it);
-      } else if (idx != num_ways && (set_it->type_l1l2 == cs_tr_to_m || set_it->type_l1l2 == cs_tr_to_s)) {
+      } else if (idx != num_ways &&
+                 (set_it->type_l1l2 == cs_tr_to_m || set_it->type_l1l2 == cs_tr_to_s)) {
         num_ev_coherency++;
         set_it->last_access_time = curr_time;
         set_it->type_l1l2 = (set_it->type_l1l2 == cs_tr_to_s) ? cs_shared :
@@ -987,8 +1016,10 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
       num_coherency_access++;
 
       if (idx != num_ways) {
-        if (set_it->type != cs_exclusive && set_it->type != cs_shared && set_it->type != cs_tr_to_m) {
-          LOG(FATAL) << "[" << curr_time << "] " << *set_it << std::endl << *this << *rep_lqe << *geq;
+        if (set_it->type != cs_exclusive &&
+            set_it->type != cs_shared && set_it->type != cs_tr_to_m) {
+          LOG(FATAL) << "[" << curr_time << "] " << *set_it << std::endl
+            << *this << *rep_lqe << *geq;
         }
         set_it->last_access_time = curr_time;
         set_it->type = cs_shared;
@@ -1093,23 +1124,27 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
             hit = true;
           } else if (set_it->tag == tag) {
             if (set_it->type_l1l2 == cs_invalid &&
-                (set_it->type == cs_exclusive || set_it->type == cs_shared || set_it->type == cs_modified)) {
+                (set_it->type == cs_exclusive || set_it->type == cs_shared ||
+                 set_it->type == cs_modified)) {
               // cache hit, and type_l1l2 will be cs_exclusive
               set_it->type_l1l2 = cs_exclusive;
               set_it->sharedl1.insert(req_lqe->from.top());
             } else if (set_it->type_l1l2 == cs_exclusive &&
-                (set_it->type == cs_exclusive || set_it->type == cs_shared || set_it->type == cs_modified)) {
+                (set_it->type == cs_exclusive || set_it->type == cs_shared ||
+                 set_it->type == cs_modified)) {
               // cache hit, and type_l1l2 will be cs_exclusive or cs_shared
               set_it->sharedl1.insert(req_lqe->from.top());
               if (set_it->sharedl1.size() > 1) {
                 set_it->type_l1l2 = cs_shared;
               }
             } else if (set_it->type_l1l2 == cs_shared &&
-                (set_it->type == cs_exclusive || set_it->type == cs_shared || set_it->type == cs_modified)) {
+                (set_it->type == cs_exclusive || set_it->type == cs_shared ||
+                 set_it->type == cs_modified)) {
               // cache hit, and type_l1l2 will be cs_shared
               set_it->sharedl1.insert(req_lqe->from.top());
             } else if (set_it->type_l1l2 == cs_modified && set_it->type == cs_modified) {
-              // cache hit, and type_l1l2 will be cs_shared, m_to_s event request will be delivered to L1
+              // cache hit, and type_l1l2 will be cs_shared
+              // m_to_s event request will be delivered to L1
               if (set_it->sharedl1.size() > 1) {
                 LOG(FATAL) << *set_it << std::endl << *this << *req_lqe << *geq;
               }
@@ -1132,7 +1167,8 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
                 set_it->type_l1l2 == cs_tr_to_i || set_it->type == cs_tr_to_m) {
               req_lqe->type = et_nack;
             } else {
-              LOG(FATAL) << "[" << curr_time << "] " << *set_it << std::endl << *this << *req_lqe << *geq;
+              LOG(FATAL) << "[" << curr_time << "] " << *set_it << std::endl
+                << *this << *req_lqe << *geq;
             }
 
             set_it->last_access_time = curr_time;
@@ -1171,7 +1207,8 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
             } else if (set_it->type == cs_modified && set_it->type_l1l2 == cs_modified) {
               // cache hit, and type_l1l2 will be cs_modified
               if (set_it->sharedl1.size() != 1) {
-                LOG(FATAL) << "[" << curr_time << "] " << *set_it << std::endl << *this << *req_lqe << *geq;
+                LOG(FATAL) << "[" << curr_time << "] " << *set_it << std::endl
+                  << *this << *req_lqe << *geq;
               }
               if (*(set_it->sharedl1.begin()) != req_lqe->from.top()) {
                 enter_intermediate_state = true;
@@ -1188,10 +1225,12 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
             } else if (set_it->type == cs_modified && set_it->type_l1l2 == cs_exclusive) {
               // cache hit, and type_l1l2 will be cs_modified
               if (set_it->sharedl1.size() > 1) {
-                LOG(FATAL) << "[" << curr_time << "] " << *set_it << std::endl << *this << *req_lqe << *geq;
+                LOG(FATAL) << "[" << curr_time << "] " << *set_it << std::endl
+                  << *this << *req_lqe << *geq;
               }
 
-              if (set_it->sharedl1.empty() == false && (*(set_it->sharedl1.begin())) != req_lqe->from.top()) {
+              if (set_it->sharedl1.empty() == false &&
+                  (*(set_it->sharedl1.begin())) != req_lqe->from.top()) {
                 auto lqe = new LocalQueueElement(this, et_evict,
                     ((set_it->tag*num_sets + set) << set_lsb), req_lqe->th_id);
                 (*(set_it->sharedl1.begin()))->add_rep_event(curr_time + l2_to_l1_t, lqe);
@@ -1209,7 +1248,8 @@ uint32_t CacheL2::process_event(uint64_t curr_time) {
               update_LRU(idx, tags_set, set_it);
               break;
             } else {
-              LOG(FATAL) << "[" << curr_time << "] " << *set_it << std::endl << *this << *req_lqe << *geq;
+              LOG(FATAL) << "[" << curr_time << "] " << *set_it << std::endl
+                << *this << *req_lqe << *geq;
             }
 
             set_it->last_access_time = curr_time;
@@ -1305,7 +1345,12 @@ void CacheL2::update_LRU(uint32_t idx, L2Entry ** tags_set, L2Entry * const set_
 }
 
 
-void CacheL2::req_L1_evict(uint64_t curr_time, L2Entry * const set_it, uint64_t addr, LocalQueueElement * lqe, bool always) {
+void CacheL2::req_L1_evict(
+    uint64_t curr_time,
+    L2Entry * const set_it,
+    uint64_t addr,
+    LocalQueueElement * lqe,
+    bool always) {
   for (auto && it : set_it->sharedl1) {
     if (always == true || it != lqe->from.top()) {
       auto new_lqe = new LocalQueueElement(this, et_evict, addr, lqe->th_id);

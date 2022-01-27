@@ -140,7 +140,6 @@ McSim::McSim(PthreadTimingSimulator * pts_)
   curr_time_last(0), num_fetched_instrs_last(0), num_mem_acc_last(0),
   num_used_pages_last(0), num_l1_acc_last(0), num_l1_miss_last(0),
   num_l2_acc_last(0), num_l2_miss_last(0) {
-
   lsu_process_interval = pts->get_param_uint64("pts.o3core.process_interval", 10);
   global_q             = new GlobalEventQueue(this);
   create_comps();
@@ -148,7 +147,8 @@ McSim::McSim(PthreadTimingSimulator * pts_)
 
 
 McSim::~McSim() {
-  uint64_t ipc1000 = (global_q->curr_time == 0) ? 0 : (1000 * num_fetched_instrs * lsu_process_interval / global_q->curr_time);
+  uint64_t ipc1000 = (global_q->curr_time == 0) ? 0 :
+    (1000 * num_fetched_instrs * lsu_process_interval / global_q->curr_time);
   std::cout << "  -- total number of fetched instructions : " << num_fetched_instrs
     << " (IPC = " << std::setw(3) << ipc1000/1000 << "." << std::setfill('0')
     << std::setw(3) << ipc1000%1000 << std::setfill(' ') << ")" << std::endl;
@@ -159,8 +159,8 @@ McSim::~McSim() {
   for (auto && el : l1is) delete el;
   for (auto && el : l1ds) delete el;
   for (auto && el : l2s) delete el;
-  for (auto && el : mcs) delete el;
   for (auto && el : dirs) delete el;
+  for (auto && el : mcs) delete el;
   delete noc;
   delete global_q;
 }
@@ -215,8 +215,8 @@ std::pair<uint32_t, uint64_t> McSim::resume_simulation(bool must_switch) {
     if (global_q->curr_time > curr_time_last) {
       uint64_t ipc1000 = 1000 * (num_fetched_instrs - num_fetched_instrs_last) * lsu_process_interval /
         (global_q->curr_time - curr_time_last);
-      std::cout << " IPC= " << std::setw(3) << ipc1000/1000 << "." << std::setfill('0') << std::setw(3) << ipc1000%1000
-        << std::setfill(' ') << ", ";
+      std::cout << " IPC= " << std::setw(3) << ipc1000/1000 << "." << std::setfill('0')
+        << std::setw(3) << ipc1000%1000 << std::setfill(' ') << ", ";
     }
 
     uint64_t num_l1_acc  = 0;
@@ -263,7 +263,8 @@ std::pair<uint32_t, uint64_t> McSim::resume_simulation(bool must_switch) {
       num_used_pages += mcs[i]->os_page_acc_dist.size();
     }
 
-    std::cout << std::setw(4) << num_used_pages - num_used_pages_last << ") touched pages (this time, 1stly), ";
+    std::cout << std::setw(4) << num_used_pages - num_used_pages_last
+      << ") touched pages (this time, 1stly), ";
     num_mem_acc_last    = num_mem_acc;
     num_used_pages_last = num_used_pages;
 
@@ -313,7 +314,8 @@ uint32_t McSim::add_instruction(
     (islock == true && isunlock == true && isbarrier == true) ? ins_waitfor :
     (isbranch && isbranchtaken)        ? ins_branch_taken :
     (isbranch && !isbranchtaken)       ? ins_branch_not_taken :
-    (category == XED_CATEGORY_X87_ALU || category == XED_CATEGORY_SSE) ? ins_x87 :  // treat an SSE op as an X87 op
+    // treat an SSE op as an X87 op
+    (category == XED_CATEGORY_X87_ALU || category == XED_CATEGORY_SSE) ? ins_x87 :
     (islock == true)                   ? ins_lock :
     (isunlock == true)                 ? ins_unlock :
     (isbarrier == true)                ? ins_barrier : no_mem;
@@ -328,7 +330,8 @@ uint32_t McSim::add_instruction(
     global_q->display();
     ASSERTX(0);
   }
-  O3Queue & o3q_entry  = o3core->o3queue[(o3core->o3queue_max_size + o3core->o3queue_head + o3core->o3queue_size)%o3core->o3queue_max_size];
+  O3Queue & o3q_entry  = o3core->o3queue[(o3core->o3queue_max_size + o3core->o3queue_head +
+                         o3core->o3queue_size)%o3core->o3queue_max_size];
   o3q_entry.state      = o3iqs_not_in_queue;
   o3q_entry.ready_time = curr_time_;
   o3q_entry.waddr      = waddr;
@@ -417,29 +420,29 @@ void McSim::show_l2_cache_summary() {
     num_s_cache_lines + num_m_cache_lines + num_tr_cache_lines;
 
   std::cout << " L2$ (i,e,s,m,tr) ratio=("
-    << std::setiosflags(std::ios::fixed) << std::setw(4) << 1000 * num_i_cache_lines  / num_cache_lines << ", "
-    << std::setiosflags(std::ios::fixed) << std::setw(4) << 1000 * num_e_cache_lines  / num_cache_lines << ", "
-    << std::setiosflags(std::ios::fixed) << std::setw(4) << 1000 * num_s_cache_lines  / num_cache_lines << ", "
-    << std::setiosflags(std::ios::fixed) << std::setw(4) << 1000 * num_m_cache_lines  / num_cache_lines << ", "
-    << std::setiosflags(std::ios::fixed) << std::setw(4) << 1000 * num_tr_cache_lines / num_cache_lines << "), "
+    << std::setiosflags(std::ios::fixed) << std::setw(4)
+    << 1000 * num_i_cache_lines  / num_cache_lines << ", "
+    << std::setiosflags(std::ios::fixed) << std::setw(4)
+    << 1000 * num_e_cache_lines  / num_cache_lines << ", "
+    << std::setiosflags(std::ios::fixed) << std::setw(4)
+    << 1000 * num_s_cache_lines  / num_cache_lines << ", "
+    << std::setiosflags(std::ios::fixed) << std::setw(4)
+    << 1000 * num_m_cache_lines  / num_cache_lines << ", "
+    << std::setiosflags(std::ios::fixed) << std::setw(4)
+    << 1000 * num_tr_cache_lines / num_cache_lines << "), "
     << std::endl;
     // << "avg L2$ line life = ";
 
-    //   if (num_destroyed_cache_lines == num_destroyed_cache_lines_last_time)
-    //   {
-    //   cout << "NaN, avg time bet last acc to L2$ destroy = NaN" << std::endl;
-    //   }
-    //   else
-    //   {
-    //   cout << setiosflags(ios::fixed)
-    //   << (cache_line_life_time - cache_line_life_time_last_time) /
-    //   ((num_destroyed_cache_lines - num_destroyed_cache_lines_last_time) * l2s[0]->process_interval) << ", "
-    //   << "avg time bet last acc to $ destroy = "
-    //   << setiosflags(ios::fixed)
-    //   << (time_between_last_access_and_cache_destroy - time_between_last_access_and_cache_destroy_last_time) /
-    //   ((num_destroyed_cache_lines - num_destroyed_cache_lines_last_time) * l2s[0]->process_interval)
-    //   << " L2$ cycles" << std::endl;
-    //   }
+    if (num_destroyed_cache_lines == num_destroyed_cache_lines_last_time) {
+      cout << "NaN, avg time bet last acc to L2$ destroy = NaN" << std::endl;
+    } else {
+      cout << setiosflags(ios::fixed) << (cache_line_life_time - cache_line_life_time_last_time) /
+        ((num_destroyed_cache_lines - num_destroyed_cache_lines_last_time) * l2s[0]->process_interval)
+        << ", " << "avg time bet last acc to $ destroy = " << setiosflags(ios::fixed)
+        << (time_between_last_access_and_cache_destroy - time_between_last_access_and_cache_destroy_last_time) /
+        ((num_destroyed_cache_lines - num_destroyed_cache_lines_last_time) * l2s[0]->process_interval)
+        << " L2$ cycles" << std::endl;
+    }
 }
 */
 
@@ -466,22 +469,16 @@ void McSim::create_comps() {
     o3cores.push_back(new O3Core(ct_o3core, i, this));
     is_migrate_ready.push_back(false);
   }
-  for (uint32_t i = 0; i < num_hthreads /* / num_threads_per_l1_cache*/; i++) {
+  for (uint32_t i = 0; i < num_hthreads; i++) {
     l1is.push_back(new CacheL1(ct_cachel1i, i, this));
     l1ds.push_back(new CacheL1(ct_cachel1d, i, this));
     tlbl1ds.push_back(new TLBL1(ct_tlbl1d, i, this));
     tlbl1is.push_back(new TLBL1(ct_tlbl1i, i, this));
   }
-  /*
-  if (num_hthreads % num_threads_per_l1_cache != 0) {
-    l1is.push_back(l1is[0]);
-    l1ds.push_back(l1ds[0]);
-    tlbl1ds.push_back(tlbl1ds[0]);
-    tlbl1is.push_back(tlbl1is[0]);
-  }
-  */
-  for (uint32_t i = 0; i < num_hthreads /* / num_threads_per_l1_cache */ / num_l1_caches_per_l2_cache; i++) {
+  for (uint32_t i = 0; i < num_hthreads / num_l1_caches_per_l2_cache; i++) {
     l2s.push_back(new CacheL2(ct_cachel2, i, this));
+  }
+  for (uint32_t i = 0; i < num_hthreads / num_l1_caches_per_l2_cache; i++) {
     mcs.push_back(new MemoryController(ct_memory_controller, i, this));
     dirs.push_back(new Directory(ct_directory, i, this));
   }
@@ -492,7 +489,7 @@ void McSim::create_comps() {
 void McSim::connect_comps() {
   uint32_t num_l1_caches_per_l2_cache = pts->get_param_uint64("pts.num_l1$_per_l2$", 2);
   uint32_t num_mcs                    = pts->get_param_uint64("pts.num_mcs", 2);
-  if (num_mcs * num_l1_caches_per_l2_cache /* * num_l1_caches_per_l2_cache */ > num_hthreads) {
+  if (num_mcs * num_l1_caches_per_l2_cache > num_hthreads) {
     LOG(FATAL) << "the # of memory controllers must not be larger than the # of L2 caches\n";
   }
 
@@ -515,7 +512,7 @@ void McSim::connect_comps() {
     el->cachel1i.clear();
   }
   // connect l1s and l2s
-  for (uint32_t i = 0; i < num_hthreads /* / num_threads_per_l1_cache */; i++) {
+  for (uint32_t i = 0; i < num_hthreads; i++) {
     l1is[i]->cachel2 = l2s[i/num_l1_caches_per_l2_cache];
     l1ds[i]->cachel2 = l2s[i/num_l1_caches_per_l2_cache];
     l2s[i/num_l1_caches_per_l2_cache]->cachel1i.push_back(l1is[i]);
@@ -526,7 +523,7 @@ void McSim::connect_comps() {
   // currently it is assumed that (# of MCs) == (# of L2$s) == (# of directories)
   noc->directory.clear();
   noc->cachel2.clear();
-  for (uint32_t i = 0; i < num_hthreads /* / num_threads_per_l1_cache */ / num_l1_caches_per_l2_cache; i++) {
+  for (uint32_t i = 0; i < num_hthreads / num_l1_caches_per_l2_cache; i++) {
     dirs[i]->memorycontroller = (mcs[i]);
     mcs[i]->directory = (dirs[i]);
     l2s[i]->directory = (dirs[i]);

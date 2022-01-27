@@ -123,13 +123,13 @@ unset CPLUS_INCLUDE_PATH
 unset C_INCLUDE_PATH
 unset PKG_CONFIG_PATH
 
-#install_third_party
+install_third_party
 download_intel_pin
-#install_mcsim_frontend
-#install_mcsim_backend
-#install_tracegen
+install_mcsim_frontend
+install_mcsim_backend
+install_tracegen
 
 #install_mcsim_frontend_debug
 #install_mcsim_backend_debug
 #build_stream_example
-build_dummy_binary
+#build_dummy_binary

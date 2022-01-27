@@ -2,8 +2,8 @@
 // reserved. Use of this source code is governed by a BSD-style license that can
 // be found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#ifndef MCSIM_H_
-#define MCSIM_H_
+#ifndef MCSIM_MCSIM_H_
+#define MCSIM_MCSIM_H_
 
 #include <stdlib.h>
 #include <iostream>
@@ -151,5 +151,5 @@ class McSim {
 
 }  // namespace PinPthread
 
-#endif  // MCSIM_H_
+#endif  // MCSIM_MCSIM_H_
 

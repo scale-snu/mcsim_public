@@ -2,8 +2,8 @@
 // reserved. Use of this source code is governed by a BSD-style license that can
 // be found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#ifndef PTSMEMORYCONTROLLER_H_
-#define PTSMEMORYCONTROLLER_H_
+#ifndef MCSIM_PTSMEMORYCONTROLLER_H_
+#define MCSIM_PTSMEMORYCONTROLLER_H_
 
 #include <list>
 #include <map>
@@ -149,10 +149,12 @@ class MemoryController : public Component {
   void pre_processing(uint64_t curr_time);
   void check_bank_status(LocalQueueElement * local_event);
   inline uint32_t get_rank_num(uint64_t addr) {
-    return ((addr >> rank_interleave_base_bit) ^ (addr >> interleave_xor_base_bit)) % num_ranks_per_mc;
+    return ((addr >> rank_interleave_base_bit) ^ (addr >> interleave_xor_base_bit)) %
+            num_ranks_per_mc;
   }
   inline uint32_t get_bank_num(uint64_t addr) {
-    return ((addr >> bank_interleave_base_bit) ^ (addr >> interleave_xor_base_bit)) % num_banks_per_rank;
+    return ((addr >> bank_interleave_base_bit) ^ (addr >> interleave_xor_base_bit)) %
+            num_banks_per_rank;
   }
   uint64_t get_page_num(uint64_t addr);
 
@@ -166,4 +168,4 @@ class MemoryController : public Component {
 
 }  // namespace PinPthread
 
-#endif  // PTSMEMORYCONTROLLER_H_
+#endif  // MCSIM_PTSMEMORYCONTROLLER_H_

@@ -2,8 +2,8 @@
 // reserved. Use of this source code is governed by a BSD-style license that can
 // be found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#ifndef PTSDIRECTORY_H_
-#define PTSDIRECTORY_H_
+#ifndef MCSIM_PTSDIRECTORY_H_
+#define MCSIM_PTSDIRECTORY_H_
 
 #include <list>
 #include <map>
@@ -40,7 +40,9 @@ class Directory : public Component {
     bool not_in_dc;   // true if the entry is not in the directory cache
     uint32_t num_sharer;
 
-    DirEntry() : type(cs_invalid), sharedl2(), pending(NULL), got_cl(false), not_in_dc(false), num_sharer(0) { }
+    DirEntry() :
+      type(cs_invalid), sharedl2(), pending(NULL),
+      got_cl(false), not_in_dc(false), num_sharer(0) { }
   };
 
   const uint32_t set_lsb;
@@ -89,5 +91,5 @@ class Directory : public Component {
 
 }  // namespace PinPthread
 
-#endif  // PTSDIRECTORY_H_
+#endif  // MCSIM_PTSDIRECTORY_H_
 

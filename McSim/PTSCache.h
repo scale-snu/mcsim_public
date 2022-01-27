@@ -2,8 +2,8 @@
 // reserved. Use of this source code is governed by a BSD-style license that can
 // be found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#ifndef PTSCACHE_H_
-#define PTSCACHE_H_
+#ifndef MCSIM_PTSCACHE_H_
+#define MCSIM_PTSCACHE_H_
 
 #include <list>
 #include <queue>
@@ -23,8 +23,8 @@ class Cache : public Component {
   virtual ~Cache() { }
   const uint32_t set_lsb;
   const uint32_t num_banks;
-  const uint32_t num_sets;
-  const uint32_t num_ways;
+  uint32_t num_sets;
+  uint32_t num_ways;
   const uint32_t num_sets_per_subarray;
   friend class McSim;
 
@@ -73,7 +73,8 @@ class CacheL1 : public Cache {
   const uint32_t l1_to_l2_t;
 
   const bool       always_hit;
-  const uint32_t   l2_set_lsb;  // TODO(gajh): as of now, we only support the case when L1$ line size <= L2$ line size
+  // TODO(gajh): as of now, we only support the case when L1$ line size <= L2$ line size
+  const uint32_t   l2_set_lsb;
   const bool       use_prefetch;
   const uint32_t   num_pre_entries;
 
@@ -137,12 +138,20 @@ class CacheL2 : public Cache {
   uint64_t       cache_line_life_time;
   uint64_t       time_between_last_access_and_cache_destroy;
 
-  void add_event_to_LL(uint64_t curr_time, LocalQueueElement *, bool check_top, bool is_data = false);
+  void add_event_to_LL(
+    uint64_t curr_time,
+    LocalQueueElement *,
+    bool check_top,
+    bool is_data = false);
   void test_tags(uint32_t set);
   inline void update_LRU(uint32_t idx, L2Entry ** tags_set, L2Entry * const set_it);
-  inline void req_L1_evict(uint64_t curr_time, L2Entry * const set_it, uint64_t addr, LocalQueueElement * lqe, bool always);
+  inline void req_L1_evict(uint64_t curr_time,
+    L2Entry * const set_it,
+    uint64_t addr,
+    LocalQueueElement * lqe,
+    bool always);
 };
 
 }  // namespace PinPthread
 
-#endif  // PTSCACHE_H_
+#endif  // MCSIM_PTSCACHE_H_

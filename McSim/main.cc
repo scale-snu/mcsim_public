@@ -48,15 +48,13 @@ DEFINE_bool(run_manually, false, "Whether to run the McSimA+ frontend manually o
 
 
 #ifdef LOG_TRACE
-static void record_inst (PTSInstr *instrs, uint64_t addr, std::string op)
-{
+static void record_inst(PTSInstr *instrs, uint64_t addr, std::string op) {
   InstTraceFile << hex << instrs->ip << ": "
     << setw(2) << op << " "
     << setw(2+2*sizeof(uint64_t)) << hex << addr << dec << std::endl;
 }
 
-static void record_switch (uint32_t core_id, int pid)
-{
+static void record_switch(uint32_t core_id, int pid) {
   InstTraceFile << "CORE" << setw(3) << core_id << ": "
     << "PID" << setw(18) << pid << " resume_simulation" << std::endl;
 }
@@ -123,7 +121,7 @@ int main(int argc, char * argv[]) {
   uint64_t num_instrs_per_th   = pts->get_param_uint64("num_instrs_per_th", 0);
   int32_t  interleave_base_bit = pts->get_param_uint64("pts.mc.interleave_base_bit", 14);
 
-  auto pd{ std::make_unique<PinPthread::ProcessDescription>(FLAGS_runfile) }; 
+  auto pd{ std::make_unique<PinPthread::ProcessDescription>(FLAGS_runfile) };
 
   // it is assumed that pin and pintool names are listed in the first two lines
   char * pin_ptr     = getenv("PIN");
@@ -218,7 +216,7 @@ int main(int argc, char * argv[]) {
       argp[curr_argc++] = const_cast<char *>("-pause_tool");
       argp[curr_argc++] = const_cast<char *>("30");
       // argp[curr_argc++] = const_cast<char *>("-appdebug");
-#endif // DEBUG
+#endif  // DEBUG
       argp[curr_argc++] = const_cast<char *>("-t");
       argp[curr_argc++] = const_cast<char *>(pintool_ptr);
 
@@ -310,7 +308,8 @@ int main(int argc, char * argv[]) {
     // if (pts->get_curr_time() >= 12100000) std::cout << " ** " << pts_m->type << std::endl;
     switch (pts_m->type) {
       case pts_resume_simulation: {
-          std::pair<uint32_t, uint64_t> ret = pts->mcsim->resume_simulation(pts_m->bool_val);  // <thread_id, time>
+          //       <thread_id, time   >
+          std::pair<uint32_t, uint64_t> ret = pts->mcsim->resume_simulation(pts_m->bool_val);
           curr_pid = htid_to_pid[ret.first];
           curr_p = &(pd->pts_processes[curr_pid]);
           pts_m  = curr_p->buffer;
@@ -321,7 +320,8 @@ int main(int argc, char * argv[]) {
           // record_switch (ret.first, curr_pid);
 #endif
           // if (ret.second >= 12100000)
-          //   std::cout << "resume  tid = " << ret.first << ", pid = " << curr_pid << ", curr_time = " << ret.second << std::endl;
+          //   std::cout << "resume  tid = " << ret.first << ", pid = " << curr_pid
+          //     << ", curr_time = " << ret.second << std::endl;
           break;
         }
       case pts_add_instruction: {
@@ -333,12 +333,20 @@ int main(int argc, char * argv[]) {
             num_available_slot = pts->mcsim->add_instruction(
                 curr_p->tid_to_htid + ptsinstr->hthreadid_,
                 ptsinstr->curr_time_,
-                ptsinstr->waddr + (ptsinstr->waddr  == 0 ? 0 : ((((uint64_t)curr_pid) << addr_offset_lsb) + (((uint64_t)curr_pid) << interleave_base_bit))),
+                ptsinstr->waddr + (ptsinstr->waddr  == 0 ? 0 :
+                  ((((uint64_t)curr_pid) << addr_offset_lsb) +
+                   (((uint64_t)curr_pid) << interleave_base_bit))),
                 ptsinstr->wlen,
-                ptsinstr->raddr + (ptsinstr->raddr  == 0 ? 0 : ((((uint64_t)curr_pid) << addr_offset_lsb) + (((uint64_t)curr_pid) << interleave_base_bit))),
-                ptsinstr->raddr2+ (ptsinstr->raddr2 == 0 ? 0 : ((((uint64_t)curr_pid) << addr_offset_lsb) + (((uint64_t)curr_pid) << interleave_base_bit))),
+                ptsinstr->raddr + (ptsinstr->raddr  == 0 ? 0 :
+                  ((((uint64_t)curr_pid) << addr_offset_lsb) +
+                   (((uint64_t)curr_pid) << interleave_base_bit))),
+                ptsinstr->raddr2 + (ptsinstr->raddr2 == 0 ? 0 :
+                  ((((uint64_t)curr_pid) << addr_offset_lsb) +
+                   (((uint64_t)curr_pid) << interleave_base_bit))),
                 ptsinstr->rlen,
-                ptsinstr->ip    + ((((uint64_t)curr_pid) << addr_offset_lsb) + (((uint64_t)curr_pid) << interleave_base_bit)),
+                ptsinstr->ip +
+                  ((((uint64_t)curr_pid) << addr_offset_lsb) +
+                   (((uint64_t)curr_pid) << interleave_base_bit)),
                 ptsinstr->category,
                 ptsinstr->isbranch,
                 ptsinstr->isbranchtaken,
@@ -375,21 +383,24 @@ int main(int argc, char * argv[]) {
             // }
           }
 #ifdef LOG_TRACE
-          InstTraceFile << setw(12) << num_instrs << "                    transfer complete !!!" << std::endl;
+          InstTraceFile << setw(12) << num_instrs << "                    transfer complete !!!"
+            << std::endl;
 #endif
           if (num_instrs_per_th > 0) {
             if (num_fetched_instrs[curr_p->tid_to_htid + pts_m->val.instr[0].hthreadid_] < num_instrs_per_th &&
                 num_fetched_instrs[curr_p->tid_to_htid + pts_m->val.instr[0].hthreadid_] + num_instrs >= num_instrs_per_th) {
               num_th_passed_instr_count++;
-              LOG(INFO) << "  -- hthread " << curr_p->tid_to_htid + pts_m->val.instr[0].hthreadid_ << " executed " 
-                << num_instrs_per_th << " instrs at cycle " << pts_m->val.instr[0].curr_time_ << std::endl;
+              LOG(INFO) << "  -- hthread " << curr_p->tid_to_htid + pts_m->val.instr[0].hthreadid_
+                << " executed " << num_instrs_per_th << " instrs at cycle "
+                << pts_m->val.instr[0].curr_time_ << std::endl;
             }
           }
           num_fetched_instrs[curr_p->tid_to_htid + pts_m->val.instr[0].hthreadid_] += num_instrs;
           // PTSInstr * ptsinstr = &(pts_m->val.instr[0]);
           // if (ptsinstr->curr_time_ >= 12100000)
-          //   std::cout << "add  tid = " << curr_p->tid_to_htid + ptsinstr->hthreadid_ << ", pid = " << curr_pid
-          //        << ", curr_time = " << ptsinstr->curr_time_ << ", num_instr = " << num_instrs
+          //   std::cout << "add  tid = " << curr_p->tid_to_htid + ptsinstr->hthreadid_
+          //        << ", pid = " << curr_pid << ", curr_time = " << ptsinstr->curr_time_
+          //        << ", num_instr = " << num_instrs
           //        << ", num_avilable_slot = " << num_available_slot << std::endl;
           pts_m->uint32_t_val = num_available_slot;
           break;
@@ -412,11 +423,13 @@ int main(int argc, char * argv[]) {
       case pts_set_stack_n_size:
         pts->set_stack_n_size(
             curr_p->tid_to_htid + pts_m->uint32_t_val,
-            pts_m->stack_val + (((uint64_t)curr_pid) << addr_offset_lsb) + (((uint64_t)curr_pid) << interleave_base_bit),
+            pts_m->stack_val + (((uint64_t)curr_pid) << addr_offset_lsb) +
+              (((uint64_t)curr_pid) << interleave_base_bit),
             pts_m->stacksize_val);
         break;
       case pts_destructor: {
-          std::pair<uint32_t, uint64_t> ret = pts->resume_simulation(true);  // <thread_id, time>
+          //       <thread_id, time   >
+          std::pair<uint32_t, uint64_t> ret = pts->resume_simulation(true);
           if (ret.first == pts->get_num_hthreads()) {
             any_thread = false;
             break;
@@ -435,7 +448,10 @@ int main(int argc, char * argv[]) {
         break;
     }
 
-    memcpy(reinterpret_cast<PTSMessage *>(curr_p->pmmap), curr_p->buffer, sizeof(PTSMessage)-sizeof(instr_n_str));
+    memcpy(
+      reinterpret_cast<PTSMessage *>(curr_p->pmmap),
+      curr_p->buffer,
+      sizeof(PTSMessage)-sizeof(instr_n_str));
     (curr_p->mmap_flag)[1] = false;
   }
 
@@ -447,7 +463,8 @@ int main(int argc, char * argv[]) {
   // }
 
   gettimeofday(&finish, NULL);
-  double msec = (finish.tv_sec*1000 + finish.tv_usec/1000) - (start.tv_sec*1000 + start.tv_usec/1000);
+  double msec = (finish.tv_sec*1000 + finish.tv_usec/1000) -
+                (start.tv_sec*1000 + start.tv_usec/1000);
   LOG(INFO) << "simulation time(sec) = " << msec/1000 << std::endl;
 
 #ifdef LOG_TRACE

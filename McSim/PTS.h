@@ -2,8 +2,8 @@
 // reserved. Use of this source code is governed by a BSD-style license that can
 // be found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#ifndef PTS_H_
-#define PTS_H_
+#ifndef MCSIM_PTS_H_
+#define MCSIM_PTS_H_
 
 
 #include <stdint.h>
@@ -105,4 +105,4 @@ class PthreadTimingSimulator {
 };
 }  // namespace PinPthread
 
-#endif  // PTS_H_
+#endif  // MCSIM_PTS_H_

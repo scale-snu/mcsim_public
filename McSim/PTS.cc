@@ -11,11 +11,13 @@
 #include "McSim.h"
 #include "PTS.h"
 
-using namespace PinPthread;
+namespace PinPthread {
 
 
-void PthreadTimingSimulator::md_table_decoding(const toml::table & table, const std::string & prefix) {
-  for (auto && [k, v]: table) {
+void PthreadTimingSimulator::md_table_decoding(
+    const toml::table & table,
+    const std::string & prefix) {
+  for (auto && [k, v] : table) {
     if (v.is_table()) {
       md_table_decoding(v.as_table(), prefix + k + ".");
     } else {
@@ -26,7 +28,8 @@ void PthreadTimingSimulator::md_table_decoding(const toml::table & table, const 
       } else if (v.is_string()) {
         params_string[prefix+k] = v.as_string();
       } else {
-        std::cout << prefix << k << " is neither bool, int, nor string. Something wrong..." << std::endl;
+        std::cout << prefix << k << " is neither bool, int, nor string."
+          << "Something wrong..." << std::endl;
         exit(1);
       }
     }
@@ -49,13 +52,13 @@ PthreadTimingSimulator::PthreadTimingSimulator(const std::string & mdfile)
   md_table_decoding(data.as_table(), "");
 
   if (print_md == true) {
-    for (auto && param: params_bool) {
+    for (auto && param : params_bool) {
       std::cout << param.first << " = " << param.second << std::endl;
     }
-    for (auto && param: params_uint64_t) {
+    for (auto && param : params_uint64_t) {
       std::cout << param.first << " = " << param.second << std::endl;
     }
-    for (auto && param: params_string) {
+    for (auto && param : params_string) {
       std::cout << param.first << " = " << param.second << std::endl;
     }
   }
@@ -150,3 +153,5 @@ bool PthreadTimingSimulator::get_param_bool(
 UINT64 PthreadTimingSimulator::get_curr_time() const {
   return mcsim->get_curr_time();
 }
+
+}  // namespace PinPthread

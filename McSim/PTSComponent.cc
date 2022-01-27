@@ -77,7 +77,10 @@ uint32_t Component::get_param_uint64(const std::string & param, uint32_t def) co
 }
 
 
-uint32_t Component::get_param_uint64(const std::string & param, const std::string & prefix, uint32_t def) const {
+uint32_t Component::get_param_uint64(
+    const std::string & param,
+    const std::string & prefix,
+    uint32_t def) const {
   return mcsim->pts->get_param_uint64(prefix+param, def);
 }
 
@@ -167,7 +170,7 @@ uint32_t GlobalEventQueue::process_event() {
           p_comp = *comp_iter;
           p_comp->process_event(curr_time);
 
-          event_queue_iter->second.erase(comp_iter);
+          event_queue.begin()->second.erase(comp_iter);
           if (event_queue_iter->second.empty() == true) {
             event_queue.erase(event_queue_iter);
           }
