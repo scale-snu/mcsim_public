@@ -1,13 +1,11 @@
-
-#include <fstream>
-#include <iostream>
-#include <iomanip>
-#include <vector>
-#include <string>
-#include <set>
 #include <stdlib.h>
 #include <stdint.h>
 #include <iomanip>
+#include <fstream>
+#include <iostream>
+#include <vector>
+#include <string>
+#include <set>
 #include "snappy.h"
 
 #include "pin.H"
@@ -21,6 +19,10 @@ KNOB<string> KnobOutputFile(KNOB_MODE_WRITEONCE, "pintool",
 KNOB<BOOL> KnobValues(KNOB_MODE_WRITEONCE, "pintool",
         "values", "1", "Output memory values reads and written");
 #endif
+
+/* ===================================================================== */
+/* Global Variables */
+/* ===================================================================== */
 
 uint64_t num_instrs;
 uint64_t num_ins_mem_rd;
@@ -37,6 +39,9 @@ uint64_t curr_index;
 bool     tracing;
 
 static const uint32_t instr_group_size = 100000;
+
+// Trace file magic number
+static const uint64_t kTraceMagicNumber = 0x1628efca19620db1ull;
 
 // TODO: define PTSInstrTrace somewhere else!
 // Currently, it is also defined in PTS.h, which is bad!
@@ -61,25 +66,38 @@ struct PTSInstrTrace {
 };
 
 PTSInstrTrace instrs[instr_group_size];
-const size_t maxCompressedLength = snappy::MaxCompressedLength(sizeof(PTSInstrTrace) * instr_group_size);  
+const size_t maxCompressedLength = snappy::MaxCompressedLength(
+                                   sizeof(PTSInstrTrace) * instr_group_size);
 char * compressed;
 size_t * compressed_length;
 size_t * slice_count;
+size_t * offset;
+
+// Trace file footer
+struct Footer {
+  size_t offset_;
+  size_t total_slice_;
+  uint32_t instr_group_size_;
+  uint64_t magic_number_ = 0;
+};
 
 
-VOID Init(uint32_t argc, char ** argv)
-{
+VOID Init(uint32_t argc, char ** argv) {
   tracing    = false;
+
   num_ins_mem_rd = 0;
   num_ins_mem_wr = 0;
   num_ins_2nd_mem_rd = 0;
   num_instrs = 0;
-  curr_index = 0;
-  slice_index.clear();
+
   compressed = new char[maxCompressedLength];
   compressed_length = new size_t;
+  slice_index.clear();
   slice_count  = new size_t;
   *slice_count = 0;
+  offset  = new size_t;
+  *offset = 0;
+  curr_index = 0;
 
   for (uint32_t i = 0; i < argc; i++) {
     if (argv[i] == string("-prefix")) {
@@ -98,7 +116,9 @@ VOID Init(uint32_t argc, char ** argv)
         slice_index.insert(atol(argv[i]));
       }
     } else if (argv[i] == string("-h")) {
-      cout << " usage: -h -prefix prefix_name -slice_size size index0 index1 ..." << endl;
+      cout <<
+        " usage: -h -prefix prefix_name -slice_size size index0 index1 ..."
+           << endl;
       exit(1);
     } else if (argv[i] == string("--")) {
       break;
@@ -113,28 +133,18 @@ VOID Init(uint32_t argc, char ** argv)
   }
 }
 
-
-VOID Fini(INT32 code, VOID* v)
-{
 #ifdef DEBUG
-  InstTraceFile.close();
-#endif
-
-  cout << "  ++ num_ins : (mem_rd, mem_wr, 2nd_mem_rd, all)=";
-  cout << "( "  << dec << setw(10)  << num_ins_mem_rd << ", "
-    << setw(10) << num_ins_mem_wr   << ", "
-    << setw(8)  << num_ins_2nd_mem_rd << ", "
-    << setw(10) << num_instrs << ")"  << endl;
-}
-
-#ifdef DEBUG
-static void record_inst (PTSInstrTrace instrs, ADDRINT addr, string op)
-{
-  InstTraceFile << hex << instrs.ip << ": " 
-    << setw(2) << op << " " 
-    << setw(2+2*sizeof(ADDRINT)) << hex << addr << dec << endl;
+static void record_inst(PTSInstrTrace instrs, ADDRINT addr, string op) {
+  InstTraceFile << hex << instrs.ip << ": "
+                << setw(2) << op << " "
+                << setw(2+2*sizeof(ADDRINT)) << hex << addr << dec << endl;
 }
 #endif
+
+
+/* ===================================================================== */
+/* Instrumentation routines                                              */
+/* ===================================================================== */
 
 VOID ProcessMemIns(
     ADDRINT ip,
@@ -150,8 +160,8 @@ VOID ProcessMemIns(
     UINT32  rw0,
     UINT32  rw1,
     UINT32  rw2,
-    UINT32  rw3)
-{
+    UINT32  rw3) {
+
   if (num_instrs % slice_size == 0) {
     cout << "[" << setw(6) << curr_index << "] ";
 
@@ -160,11 +170,12 @@ VOID ProcessMemIns(
       cout << "here";
       slice_index_iter++;
       char curr_index_str[20];
-      sprintf(curr_index_str, "%ld", curr_index);
+      snprintf(curr_index_str, sizeof(curr_index_str), "%ld", curr_index);
 
-      curr_file.open(string(prefix_name+"."+curr_index_str+".snappy").c_str(), ios::binary);
+      curr_file.open(string(prefix_name+"."+curr_index_str+".snappy").c_str());
       if (curr_file.fail()) {
-        cout << "failed to open " << prefix_name+"."+curr_index_str+".snappy" << endl;
+        cout << "failed to open "
+             << prefix_name+"."+curr_index_str+".snappy" << endl;
         exit(1);
       }
     }
@@ -203,7 +214,7 @@ VOID ProcessMemIns(
     } else if (wlen == 0 && rlen !=0) {
       if (raddr2 != 0)
         record_inst(curr_instr, raddr2, "R2");
-      else 
+      else
         record_inst(curr_instr, raddr, "R1");
     } else if (wlen != 0 && rlen == 0) {
       record_inst(curr_instr, waddr, "W");
@@ -213,41 +224,60 @@ VOID ProcessMemIns(
       record_inst(curr_instr, 0, "E");
     }
 #endif
-    
+
     if ((num_instrs % instr_group_size) == 0) {
       *slice_count += 1;
-      snappy::RawCompress(reinterpret_cast<char *>(instrs), sizeof(PTSInstrTrace) * instr_group_size, 
-          compressed, compressed_length);
-      curr_file.write(reinterpret_cast<char *>(slice_count), sizeof(size_t));
-      curr_file.write(reinterpret_cast<char *>(compressed_length), sizeof(size_t));
+      snappy::RawCompress(reinterpret_cast<char *>(instrs),
+                          sizeof(PTSInstrTrace) * instr_group_size,
+                          compressed, compressed_length);
+      curr_file.write(reinterpret_cast<char *>(slice_count),
+                      sizeof(size_t));
+      curr_file.write(reinterpret_cast<char *>(compressed_length),
+                      sizeof(size_t));
       curr_file.write(compressed, *compressed_length);
+      *offset += 2*sizeof(size_t);
+      *offset += *compressed_length;
     }
-  
+
     if (num_instrs % slice_size == 0) {
       tracing = false;
+
+      // footer
+      Footer* footer = new Footer;
+      {
+        footer->magic_number_ = kTraceMagicNumber;
+        footer->total_slice_  = *slice_count;
+        footer->offset_       = *offset;
+        footer->instr_group_size_ = instr_group_size;
+      }
+
+      curr_file.write(reinterpret_cast<char *>(footer), sizeof(struct Footer));
       curr_file.close();
-      if (slice_index_iter == slice_index.end())
+
+      *slice_count = 0;
+      *offset = 0;
+
+      cout << "  ++ num_ins : (mem_rd, mem_wr, 2nd_mem_rd, all)=";
+      cout << "( " << dec
+           << setw(10) << num_ins_mem_rd     << ", "
+           << setw(10) << num_ins_mem_wr     << ", "
+           << setw(8)  << num_ins_2nd_mem_rd << ", "
+           << setw(10) << num_instrs         << ")" << endl;
+
+      if (slice_index_iter == slice_index.end()) {
 #ifdef DEBUG
         InstTraceFile.close();
 #endif
-
-      cout << "  ++ num_ins : (mem_rd, mem_wr, 2nd_mem_rd, all)=";
-      cout << "( " << dec << setw(10) << num_ins_mem_rd << ", "
-        << setw(10) << num_ins_mem_wr << ", "
-        << setw(8) << num_ins_2nd_mem_rd << ", "
-        << setw(10) << num_instrs << ")" << endl;
-      exit(1);
+        exit(1);
+      }
     }
-  }
-  else
-  {
+  } else {
     num_instrs++;
   }
 }
 
-
-VOID Instruction(INS ins, VOID *v)
-{
+// Pin calls this function every time a new instruction is encountered
+VOID Instruction(INS ins, VOID *v) {
   bool is_mem_wr   = INS_IsMemoryWrite(ins);
   bool is_mem_rd   = INS_IsMemoryRead(ins);
   bool has_mem_rd2 = INS_HasMemoryRead2(ins);
@@ -376,29 +406,59 @@ VOID Instruction(INS ins, VOID *v)
 }
 
 
-int main(int argc, char *argv[])
-{
+/* ===================================================================== */
+
+// This function is called when the application exits
+VOID Fini(INT32 code, VOID* v) {
+#ifdef DEBUG
+  InstTraceFile.close();
+#endif
+
+  // Summary of instrumented instructions
+  cout << "  ++ num_ins : (mem_rd, mem_wr, 2nd_mem_rd, all)=";
+  cout << "( "  << dec
+       << setw(10) << num_ins_mem_rd     << ", "
+       << setw(10) << num_ins_mem_wr     << ", "
+       << setw(8)  << num_ins_2nd_mem_rd << ", "
+       << setw(10) << num_instrs         << ")"  << endl;
+}
+
+
+/* ===================================================================== */
+/* Main                                                                  */
+/* ===================================================================== */
+/* 'TraceGen' has following options.                                     */
+/*  -prefix #: the name of the output snappy file                        */
+/*  -slice_size # p1 p2 .. : SLICE_SIZE and points to extract (p1 p2 ..) */
+/* command: pin -t -t tracegen.so -prefix <> -slice_size <> <> -- ...    */
+/* ===================================================================== */
+int main(int argc, char *argv[]) {
 #ifdef DEBUG
   string trace_header = string("#\n"
                                "# Instruction Trace Generated By Pin\n"
                                "#\n");
 #endif
 
+  // Initialize pin & symbol manager
   Init(argc, argv);
   PIN_InitSymbols();
   PIN_Init(argc, argv);
 
 #ifdef DEBUG
+  // Write to a file (instrumented instructions)
   InstTraceFile.open(KnobOutputFile.Value().c_str());
   InstTraceFile.write(trace_header.c_str(), trace_header.size());
   InstTraceFile.setf(ios::showbase);
 #endif
 
+  // Register Instruction to be called to instrument instructions
   INS_AddInstrumentFunction(Instruction, 0);
+
+  // Register Fini to be called when the application exits
   PIN_AddFiniFunction(Fini, 0);
 
-  // Never returns
+  // Start the program, never returns
   PIN_StartProgram();
 
-  return 0; // make compiler happy
+  return 0;
 }

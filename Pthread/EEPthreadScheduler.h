@@ -60,6 +60,15 @@ namespace PinPthread {
   class PthreadScheduler;
   class PthreadSim;
 
+  const uint64_t kTraceMagicNumber = 0x1628efca19620db1ull;
+
+  struct Footer {
+    size_t offset_;
+    size_t total_slice_;
+    uint32_t instr_group_size_;
+    uint64_t magic_number_ = 0;
+  };
+
   class Pthread {
     public:
       explicit Pthread(pthread_attr_t*, CONTEXT*, ADDRINT, ADDRINT, uint64_t curr_time_, 
@@ -172,7 +181,6 @@ namespace PinPthread {
       uint64_t  skip_first;
       uint64_t  first_instrs;
       bool      repeat_playing;
-      std::map<uint64_t, double> addr_perc;
   };
 
 }  // namespace PinPthread

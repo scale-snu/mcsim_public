@@ -22,7 +22,7 @@ McSimA+ was tested under the following system.
 
 + OS: Ubuntu 20.04.3 LTS (Kernel 5.11.0)
 + Compiler: gcc version 9.3.0
-+ Tool: Intel Pin 3.20
++ Tool: Intel Pin 3.21
 
 To build the McSimA+ simulator on Linux, first clone the github repository,
 which includes the required packages as git submodules:
@@ -71,7 +71,7 @@ $ cmake ..
 $ cd third-party/googletest
 $ mkdir -p build && cd build
 $ cmake .. -DCMAKE_INSTALL_PREFIX="$(pwd)"/../../../build -DBUILD_SHARED_LIBS=ON
-$ make -j
+$ make -j2
 $ make install
 ```
 [googletest]: https://github.com/google/googletest.git
@@ -85,13 +85,13 @@ $ make install
 1. Download the Pin at [Pin - A Binary Instrumentation Tool](https://software.intel.com/en-us/articles/pin-a-binary-instrumentation-tool-downloads).
 ```bash
 $ cd third-party
-$ wget https://software.intel.com/sites/landingpage/pintool/downloads/pin-3.20-98437-gf02b61307-gcc-linux.tar.gz
-$ tar -xvf pin-3.20-98437-gf02b61307-gcc-linux.tar.gz
+$ wget https://software.intel.com/sites/landingpage/pintool/downloads/pin-3.21-98484-ge7cd811fd-gcc-linux.tar.gz
+$ tar -xvf pin-3.21-98484-ge7cd811fd-gcc-linux.tar.gz
 ```
 
 2. Create a `Pin` symbolic link in the `mcsim_private` directory.
 ```bash
-$ ln -s "$(pwd)"/pin-3.20-98437-gf02b61307-gcc-linux "$(pwd)"/../pin
+$ ln -s "$(pwd)"/pin-3.21-98484-ge7cd811fd-gcc-linux "$(pwd)"/../pin
 ```
 
 3. Go to `McSim` and compile McSim. (To build the back-end, the 
@@ -100,7 +100,7 @@ $ ln -s "$(pwd)"/pin-3.20-98437-gf02b61307-gcc-linux "$(pwd)"/../pin
 $ cd ../McSim
 $ mkdir -p build && cd build
 $ cmake ..
-$ make -j
+$ make -j2
 ```
 
 4. Go to `Pthread` and compile the user-level thread library pin 
@@ -108,14 +108,14 @@ $ make -j
   the absolute path of `pin` root directory should be provided)
 ```bash
 $ cd ../../Pthread
-$ make PIN_ROOT="$(pwd)"/../pin obj-intel64/mypthreadtool.so -j4
+$ make PIN_ROOT="$(pwd)"/../pin obj-intel64/mypthreadtool.so -j2
 $ make PIN_ROOT="$(pwd)"/../pin obj-intel64/libmypthread.a
 ```
 
 5. Go to `TraceGen` and compile the trace generator pin tool.
 ```bash
 $ cd ../TraceGen
-$ make PIN_ROOT="$(pwd)"/../pin obj-intel64/tracegen.so -j
+$ make PIN_ROOT="$(pwd)"/../pin obj-intel64/tracegen.so -j2
 ```
 
 

@@ -232,13 +232,12 @@ int main(int argc, char * argv[]) {
       if (curr_process.trace_name.size() > 0) {
         argp[curr_argc++] = const_cast<char *>("-trace_name");
         argp[curr_argc++] = const_cast<char *>(curr_process.trace_name.c_str());
-        argp[curr_argc++] = const_cast<char *>("-trace_skip_first");
-        argp[curr_argc++] = const_cast<char *>(FLAGS_instrs_skip.c_str());
 
-        // TODO(gajh): something weird here.
+        argp[curr_argc++] = const_cast<char *>("-trace_skip_first");
         if (curr_process.prog_n_argv.size() > 1) {
-          argp[curr_argc++] = const_cast<char *>("-trace_skip_first");
           argp[curr_argc++] = const_cast<char *>(curr_process.prog_n_argv.back().c_str());
+        } else {
+          argp[curr_argc++] = const_cast<char *>(FLAGS_instrs_skip.c_str());
         }
       } else {
         argp[curr_argc++] = const_cast<char *>("-skip_first");
