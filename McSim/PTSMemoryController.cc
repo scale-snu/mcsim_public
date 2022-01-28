@@ -493,6 +493,7 @@ uint32_t MemoryController::process_event(uint64_t curr_time) {
           break;
         } else {  // row hit
           mc_bank_action curr_action_type;
+          if (par_bs == true) num_req_from_a_th[(*iter)->th_id]--;
           switch (type) {
             case et_rd_dir_info_req:
             case et_rd_dir_info_rep:
@@ -548,7 +549,6 @@ uint32_t MemoryController::process_event(uint64_t curr_time) {
               LOG(FATAL) << "currenly at req_l[" << i << "]\n";
               break;
           }
-          if (par_bs == true) num_req_from_a_th[(*iter)->th_id]--;
           if (policy == mc_scheduling_open) {
             curr_bank.action_type = curr_action_type;
           } else {

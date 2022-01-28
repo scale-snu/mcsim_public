@@ -365,7 +365,7 @@ uint32_t Directory::process_event(uint64_t curr_time) {
         remove_directory_cache_entry(set, dir_entry);
       }
       delete rep_lqe;
-    } else if (etype == et_dir_rd || etype == et_e_to_s || etype == et_s_to_s) {
+    } else if (etype == et_e_to_s || etype == et_s_to_s || etype == et_dir_rd) {
       if (dir.find(dir_entry) == dir.end() ||
           (dir[dir_entry].type != cs_m_to_s && dir[dir_entry].type != cs_tr_to_s)) {
         LOG(ERROR) << "etype = " << etype << std::endl;
@@ -607,12 +607,9 @@ uint32_t Directory::process_event(uint64_t curr_time) {
               num_invalidate++;
               d_entry.type    = cs_tr_to_m;
               // generate requests to the L2s to move the state from exclusive to invalid
-              auto lqe = new LocalQueueElement();
-              lqe->th_id = req_lqe->th_id;
-              lqe->from.push(*(d_entry.sharedl2.begin()));
+              auto lqe = new LocalQueueElement(
+                *(d_entry.sharedl2.begin()), et_invalidate, address, req_lqe->th_id);
               lqe->from.push(this);
-              lqe->type = et_invalidate;
-              lqe->address = address;
               add_event_to_UL(curr_time, *(d_entry.sharedl2.begin()), lqe);
             }
             break;
@@ -632,14 +629,12 @@ uint32_t Directory::process_event(uint64_t curr_time) {
             if (use_limitless == true && limitless_broadcast_threshold < d_entry.sharedl2.size()) {
               for (unsigned int l2idx = 0; l2idx < mcsim->l2s.size(); l2idx++) {
                 num_invalidate++;
-                auto lqe = new LocalQueueElement();
-                lqe->th_id = req_lqe->th_id;
-                lqe->from.push(mcsim->l2s[l2idx]);
+                auto lqe = new LocalQueueElement(mcsim->l2s[l2idx],
+                  (mcsim->l2s[l2idx] == *(d_entry.sharedl2.begin())) ? et_invalidate :
+                    (d_entry.sharedl2.find(mcsim->l2s[l2idx]) != d_entry.sharedl2.end()) ? et_invalidate_nd :
+                    et_nop,
+                  address, req_lqe->th_id);
                 lqe->from.push(this);
-                lqe->type = (mcsim->l2s[l2idx] == *(d_entry.sharedl2.begin())) ? et_invalidate :
-                            (d_entry.sharedl2.find(mcsim->l2s[l2idx]) != d_entry.sharedl2.end()) ? et_invalidate_nd :
-                            et_nop;
-                lqe->address = address;
                 add_event_to_UL(curr_time, mcsim->l2s[l2idx], lqe);
               }
             } else {

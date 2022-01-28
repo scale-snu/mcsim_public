@@ -104,11 +104,6 @@ build_stream_example() {
   make clean && make -j
 }
 
-build_dummy_binary() {
-  cd "$ROOT"/McSim/dummy
-  make clean && make -j
-}
-
 
 ## main: script start
 thisexec=`basename "$0"`
@@ -131,5 +126,4 @@ install_tracegen
 
 #install_mcsim_frontend_debug
 #install_mcsim_backend_debug
-#build_stream_example
-#build_dummy_binary
+build_stream_example
