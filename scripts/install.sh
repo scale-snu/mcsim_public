@@ -22,7 +22,6 @@ install_third_party() {
   cmake .. -DCMAKE_INSTALL_PREFIX=$DEP_BUILD_DIR -DBUILD_SHARED_LIBS=ON
   make -j2
   make install
-  ldconfig
   cd $THIRD_PARTY_DIR
 
   # 2. glog:

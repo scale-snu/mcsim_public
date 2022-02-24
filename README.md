@@ -43,7 +43,6 @@ $ mkdir -p build && cd build
 $ cmake .. -DCMAKE_INSTALL_PREFIX="$(pwd)"/../../../build -DBUILD_SHARED_LIBS=ON
 $ make -j2
 $ make install
-$ ldconfig
 ```
 [gflags]: https://gflags.github.io/gflags/
 
