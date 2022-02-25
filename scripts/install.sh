@@ -4,6 +4,8 @@ echo $ROOT
 
 THIRD_PARTY_DIR="$ROOT/third-party"
 DEP_BUILD_DIR="$ROOT/build"
+PIN_FILE_PRE="pin-3.21-98484-ge7cd811fd-gcc-linux"
+PIN_FILE_NAME="$PIN_FILE_PRE.tar.gz"
 
 
 ## third-party installation
@@ -51,11 +53,11 @@ install_third_party() {
 download_intel_pin() {
   cd "$THIRD_PARTY_DIR"
 
-  if [ ! -e "pin-3.20-98437-gf02b61307-gcc-linux.tar.gz" ]
+  if [ ! -e "$PIN_FILE_NAME" ]
   then
-    wget https://software.intel.com/sites/landingpage/pintool/downloads/pin-3.20-98437-gf02b61307-gcc-linux.tar.gz
-    tar -xvf pin-3.20-98437-gf02b61307-gcc-linux.tar.gz
-    ln -s "$THIRD_PARTY_DIR"/pin-3.20-98437-gf02b61307-gcc-linux "$ROOT"/pin
+    wget https://software.intel.com/sites/landingpage/pintool/downloads/"$PIN_FILE_NAME"
+    tar -xvf "$PIN_FILE_NAME"
+    ln -s "$THIRD_PARTY_DIR"/"$PIN_FILE_PRE" "$ROOT"/pin
   fi
 }
 
