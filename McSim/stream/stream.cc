@@ -1,7 +1,3 @@
-// Copyright (c) 2010-present Jung Ho Ahn and other contributors. All rights
-// reserved. Use of this source code is governed by a BSD-style license that can
-// be found in the LICENSE file. See the AUTHORS file for names of contributors.
-
 /*************************************************************************/
 /*                                                                       */
 /*  C = A + B                                                            */
@@ -57,7 +53,7 @@ class thread_args
 };
 
 
-int main(int argc, char * argv)
+int main(int argc, char * argv[])
 {
   mcsim_skip_instrs_begin();
 
@@ -209,12 +205,14 @@ void * stream(void * void_args)
       init_pointer_C+=page_sz_in_word*(num_processors - 1);
     }
   }
+
+  return NULL;
 }
 
 
 int32_t log_2(uint64_t number)
 {
-  int cumulative = 1;
+  uint64_t cumulative = 1;
   int32_t out = 0;
   int done = 0;
 
