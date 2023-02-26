@@ -29,11 +29,11 @@ which includes the required packages as git submodules:
 
 + McSimA+
 ```bash
-git clone git@github.com:scale-snu/mcsim_private.git --recursive
+git clone git@github.com:scale-snu/mcsim_public.git --recursive
 ```
 or
 ```bash
-$ git clone https://github.com/scale-snu/mcsim_private.git --recursive
+$ git clone https://github.com/scale-snu/mcsim_public.git --recursive
 ```
 
 + [gflags][gflags]
@@ -88,7 +88,7 @@ $ wget https://software.intel.com/sites/landingpage/pintool/downloads/pin-3.21-9
 $ tar -xvf pin-3.21-98484-ge7cd811fd-gcc-linux.tar.gz
 ```
 
-2. Create a `Pin` symbolic link in the `mcsim_private` directory.
+2. Create a `Pin` symbolic link in the `mcsim_public` directory.
 ```bash
 $ ln -s "$(pwd)"/pin-3.21-98484-ge7cd811fd-gcc-linux "$(pwd)"/../pin
 ```
@@ -154,7 +154,7 @@ type = "pintool"
 num_threads = 4
 num_instrs_to_skip_first = 0
 ### Add the absolute path of stream directory ###
-path = "/home/gajh/repository/mcsim_private/McSim/stream"
+path = "/home/gajh/repository/mcsim_public/McSim/stream"
 arg  = "STREAM -p4 -n1048576 -r10 -s512"
 ```
 
@@ -196,7 +196,7 @@ $ vim Apps/list/run-trace.toml
 type = "trace"
 num_instrs_to_skip_first = 0
 trace_file = "/tmp/test.0.snappy"
-path = "/home/gajh/repository/mcsim_private/McSim/stream"
+path = "/home/gajh/repository/mcsim_public/McSim/stream"
 arg  = "STREAM"
 ```
 

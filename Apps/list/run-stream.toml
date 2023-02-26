@@ -4,6 +4,6 @@
 type = "pintool"
 num_threads = 4
 num_instrs_to_skip_first = 0
-path = "/home/gajh/repository/mcsim_private/McSim/stream" 
+path = "/home/gajh/repository/mcsim_public/McSim/stream" 
 arg  = "STREAM -p4 -n1048576 -r10 -s512"
 
